@@ -55,8 +55,10 @@ export class ContributionService {
     return contribution
   }
 
-  async verifyContribution(circleId: string, contributionId: string, adminUserId: string) {
-    await this.ensureAdmin(circleId, adminUserId)
+  async verifyContribution(circleId: string, contributionId: string, adminUserId: string, options?: { skipCircleRoleCheck?: boolean }) {
+    if (!options?.skipCircleRoleCheck) {
+      await this.ensureAdmin(circleId, adminUserId)
+    }
 
     return this.app.prisma.$transaction(async (tx) => {
       const contribution = await tx.contribution.findFirst({
@@ -126,8 +128,16 @@ export class ContributionService {
     })
   }
 
-  async rejectContribution(circleId: string, contributionId: string, adminUserId: string, reason: string) {
-    await this.ensureAdmin(circleId, adminUserId)
+  async rejectContribution(
+    circleId: string,
+    contributionId: string,
+    adminUserId: string,
+    reason: string,
+    options?: { skipCircleRoleCheck?: boolean }
+  ) {
+    if (!options?.skipCircleRoleCheck) {
+      await this.ensureAdmin(circleId, adminUserId)
+    }
     if (!reason.trim()) throw new ValidationError('Rejection reason is required', 'reason')
 
     const contribution = await this.app.prisma.contribution.findFirst({ where: { id: contributionId, circleId } })

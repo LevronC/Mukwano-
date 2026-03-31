@@ -29,6 +29,28 @@ export const reportingRoute: FastifyPluginAsync = async (fastify) => {
     return reply.send(data)
   })
 
+  fastify.patch('/admin/contributions/:id/verify', async (request, reply) => {
+    const params = request.params as { id: string }
+    const data = await service.verifyPendingContribution(currentUserId(request), params.id)
+    return reply.send(data)
+  })
+
+  fastify.patch('/admin/contributions/:id/reject', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['reason'],
+        properties: { reason: { type: 'string', minLength: 1, maxLength: 1000 } },
+        additionalProperties: false
+      }
+    }
+  }, async (request, reply) => {
+    const params = request.params as { id: string }
+    const body = request.body as { reason: string }
+    const data = await service.rejectPendingContribution(currentUserId(request), params.id, body.reason)
+    return reply.send(data)
+  })
+
   fastify.get('/admin/members', async (request, reply) => {
     const data = await service.getAdminMembers(currentUserId(request))
     return reply.send(data)
@@ -57,6 +79,16 @@ export const reportingRoute: FastifyPluginAsync = async (fastify) => {
 
   fastify.get('/admin/activity', async (request, reply) => {
     const data = await service.getAdminActivity(currentUserId(request))
+    return reply.send(data)
+  })
+
+  fastify.get('/admin/metrics', async (request, reply) => {
+    const data = await service.getAdminMetrics(currentUserId(request))
+    return reply.send(data)
+  })
+
+  fastify.get('/admin/system-health', async (request, reply) => {
+    const data = await service.getAdminSystemHealth(currentUserId(request))
     return reply.send(data)
   })
 }

@@ -1,0 +1,60 @@
+import { Navigate, createBrowserRouter } from 'react-router-dom'
+import { AppLayout } from '@/components/layout/AppLayout'
+import { RootLayout } from '@/components/theme/RootLayout'
+import { useAuth } from '@/contexts/AuthContext'
+import { LoginPage } from '@/pages/auth/LoginPage'
+import { SignupPage } from '@/pages/auth/SignupPage'
+import { SplashPage } from '@/pages/SplashPage'
+import { DashboardPage } from '@/pages/DashboardPage'
+import { CirclesListPage } from '@/pages/circles/CirclesListPage'
+import { NewCirclePage } from '@/pages/circles/NewCirclePage'
+import { CircleDetailPage } from '@/pages/circles/CircleDetailPage'
+import { NewContributionPage } from '@/pages/contributions/NewContributionPage'
+import { NewProposalPage } from '@/pages/proposals/NewProposalPage'
+import { ProposalDetailPage } from '@/pages/proposals/ProposalDetailPage'
+import { ProjectDetailPage } from '@/pages/projects/ProjectDetailPage'
+import { PortfolioPage } from '@/pages/PortfolioPage'
+import { ExplorePage } from '@/pages/ExplorePage'
+import { AdminPage } from '@/pages/admin/AdminPage'
+import { ProfilePage } from '@/pages/ProfilePage'
+import { OnboardingSectorPage } from '@/pages/onboarding/OnboardingSectorPage'
+import { OnboardingCountryPage } from '@/pages/onboarding/OnboardingCountryPage'
+import { OnboardingCompletePage } from '@/pages/onboarding/OnboardingCompletePage'
+
+function ProtectedLayout() {
+  const { user, loading } = useAuth()
+  if (loading) return <div className="p-4 text-[var(--mk-muted)]">Loading...</div>
+  if (!user) return <Navigate replace to="/login" />
+  return <AppLayout />
+}
+
+export const router = createBrowserRouter([
+  {
+    element: <RootLayout />,
+    children: [
+      { index: true, element: <SplashPage /> },
+      { path: 'login', element: <LoginPage /> },
+      { path: 'signup', element: <SignupPage /> },
+      {
+        element: <ProtectedLayout />,
+        children: [
+          { path: 'dashboard', element: <DashboardPage /> },
+          { path: 'onboarding/sector', element: <OnboardingSectorPage /> },
+          { path: 'onboarding/country', element: <OnboardingCountryPage /> },
+          { path: 'onboarding/complete', element: <OnboardingCompletePage /> },
+          { path: 'circles', element: <CirclesListPage /> },
+          { path: 'circles/new', element: <NewCirclePage /> },
+          { path: 'circles/:id', element: <CircleDetailPage /> },
+          { path: 'circles/:id/contributions/new', element: <NewContributionPage /> },
+          { path: 'circles/:id/proposals/new', element: <NewProposalPage /> },
+          { path: 'circles/:id/proposals/:pid', element: <ProposalDetailPage /> },
+          { path: 'circles/:id/projects/:projId', element: <ProjectDetailPage /> },
+          { path: 'portfolio', element: <PortfolioPage /> },
+          { path: 'explore', element: <ExplorePage /> },
+          { path: 'admin', element: <AdminPage /> },
+          { path: 'profile', element: <ProfilePage /> }
+        ]
+      }
+    ]
+  }
+])

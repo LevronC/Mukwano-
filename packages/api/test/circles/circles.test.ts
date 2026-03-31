@@ -289,6 +289,63 @@ describe('POST /api/v1/circles/:id/join (CIRCLE-03)', () => {
   })
 })
 
+describe('Join request approval workflow', () => {
+  it('allows a user to submit join request and committee to approve', async () => {
+    const { accessToken, userId } = await signup('requester')
+
+    const requestRes = await app.inject({
+      method: 'POST',
+      url: `/api/v1/circles/${circleId}/join-request`,
+      headers: injectHeaders(accessToken)
+    })
+    expect(requestRes.statusCode).toBe(201)
+    expect(requestRes.json().role).toBe('pending')
+
+    const pendingList = await app.inject({
+      method: 'GET',
+      url: `/api/v1/circles/${circleId}/join-requests`,
+      headers: injectHeaders(creatorToken)
+    })
+    expect(pendingList.statusCode).toBe(200)
+    expect(Array.isArray(pendingList.json())).toBe(true)
+    expect(pendingList.json().some((entry: { userId: string }) => entry.userId === userId)).toBe(true)
+
+    const approveRes = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/circles/${circleId}/join-requests/${userId}/approve`,
+      headers: injectHeaders(creatorToken)
+    })
+    expect(approveRes.statusCode).toBe(200)
+    expect(approveRes.json().role).toBe('member')
+  })
+
+  it('allows committee to reject join request', async () => {
+    const { accessToken, userId } = await signup('requester2')
+
+    const requestRes = await app.inject({
+      method: 'POST',
+      url: `/api/v1/circles/${circleId}/join-request`,
+      headers: injectHeaders(accessToken)
+    })
+    expect(requestRes.statusCode).toBe(201)
+
+    const rejectRes = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/circles/${circleId}/join-requests/${userId}/reject`,
+      headers: injectHeaders(creatorToken)
+    })
+    expect(rejectRes.statusCode).toBe(200)
+
+    const pendingList = await app.inject({
+      method: 'GET',
+      url: `/api/v1/circles/${circleId}/join-requests`,
+      headers: injectHeaders(creatorToken)
+    })
+    expect(pendingList.statusCode).toBe(200)
+    expect(pendingList.json().some((entry: { userId: string }) => entry.userId === userId)).toBe(false)
+  })
+})
+
 describe('POST /api/v1/circles/:id/leave', () => {
   it('allows a regular member to leave', async () => {
     const { accessToken } = await signup('leaver')

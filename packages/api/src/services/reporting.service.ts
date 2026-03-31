@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { ForbiddenError, NotFoundError } from '../errors/http-errors.js'
+import { ContributionService } from './contribution.service.js'
 
 type ActivityItem = {
   id: string
@@ -124,6 +125,32 @@ export class ReportingService {
     })
   }
 
+  async verifyPendingContribution(requestUserId: string, contributionId: string) {
+    await this.ensureGlobalAdmin(requestUserId)
+    const contribution = await this.app.prisma.contribution.findUnique({
+      where: { id: contributionId },
+      select: { id: true, circleId: true }
+    })
+    if (!contribution) throw new NotFoundError('Contribution not found')
+    const contributionService = new ContributionService(this.app)
+    return contributionService.verifyContribution(contribution.circleId, contribution.id, requestUserId, {
+      skipCircleRoleCheck: true
+    })
+  }
+
+  async rejectPendingContribution(requestUserId: string, contributionId: string, reason: string) {
+    await this.ensureGlobalAdmin(requestUserId)
+    const contribution = await this.app.prisma.contribution.findUnique({
+      where: { id: contributionId },
+      select: { id: true, circleId: true }
+    })
+    if (!contribution) throw new NotFoundError('Contribution not found')
+    const contributionService = new ContributionService(this.app)
+    return contributionService.rejectContribution(contribution.circleId, contribution.id, requestUserId, reason, {
+      skipCircleRoleCheck: true
+    })
+  }
+
   async getAdminMembers(requestUserId: string) {
     await this.ensureGlobalAdmin(requestUserId)
     return this.app.prisma.user.findMany({
@@ -174,6 +201,36 @@ export class ReportingService {
     await this.ensureGlobalAdmin(requestUserId)
     const circles = await this.app.prisma.circle.findMany({ select: { id: true } })
     return this.getActivityForCircles(circles.map((c) => c.id), 500)
+  }
+
+  async getAdminMetrics(requestUserId: string) {
+    await this.ensureGlobalAdmin(requestUserId)
+    const [pendingVerifications, totalContributed, activeCircles, activeProjects] = await Promise.all([
+      this.app.prisma.contribution.count({ where: { status: 'pending' } }),
+      this.app.prisma.contribution.aggregate({
+        _sum: { amount: true },
+        where: { status: 'verified' }
+      }),
+      this.app.prisma.circle.count({ where: { status: 'active' } }),
+      this.app.prisma.project.count({ where: { status: { in: ['approved', 'executing'] } } })
+    ])
+
+    return {
+      pendingVerifications,
+      totalContributed: Number(totalContributed._sum.amount ?? 0),
+      activeCircles,
+      activeProjects,
+      currency: 'USD'
+    }
+  }
+
+  async getAdminSystemHealth(requestUserId: string) {
+    await this.ensureGlobalAdmin(requestUserId)
+    return {
+      api: 'healthy',
+      database: 'healthy',
+      checkedAt: new Date().toISOString()
+    }
   }
 
   private async ensureGlobalAdmin(userId: string) {

@@ -6,6 +6,7 @@ const DOMAIN = '@reporting.example'
 
 let app: FastifyInstance
 let adminToken: string
+let globalOnlyAdminToken: string
 let memberToken: string
 let outsiderToken: string
 let memberId: string
@@ -33,15 +34,18 @@ beforeAll(async () => {
   await app.prisma.user.deleteMany({ where: { email: { endsWith: DOMAIN } } })
 
   const admin = await signup('admin')
+  const globalOnly = await signup('globalonly')
   const member = await signup('member')
   const outsider = await signup('outsider')
 
   adminToken = admin.accessToken
+  globalOnlyAdminToken = globalOnly.accessToken
   memberToken = member.accessToken
   outsiderToken = outsider.accessToken
   memberId = member.userId
 
   await app.prisma.user.update({ where: { id: admin.userId }, data: { isGlobalAdmin: true } })
+  await app.prisma.user.update({ where: { id: globalOnly.userId }, data: { isGlobalAdmin: true } })
 
   const circle = await app.inject({
     method: 'POST',
@@ -154,11 +158,88 @@ describe('Phase 6 - portfolio/dashboard/admin', () => {
     expect(res.json().length).toBeGreaterThan(0)
   })
 
+  it('ADMIN-05: global admin can verify pending contribution through admin endpoint', async () => {
+    const pendingContribution = await app.inject({
+      method: 'POST',
+      url: `/api/v1/circles/${circleId}/contributions`,
+      headers: injectHeaders(memberToken),
+      payload: { amount: 123 }
+    })
+    expect(pendingContribution.statusCode).toBe(201)
+    const contributionId = pendingContribution.json().id as string
+
+    const verify = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/contributions/${contributionId}/verify`,
+      headers: injectHeaders(adminToken)
+    })
+    expect(verify.statusCode).toBe(200)
+    expect(verify.json().contribution.status).toBe('verified')
+  })
+
+  it('ADMIN-05b: global admin not in circle can still verify via admin endpoint', async () => {
+    const pendingContribution = await app.inject({
+      method: 'POST',
+      url: `/api/v1/circles/${circleId}/contributions`,
+      headers: injectHeaders(memberToken),
+      payload: { amount: 77 }
+    })
+    expect(pendingContribution.statusCode).toBe(201)
+    const contributionId = pendingContribution.json().id as string
+
+    const verify = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/contributions/${contributionId}/verify`,
+      headers: injectHeaders(globalOnlyAdminToken)
+    })
+    expect(verify.statusCode).toBe(200)
+    expect(verify.json().contribution.status).toBe('verified')
+  })
+
+  it('ADMIN-06: global admin can reject pending contribution through admin endpoint', async () => {
+    const pendingContribution = await app.inject({
+      method: 'POST',
+      url: `/api/v1/circles/${circleId}/contributions`,
+      headers: injectHeaders(memberToken),
+      payload: { amount: 99 }
+    })
+    expect(pendingContribution.statusCode).toBe(201)
+    const contributionId = pendingContribution.json().id as string
+
+    const reject = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/contributions/${contributionId}/reject`,
+      headers: injectHeaders(adminToken),
+      payload: { reason: 'Invalid transfer reference' }
+    })
+    expect(reject.statusCode).toBe(200)
+    expect(reject.json().status).toBe('rejected')
+  })
+
+  it('ADMIN-07: global admin can access metrics and system health', async () => {
+    const metrics = await app.inject({ method: 'GET', url: '/api/v1/admin/metrics', headers: injectHeaders(adminToken) })
+    expect(metrics.statusCode).toBe(200)
+    expect(typeof metrics.json().pendingVerifications).toBe('number')
+    expect(typeof metrics.json().activeProjects).toBe('number')
+
+    const health = await app.inject({ method: 'GET', url: '/api/v1/admin/system-health', headers: injectHeaders(adminToken) })
+    expect(health.statusCode).toBe(200)
+    expect(health.json().api).toBe('healthy')
+    expect(health.json().database).toBe('healthy')
+  })
+
   it('admin endpoints reject non-global-admin users', async () => {
     const pending = await app.inject({ method: 'GET', url: '/api/v1/admin/contributions/pending', headers: injectHeaders(outsiderToken) })
     expect(pending.statusCode).toBe(403)
 
     const ledger = await app.inject({ method: 'GET', url: '/api/v1/admin/ledger', headers: injectHeaders(outsiderToken) })
     expect(ledger.statusCode).toBe(403)
+
+    const verify = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/admin/contributions/00000000-0000-0000-0000-000000000000/verify',
+      headers: injectHeaders(outsiderToken)
+    })
+    expect(verify.statusCode).toBe(403)
   })
 })

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>Mukwano — Building Together</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Outfit:wght@200;300;400;600;700&family=Dancing+Script:wght@700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--navy:#060d1f;--navy2:#0b1630;--navy3:#0f1e42;--gold:#f0a500;--gold2:#ffc740;--gold3:#ffe49a;--gold-dim:rgba(240,165,0,0.12);--white:#ffffff;--offwhite:#f7f2e8;--muted:#7a95c4;--muted2:#4a6090;}
+html{scroll-behavior:smooth;font-size:16px;}
+body{font-family:'Outfit',sans-serif;background:var(--navy);color:var(--white);overflow-x:hidden;cursor:none;}
+.radial-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle at center,transparent 30%,rgba(5,8,15,.65) 90%);pointer-events:none;z-index:1;}
+#cursor{position:fixed;width:8px;height:8px;background:var(--gold);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .2s,height .2s,background .2s;}
+#cursor-ring{position:fixed;width:36px;height:36px;border:1px solid rgba(240,165,0,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:all .12s ease;mix-blend-mode:screen;}
+body:hover #cursor{width:8px;height:8px;}
+#bgCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+.noise{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;opacity:.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px;}
+#intro{position:fixed;top:0;left:0;width:100%;height:100%;z-index:500;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity 1s ease,visibility 1s ease;}
+#intro.gone{opacity:0;visibility:hidden;}
+.intro-logo{opacity:0;transform:scale(.5);transition:all 1s cubic-bezier(.22,1,.36,1);}
+.intro-logo.show{opacity:1;transform:scale(1);}
+.intro-bar{width:0;height:2px;background:linear-gradient(to right,transparent,var(--gold),transparent);margin-top:32px;transition:width 1.2s ease;}
+.intro-bar.grow{width:260px;}
+.intro-text{margin-top:16px;font-size:11px;letter-spacing:5px;text-transform:uppercase;color:var(--muted);opacity:0;transition:opacity .6s ease .8s;}
+.intro-text.show{opacity:1;}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:24px 64px;opacity:0;animation:fadeDown 1s ease 3.2s forwards;}
+nav::after{content:'';position:absolute;bottom:0;left:64px;right:64px;height:1px;background:linear-gradient(to right,transparent,rgba(240,165,0,.15),transparent);}
+.nav-logo{display:flex;align-items:center;gap:12px;text-decoration:none;}
+.nav-logo .logo-surface{padding:4px 6px;border-radius:12px;}
+.nav-logo .brand-logo{height:38px;width:auto;display:block;}
+.nav-brand{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:var(--gold);letter-spacing:2px;}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+.nav-links{display:flex;gap:40px;list-style:none;}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:12px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;position:relative;padding-bottom:4px;transition:color .3s;}
+.nav-links a::after{content:'';position:absolute;bottom:0;left:0;width:0;height:1px;background:var(--gold);transition:width .3s;}
+.nav-links a:hover{color:var(--gold);}
+.nav-links a:hover::after{width:100%;}
+.nav-cta{background:transparent;border:1px solid rgba(240,165,0,.35);color:var(--gold);padding:10px 28px;border-radius:30px;font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;text-decoration:none;transition:all .3s;}
+.nav-cta:hover{background:var(--gold);color:var(--navy);box-shadow:0 0 30px rgba(240,165,0,.3);}
+#hero{position:relative;z-index:2;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:140px 40px 100px;text-align:center;perspective:1000px;}
+#hero > *:not(.orbit-ring){position:relative;z-index:2;}
+.orbit-ring{position:absolute;top:50%;left:50%;border-radius:50%;border:1px solid rgba(240,165,0,.07);pointer-events:none;transform:translate(-50%,-50%) rotateX(70deg);}
+.orbit-ring:nth-child(1){width:700px;height:700px;animation:orbit1 18s linear infinite;}
+.orbit-ring:nth-child(2){width:560px;height:560px;animation:orbit1 12s linear infinite reverse;}
+.orbit-ring:nth-child(3){width:420px;height:420px;animation:orbit1 22s linear infinite;}
+.hero-logo-scene{position:relative;z-index:2;width:280px;height:280px;margin:0 auto 60px;transform-style:preserve-3d;animation:heroLogoIn 1.4s cubic-bezier(.22,1,.36,1) 3s both;}
+.logo-surface{background:rgba(255,255,255,.97);border-radius:50%;padding:14px;box-shadow:0 12px 48px rgba(0,0,0,.35),0 0 0 1px rgba(240,165,0,.12);display:flex;align-items:center;justify-content:center;}
+.intro-logo .logo-surface{width:130px;height:130px;margin:0 auto;}
+.intro-logo .brand-logo{width:100%;height:100%;object-fit:contain;}
+.hero-logo-scene .logo-surface{width:100%;height:100%;box-sizing:border-box;}
+.hero-logo-scene .brand-logo{width:100%;height:100%;max-height:252px;object-fit:contain;}
+.logo-3d-wrap{width:100%;height:100%;transform-style:preserve-3d;transition:transform .1s ease;}
+.logo-glow-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:290px;height:290px;border-radius:50%;background:radial-gradient(circle,rgba(240,165,0,.18) 0%,transparent 70%);animation:glowPulse 3s ease-in-out infinite;}
+.logo-glow-ring2{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:330px;height:330px;border-radius:50%;border:1px solid rgba(240,165,0,.12);animation:glowPulse 3s ease-in-out 1.5s infinite;}
+.hero-eyebrow{display:none;}
+.tagline-primary{font-family:'Inter',sans-serif;font-size:.78rem;letter-spacing:.35em;text-transform:uppercase;font-weight:500;color:rgba(255,245,220,.85);background:rgba(255,255,245,.05);backdrop-filter:blur(4px);display:inline-block;padding:.4rem 1.2rem;border-radius:40px;margin-bottom:1rem;opacity:0;animation:fadeUp 1s ease 3.45s forwards;}
+.building-together{font-family:'Inter',sans-serif;font-size:clamp(1.4rem,2.8vw,2.2rem);font-weight:600;background:linear-gradient(120deg,#fff,#f5c67a);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:.5rem;letter-spacing:-.01em;opacity:0;animation:fadeUp 1s ease 3.7s forwards;}
+.hero-logo-wrap{position:relative;display:inline-block;}
+h1.hero-title{font-family:'Cormorant Garamond',serif;font-size:clamp(52px,7vw,96px);font-weight:700;line-height:1;color:var(--white);margin-bottom:8px;opacity:0;animation:fadeUp 1s ease 3.6s forwards;letter-spacing:-1px;}
+h1.hero-title .gold{color:var(--gold);}
+h1.hero-title .outline{-webkit-text-stroke:1px rgba(255,255,255,.3);color:transparent;}
+.hero-script{font-family:'Dancing Script',cursive;font-size:clamp(20px,2.5vw,30px);color:var(--gold2);margin-bottom:40px;letter-spacing:1px;opacity:0;animation:fadeUp 1s ease 3.8s forwards;}
+.hero-desc{font-size:15px;font-weight:300;color:var(--muted);max-width:480px;line-height:1.9;margin:0 auto 56px;opacity:0;animation:fadeUp 1s ease 4s forwards;}
+.hero-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;opacity:0;animation:fadeUp 1s ease 4.2s forwards;}
+.btn-gold{position:relative;overflow:hidden;background:var(--gold);color:var(--navy);padding:16px 44px;border-radius:50px;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;text-decoration:none;transition:all .4s;display:inline-flex;align-items:center;gap:10px;}
+.btn-gold::before{content:'';position:absolute;top:50%;left:-100%;width:100%;height:200%;background:rgba(255,255,255,.15);transform:skewX(-20deg) translateY(-50%);transition:left .5s;}
+.btn-gold:hover::before{left:150%;}
+.btn-gold:hover{background:var(--gold2);box-shadow:0 8px 40px rgba(240,165,0,.5);transform:translateY(-2px);}
+.btn-outline{background:transparent;color:var(--white);padding:16px 44px;border-radius:50px;font-size:13px;font-weight:500;letter-spacing:2px;text-transform:uppercase;text-decoration:none;transition:all .3s;border:1px solid rgba(255,255,255,.15);display:inline-flex;align-items:center;gap:10px;backdrop-filter:blur(8px);}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold);transform:translateY(-2px);}
+.scroll-cue{position:absolute;bottom:44px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px;opacity:0;animation:fadeIn 1s ease 4.8s forwards;}
+.scroll-cue span{font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--muted2);}
+.scroll-mouse{width:22px;height:36px;border:1px solid rgba(240,165,0,.3);border-radius:12px;display:flex;justify-content:center;padding-top:6px;}
+.scroll-wheel{width:2px;height:6px;background:var(--gold);border-radius:2px;animation:scrollWheel 1.6s ease-in-out infinite;}
+#features{position:relative;z-index:2;padding:120px 60px;max-width:1280px;margin:0 auto;}
+.section-eyebrow{display:block;font-size:10px;font-weight:700;letter-spacing:6px;text-transform:uppercase;color:var(--gold);margin-bottom:18px;}
+.section-title{font-family:'Cormorant Garamond',serif;font-size:clamp(36px,4.5vw,60px);font-weight:700;line-height:1.05;letter-spacing:-.5px;}
+.section-title em{color:var(--gold);font-style:normal;}
+.section-header-row{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:70px;gap:40px;}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:14px;background:var(--navy2);border:none;border-radius:22px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.04);}
+.feat{min-width:0;background:var(--navy);padding:52px 44px;position:relative;overflow:hidden;transition:all .5s;opacity:1;transform:translateY(0);box-sizing:border-box;border:1px solid rgba(240,165,0,.38);border-radius:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.03);}
+.feat::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(240,165,0,.05) 0%,transparent 60%);opacity:0;transition:opacity .4s;}
+.feat:hover{background:var(--navy3);border-color:rgba(240,165,0,.52);}
+.feat:hover::after{opacity:1;}
+.feat-num{font-family:'Cormorant Garamond',serif;font-size:72px;font-weight:700;color:rgba(240,165,0,.06);line-height:1;margin-bottom:16px;transition:color .4s;}
+.feat:hover .feat-num{color:rgba(240,165,0,.12);}
+.feat-icon{width:48px;height:48px;margin-bottom:24px;display:flex;align-items:center;justify-content:center;}
+.feat-icon svg{width:100%;height:100%;}
+.feat-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;margin-bottom:14px;color:var(--white);}
+.feat-desc{font-size:14px;font-weight:300;color:var(--muted);line-height:1.85;}
+#showcase{position:relative;z-index:2;padding:120px 60px;overflow:hidden;background:linear-gradient(135deg,#050c1a 0%,#0a1530 50%,#050c1a 100%);border-top:1px solid rgba(240,165,0,.06);border-bottom:1px solid rgba(240,165,0,.06);}
+.showcase-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:100px;align-items:center;}
+.showcase-text{order:2;}
+.showcase-title{font-family:'Cormorant Garamond',serif;font-size:clamp(38px,4vw,58px);font-weight:700;line-height:1.05;margin-bottom:28px;}
+.showcase-title em{color:var(--gold);font-style:normal;}
+.showcase-p{font-size:14px;font-weight:300;color:var(--muted);line-height:1.95;margin-bottom:20px;}
+.showcase-visual{position:relative;display:flex;align-items:center;justify-content:center;order:1;}
+.showcase-logo-wrap{position:relative;animation:float 6s ease-in-out infinite;filter:drop-shadow(0 0 50px rgba(240,165,0,.2));}
+.showcase-logo-wrap .logo-surface{width:min(340px,90vw);height:min(340px,90vw);margin:0 auto;}
+.showcase-logo-wrap .brand-logo{width:100%;height:100%;object-fit:contain;}
+.sc-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border-radius:50%;border:1px solid rgba(240,165,0,.1);pointer-events:none;}
+.sc-ring:nth-child(1){width:400px;height:400px;animation:spin 20s linear infinite;}
+.sc-ring:nth-child(2){width:460px;height:460px;border-style:dashed;border-color:rgba(240,165,0,.05);animation:spin 30s linear infinite reverse;}
+#values{position:relative;z-index:2;padding:120px 60px;max-width:1100px;margin:0 auto;}
+.values-header{text-align:center;margin-bottom:80px;}
+.values-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:rgba(240,165,0,.05);}
+.val-card{background:var(--navy);padding:52px 48px;position:relative;overflow:hidden;opacity:1;transform:scale(1);transition:opacity .6s ease,transform .6s ease,background .4s;}
+.val-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:0;background:var(--gold);transition:height .5s ease;}
+.val-card:hover{background:rgba(11,22,48,1);}
+.val-card:hover::before{height:100%;}
+.val-num{font-family:'Cormorant Garamond',serif;font-size:80px;font-weight:700;color:rgba(240,165,0,.05);position:absolute;top:24px;right:32px;line-height:1;}
+.val-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;margin-bottom:14px;}
+.val-desc{font-size:14px;font-weight:300;color:var(--muted);line-height:1.85;}
+#cta{position:relative;z-index:2;padding:160px 60px;text-align:center;overflow:hidden;}
+.cta-glow-bg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:900px;height:400px;border-radius:50%;background:radial-gradient(ellipse,rgba(240,165,0,.06) 0%,transparent 65%);pointer-events:none;animation:glowPulse 4s ease-in-out infinite;}
+.cta-eyebrow{font-size:10px;font-weight:700;letter-spacing:7px;text-transform:uppercase;color:var(--gold);margin-bottom:22px;display:block;}
+.cta-title{font-family:'Cormorant Garamond',serif;font-size:clamp(48px,7vw,88px);font-weight:700;line-height:1;margin-bottom:24px;letter-spacing:-1px;}
+.cta-title em{color:var(--gold);font-style:normal;}
+.cta-sub{font-size:15px;font-weight:300;color:var(--muted);max-width:500px;margin:0 auto 56px;line-height:1.9;}
+.cta-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;}
+footer{position:relative;z-index:2;background:#030810;border-top:1px solid rgba(255,255,255,.04);padding:70px 64px 44px;}
+.footer-top{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:60px;padding-bottom:52px;border-bottom:1px solid rgba(255,255,255,.05);}
+.footer-brand-wrap{display:flex;align-items:center;margin-bottom:14px;}
+.footer-brand-wrap .logo-surface{padding:6px 10px;border-radius:14px;}
+.footer-brand-wrap .brand-logo{height:56px;width:auto;display:block;}
+.footer-tagline{font-size:12px;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-bottom:20px;}
+.footer-bottom{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding-top:36px;flex-wrap:wrap;gap:16px;}
+.footer-copy{font-size:12px;color:rgba(122,149,196,.3);}
+.footer-copy span{color:var(--gold);opacity:.6;}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes heroLogoIn{from{opacity:0;transform:scale(.4) rotateY(-30deg)}to{opacity:1;transform:scale(1) rotateY(0)}}
+@keyframes orbit1{from{transform:translate(-50%,-50%) rotateX(70deg) rotateZ(0)}to{transform:translate(-50%,-50%) rotateX(70deg) rotateZ(360deg)}}
+@keyframes glowPulse{0%,100%{opacity:1;transform:translate(-50%,-50%) scale(1)}50%{opacity:.6;transform:translate(-50%,-50%) scale(1.1)}}
+@keyframes spin{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+@keyframes scrollWheel{0%,100%{opacity:1;transform:translateY(0)}50%{opacity:.2;transform:translateY(10px)}}
+.shimmer{background:linear-gradient(90deg,var(--gold) 0%,var(--gold3) 30%,var(--gold) 55%,var(--gold3) 80%,var(--gold) 100%);background-size:300% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 4s linear infinite;}
+@keyframes shimmer{0%{background-position:-400% center}100%{background-position:400% center}}
+@media(max-width:1024px){.features-grid{grid-template-columns:repeat(2,1fr);}.footer-top{grid-template-columns:1fr 1fr;}.showcase-inner{grid-template-columns:1fr;gap:60px;}.showcase-visual{order:1;}.showcase-text{order:2;}.values-grid{grid-template-columns:1fr;}}
+@media(max-width:768px){nav{padding:18px 24px;}.nav-links{display:none;}#hero{padding:120px 24px 80px;}.features-grid{grid-template-columns:1fr;}.footer-top{grid-template-columns:1fr;}.section-header-row{flex-direction:column;}.tagline-primary{font-size:.72rem;letter-spacing:.25em;}.building-together{font-size:1.3rem;}}
+</style>
+</head>
+<body>
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<div class="noise"></div>
+<div class="radial-overlay"></div>
+<canvas id="bgCanvas"></canvas>
+<div id="intro"><div class="intro-logo" id="iLogo"><div class="logo-surface"><img class="brand-logo" src="assets/mukwano-logo.png" alt="Mukwano" width="300" height="300"/></div></div><div class="intro-bar" id="iBar"></div><div class="intro-text" id="iText"></div></div>
+<nav id="mainNav"><a href="#" class="nav-logo"><div class="logo-surface"><img class="brand-logo" src="assets/mukwano-logo.png" alt="" width="300" height="300" decoding="async"/></div><span class="sr-only">Mukwano</span></a><ul class="nav-links"><li><a href="#features">Features</a></li><li><a href="#showcase">About</a></li><li><a href="#values">Values</a></li><li><a href="#cta">Contact</a></li></ul><a href="/signup" target="_top" class="nav-cta">Join a Circle</a></nav>
+<section id="hero"><div class="orbit-ring"></div><div class="orbit-ring"></div><div class="orbit-ring"></div><div class="hero-logo-wrap"><div class="hero-logo-scene" id="logoScene"><div class="logo-3d-wrap" id="logo3d"><div class="logo-glow-ring2"></div><div class="logo-glow-ring"></div><div class="logo-surface"><img id="mainLogoSvg" class="brand-logo" src="assets/mukwano-logo.png" alt="Mukwano — Friendship — Building Together" width="300" height="300" decoding="async"/></div></div></div></div><div class="tagline-primary">A FRIENDSHIP</div><div class="building-together">Building Together</div><h1 class="hero-title">Where <em class="gold shimmer">Friendship</em><br/>Builds <span class="outline">Wealth</span></h1><p class="hero-script">Together We Grow, Together We Prosper</p><p class="hero-desc">Mukwano unites communities through trusted investment circles — save together, invest wisely, grow with transparency.</p><div class="hero-btns"><a href="/signup" target="_top" class="btn-gold" id="exploreBtn">Start Your Circle</a><a href="#showcase" class="btn-outline">Discover More</a></div><div class="scroll-cue"><span>Explore</span><div class="scroll-mouse"><div class="scroll-wheel"></div></div></div></section>
+<section id="features"><div class="section-header-row"><div><span class="section-eyebrow">Platform Capabilities</span><h2 class="section-title">Built for <em>Trust.</em><br/>Engineered for <em>Growth.</em></h2></div></div><div class="features-grid"><div class="feat"><div class="feat-num">01</div><div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="feat-title">Investment Circles</div><div class="feat-desc">Join or create savings groups with trusted community members. Pool resources, share profits, and build generational wealth together.</div></div><div class="feat"><div class="feat-num">02</div><div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div><div class="feat-title">Transparent Ledger</div><div class="feat-desc">Every transaction is cryptographically logged. Real-time visibility into circle funds ensures full accountability for all members.</div></div><div class="feat"><div class="feat-num">03</div><div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="feat-title">Compliance &amp; Safety</div><div class="feat-desc">Automated KYC verification, compliance monitoring, and admin oversight keeps every circle operating at 99.8% governance health.</div></div><div class="feat"><div class="feat-num">04</div><div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="feat-title">Simulated Escrow</div><div class="feat-desc">Funds are held securely in escrow before being distributed. Payment verification ensures no capital moves without member consent.</div></div><div class="feat"><div class="feat-num">05</div><div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div class="feat-title">Live Analytics</div><div class="feat-desc">Real-time dashboards track circle performance, member activity, and investment returns — giving you the insights to grow smarter.</div></div><div class="feat"><div class="feat-num">06</div><div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></div><div class="feat-title">Circle Governance</div><div class="feat-desc">Propose votes, approve payout order, and update circle rules together — democratic controls keep every group aligned with its members.</div></div></div></section>
+<section id="showcase"><div class="showcase-inner"><div class="showcase-visual"><div class="sc-ring"></div><div class="sc-ring"></div><div class="showcase-logo-wrap"><div class="logo-surface"><img class="brand-logo" src="assets/mukwano-logo.png" alt="Mukwano" width="300" height="300" decoding="async"/></div></div></div><div class="showcase-text"><span class="section-eyebrow">Our Foundation</span><h2 class="showcase-title">Friendship as a<br/><em>Foundation</em> for<br/>Financial Freedom</h2><p class="showcase-p">Mukwano means friendship in Luganda.</p></div></div></section>
+<section id="values"><div class="values-header"><span class="section-eyebrow">Core Principles</span><h2 class="section-title">The Pillars of <em>Mukwano</em></h2></div><div class="values-grid"><div class="val-card"><div class="val-num">01</div><div class="val-title">Radical Transparency</div><div class="val-desc">Every shilling is tracked.</div></div><div class="val-card"><div class="val-num">02</div><div class="val-title">Community First</div><div class="val-desc">Collective growth, shared outcomes.</div></div></div></section>
+<section id="cta"><div class="cta-glow-bg"></div><span class="cta-eyebrow">Begin Your Journey</span><h2 class="cta-title">Start <em>Building</em><br/>Together Today</h2><p class="cta-sub">Join members growing wealth through friendship.</p><div class="cta-btns"><a href="/signup" target="_top" class="btn-gold">Create Your Circle</a><a href="#" class="btn-outline">View Live Demo</a></div></section>
+<footer><div class="footer-top"><div><div class="footer-brand-wrap"><div class="logo-surface"><img class="brand-logo" src="assets/mukwano-logo.png" alt="Mukwano" width="300" height="300" decoding="async"/></div></div><div class="footer-tagline">Friendship · Investment · Growth</div></div></div><div class="footer-bottom"><p class="footer-copy">© 2026 <span>Mukwano</span>. All rights reserved.</p></div></footer>
+<script>
+const cur = document.getElementById('cursor');
+const curRing = document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+function animCursor(){rx+=(mx-rx)*.15;ry+=(my-ry)*.15;curRing.style.left=rx+'px';curRing.style.top=ry+'px';requestAnimationFrame(animCursor);}animCursor();
+document.querySelectorAll('a,button').forEach(el=>{el.addEventListener('mouseenter',()=>{cur.style.width='14px';cur.style.height='14px';curRing.style.width='52px';curRing.style.height='52px';curRing.style.borderColor='rgba(240,165,0,.8)';});el.addEventListener('mouseleave',()=>{cur.style.width='8px';cur.style.height='8px';curRing.style.width='36px';curRing.style.height='36px';curRing.style.borderColor='rgba(240,165,0,.5)';});});
+window.addEventListener('load',()=>{const iLogo=document.getElementById('iLogo');const iBar=document.getElementById('iBar');const iText=document.getElementById('iText');const intro=document.getElementById('intro');setTimeout(()=>{iLogo.classList.add('show');},200);setTimeout(()=>{iBar.classList.add('grow');iText.classList.add('show');},600);setTimeout(()=>{intro.classList.add('gone');},2600);});
+const canvas=document.getElementById('bgCanvas');
+const gl=canvas.getContext('webgl',{alpha:true});
+let W,H;function resizeGL(){W=canvas.width=innerWidth;H=canvas.height=innerHeight;if(gl)gl.viewport(0,0,W,H);}resizeGL();window.addEventListener('resize',resizeGL);
+if(gl){const vsrc='attribute vec2 pos;void main(){gl_Position=vec4(pos,0,1);}';const fsrc='precision mediump float;uniform float time;uniform vec2 res;uniform vec2 mouse;float noise(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}void main(){vec2 uv=gl_FragCoord.xy/res;float t=time*.15;vec2 p=uv*3.+vec2(t*.3,t*.2);float n=noise(p)*.1;vec2 mc=(mouse/res-.5)*2.;float d=length(uv*2.-1.-mc);float glow=exp(-d*2.5)*0.04;float gold_tint=n*0.018+glow;gl_FragColor=vec4(gold_tint*.9+0.024,gold_tint*.65+0.05,gold_tint*.1+0.12,1.);}';function shader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);return s;}const prog=gl.createProgram();gl.attachShader(prog,shader(gl.VERTEX_SHADER,vsrc));gl.attachShader(prog,shader(gl.FRAGMENT_SHADER,fsrc));gl.linkProgram(prog);gl.useProgram(prog);const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);const pLoc=gl.getAttribLocation(prog,'pos');gl.enableVertexAttribArray(pLoc);gl.vertexAttribPointer(pLoc,2,gl.FLOAT,false,0,0);const tLoc=gl.getUniformLocation(prog,'time');const rLoc=gl.getUniformLocation(prog,'res');const mLoc=gl.getUniformLocation(prog,'mouse');let mxg=0,myg=0;document.addEventListener('mousemove',e=>{mxg=e.clientX;myg=innerHeight-e.clientY;});let start=Date.now();function renderGL(){gl.uniform1f(tLoc,(Date.now()-start)/1000);gl.uniform2f(rLoc,W,H);gl.uniform2f(mLoc,mxg,myg);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);requestAnimationFrame(renderGL);}renderGL();}
+const scene=document.getElementById('logoScene');const logo3d=document.getElementById('logo3d');document.addEventListener('mousemove',e=>{if(!scene)return;const rect=scene.getBoundingClientRect();const cx=rect.left+rect.width/2;const cy=rect.top+rect.height/2;const dx=(e.clientX-cx)/cx;const dy=(e.clientY-cy)/cy;logo3d.style.transform='rotateY('+(dx*12)+'deg) rotateX('+(-dy*8)+'deg)';});
+const exploreBtn=document.getElementById('exploreBtn');
+if(exploreBtn){exploreBtn.addEventListener('click',()=>{exploreBtn.style.transform='scale(0.97)';setTimeout(()=>{exploreBtn.style.transform='';},200);});}
+const mainLogoSvg=document.getElementById('mainLogoSvg');
+window.addEventListener('scroll',()=>{if(!mainLogoSvg)return;const intensity=Math.min(scrollY/400,1);mainLogoSvg.style.filter='drop-shadow(0 0 '+(30+intensity*40)+'px rgba(240,165,0,'+(.15+intensity*.25)+'))';},{passive:true});
+</script>
+</body>
+</html>

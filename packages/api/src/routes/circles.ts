@@ -47,6 +47,11 @@ export const circlesRoute: FastifyPluginAsync = async (fastify) => {
     return reply.send(circles)
   })
 
+  fastify.get('/circles/my-requests', async (request, reply) => {
+    const requests = await circleService.listMyJoinRequests(currentUserId(request))
+    return reply.send(requests)
+  })
+
   fastify.get('/circles/:id', async (request, reply) => {
     const params = request.params as { id: string }
     const circle = await circleService.getCircleOverview(params.id, currentUserId(request))
@@ -75,6 +80,38 @@ export const circlesRoute: FastifyPluginAsync = async (fastify) => {
     return reply.send(updated)
   })
 
+  fastify.patch('/circles/:id/governance', {
+    schema: {
+      body: {
+        type: 'object',
+        properties: {
+          minContribution: { type: 'number', minimum: 0 },
+          votingModel: { type: 'string' },
+          quorumPercent: { type: 'integer', minimum: 1, maximum: 100 },
+          approvalPercent: { type: 'integer', minimum: 1, maximum: 100 },
+          proposalDurationDays: { type: 'integer', minimum: 1 },
+          whoCanPropose: { type: 'string', enum: roleEnum },
+          requireProof: { type: 'boolean' }
+        },
+        additionalProperties: false
+      }
+    }
+  }, async (request, reply) => {
+    const params = request.params as { id: string }
+    const updated = await circleService.updateGovernance(
+      params.id,
+      currentUserId(request),
+      request.body as Record<string, unknown>
+    )
+    return reply.send(updated)
+  })
+
+  fastify.get('/circles/:id/permissions', async (request, reply) => {
+    const params = request.params as { id: string }
+    const permissions = await circleService.getPermissions(params.id, currentUserId(request))
+    return reply.send(permissions)
+  })
+
   fastify.post('/circles/:id/close', async (request, reply) => {
     const params = request.params as { id: string }
     const updated = await circleService.closeCircle(params.id, currentUserId(request))
@@ -84,6 +121,12 @@ export const circlesRoute: FastifyPluginAsync = async (fastify) => {
   fastify.post('/circles/:id/join', async (request, reply) => {
     const params = request.params as { id: string }
     const membership = await circleService.joinCircle(params.id, currentUserId(request))
+    return reply.code(201).send(membership)
+  })
+
+  fastify.post('/circles/:id/join-request', async (request, reply) => {
+    const params = request.params as { id: string }
+    const membership = await circleService.requestJoinCircle(params.id, currentUserId(request))
     return reply.code(201).send(membership)
   })
 
@@ -97,6 +140,24 @@ export const circlesRoute: FastifyPluginAsync = async (fastify) => {
     const params = request.params as { id: string }
     const members = await circleService.listMembers(params.id, currentUserId(request))
     return reply.send(members)
+  })
+
+  fastify.get('/circles/:id/join-requests', async (request, reply) => {
+    const params = request.params as { id: string }
+    const requests = await circleService.listJoinRequests(params.id, currentUserId(request))
+    return reply.send(requests)
+  })
+
+  fastify.patch('/circles/:id/join-requests/:userId/approve', async (request, reply) => {
+    const params = request.params as { id: string; userId: string }
+    const updated = await circleService.approveJoinRequest(params.id, currentUserId(request), params.userId)
+    return reply.send(updated)
+  })
+
+  fastify.delete('/circles/:id/join-requests/:userId/reject', async (request, reply) => {
+    const params = request.params as { id: string; userId: string }
+    const result = await circleService.rejectJoinRequest(params.id, currentUserId(request), params.userId)
+    return reply.send(result)
   })
 
   fastify.patch('/circles/:id/members/:userId/role', {
