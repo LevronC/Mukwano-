@@ -1,0 +1,13 @@
+{
+  "name": "mukwano",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "dev": "npm -w packages/api run dev",
+    "build": "npm -w packages/api run build",
+    "test": "npm -w packages/api test",
+    "prisma:push": "prisma db push",
+    "prisma:generate": "prisma generate"
+  }
+}

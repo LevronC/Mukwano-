@@ -1,0 +1,5 @@
+node_modules/
+dist/
+packages/api/.env
+packages/api/prisma/migrations/
+*.js.map
