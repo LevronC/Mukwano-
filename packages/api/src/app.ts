@@ -8,6 +8,7 @@ import { corsPlugin } from './plugins/cors.js'
 import { rateLimitPlugin } from './plugins/rate-limit.js'
 import { authRoutes } from './routes/auth/index.js'
 import { configRoute } from './routes/config.js'
+import { circlesRoute } from './routes/circles.js'
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -77,6 +78,7 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   await app.register(authRoutes, { prefix: '/api/v1/auth' })
   await app.register(configRoute, { prefix: '/api/v1' })
+  await app.register(circlesRoute, { prefix: '/api/v1' })
 
   return app
 }

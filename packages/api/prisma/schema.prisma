@@ -18,6 +18,8 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   refreshTokens RefreshToken[]
+  circles       Circle[]           @relation("CircleCreatedBy")
+  memberships   CircleMembership[]
 
   @@map("users")
 }
@@ -33,4 +35,52 @@ model RefreshToken {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
+}
+
+model Circle {
+  id               String             @id @default(uuid()) @db.Uuid
+  name             String
+  description      String?
+  goalAmount       Decimal            @db.Decimal(18, 2)
+  currency         String             @default("USD")
+  status           String             @default("active")
+  createdBy        String             @db.Uuid
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  creator          User               @relation("CircleCreatedBy", fields: [createdBy], references: [id])
+  governanceConfig GovernanceConfig?
+  memberships      CircleMembership[]
+
+  @@map("circles")
+}
+
+model GovernanceConfig {
+  id                   String   @id @default(uuid()) @db.Uuid
+  circleId             String   @unique @db.Uuid
+  minContribution      Decimal  @default(0) @db.Decimal(18, 2)
+  votingModel          String   @default("one_member_one_vote")
+  quorumPercent        Int      @default(51)
+  approvalPercent      Int      @default(51)
+  proposalDurationDays Int      @default(7)
+  whoCanPropose        String   @default("contributor")
+  requireProof         Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  circle               Circle   @relation(fields: [circleId], references: [id], onDelete: Cascade)
+
+  @@map("governance_configs")
+}
+
+model CircleMembership {
+  id       String   @id @default(uuid()) @db.Uuid
+  circleId String   @db.Uuid
+  userId   String   @db.Uuid
+  role     String   @default("member")
+  joinedAt DateTime @default(now())
+  circle   Circle   @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([circleId, userId])
+  @@index([circleId], map: "idx_memberships_circle")
+  @@index([userId], map: "idx_memberships_user")
+  @@map("circle_memberships")
 }

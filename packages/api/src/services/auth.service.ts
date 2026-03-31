@@ -39,12 +39,12 @@ export class AuthService {
   }
 
   async refresh(rawRefreshToken: string) {
-    const decoded = this.app.refreshJwt.decode(rawRefreshToken) as {
-      sub: string
-      jti: string
-      tokenFamily: string
-      exp: number
-    } | null
+    let decoded: { sub: string; jti: string; tokenFamily: string; exp: number } | null
+    try {
+      decoded = this.app.jwt.refresh.decode(rawRefreshToken) as typeof decoded
+    } catch {
+      throw new UnauthorizedError('INVALID_TOKEN', 'Invalid refresh token')
+    }
 
     if (!decoded?.jti) throw new UnauthorizedError('INVALID_TOKEN', 'Invalid refresh token')
 
@@ -68,7 +68,7 @@ export class AuthService {
     }
 
     try {
-      await this.app.refreshJwt.verify(rawRefreshToken)
+      await this.app.jwt.refresh.verify(rawRefreshToken)
     } catch {
       throw new UnauthorizedError('INVALID_TOKEN', 'Invalid refresh token signature')
     }
@@ -82,7 +82,7 @@ export class AuthService {
   }
 
   async logout(rawRefreshToken: string) {
-    const decoded = this.app.refreshJwt.decode(rawRefreshToken) as { jti?: string } | null
+    const decoded = this.app.jwt.refresh.decode(rawRefreshToken) as { jti?: string } | null
 
     if (!decoded?.jti) {
       return
@@ -143,14 +143,14 @@ export class AuthService {
     const family = existingFamily ?? uuidv4()
     const jti = uuidv4()
 
-    const accessToken = await this.app.accessJwt.sign({
+    const accessToken = await this.app.jwt.access.sign({
       sub: user.id,
       id: user.id,
       email: user.email,
       isGlobalAdmin: user.isGlobalAdmin
     })
 
-    const refreshToken = await this.app.refreshJwt.sign({
+    const refreshToken = await this.app.jwt.refresh.sign({
       sub: user.id,
       tokenFamily: family,
       jti

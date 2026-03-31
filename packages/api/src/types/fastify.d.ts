@@ -12,8 +12,10 @@ declare module 'fastify' {
       PORT: number
       CORS_ORIGIN: string
     }
-    accessJwt: JWT
-    refreshJwt: JWT
+    jwt: {
+      access: JWT
+      refresh: JWT
+    }
   }
   interface FastifyRequest {
     user: {

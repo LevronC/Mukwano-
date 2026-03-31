@@ -1,0 +1,124 @@
+import type { FastifyPluginAsync } from 'fastify'
+import { authGuard } from '../hooks/auth-guard.js'
+import { CircleService } from '../services/circle.service.js'
+
+const roleEnum = ['member', 'contributor', 'creator', 'admin']
+
+export const circlesRoute: FastifyPluginAsync = async (fastify) => {
+  const circleService = new CircleService(fastify)
+  const currentUserId = (request: { user: unknown }) =>
+    (request.user as { id: string; email: string; isGlobalAdmin: boolean }).id
+
+  fastify.addHook('preHandler', authGuard)
+
+  fastify.post('/circles', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['name', 'goalAmount'],
+        properties: {
+          name: { type: 'string', minLength: 1, maxLength: 120 },
+          description: { type: 'string', maxLength: 2000 },
+          goalAmount: { type: 'number', exclusiveMinimum: 0 },
+          governance: {
+            type: 'object',
+            properties: {
+              minContribution: { type: 'number', minimum: 0 },
+              votingModel: { type: 'string' },
+              quorumPercent: { type: 'integer', minimum: 1, maximum: 100 },
+              approvalPercent: { type: 'integer', minimum: 1, maximum: 100 },
+              proposalDurationDays: { type: 'integer', minimum: 1 },
+              whoCanPropose: { type: 'string', enum: roleEnum },
+              requireProof: { type: 'boolean' }
+            },
+            additionalProperties: false
+          }
+        },
+        additionalProperties: false
+      }
+    }
+  }, async (request, reply) => {
+    const circle = await circleService.createCircle(currentUserId(request), request.body as any)
+    return reply.code(201).send(circle)
+  })
+
+  fastify.get('/circles', async (_request, reply) => {
+    const circles = await circleService.listCircles()
+    return reply.send(circles)
+  })
+
+  fastify.get('/circles/:id', async (request, reply) => {
+    const params = request.params as { id: string }
+    const circle = await circleService.getCircleOverview(params.id, currentUserId(request))
+    return reply.send(circle)
+  })
+
+  fastify.patch('/circles/:id', {
+    schema: {
+      body: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', minLength: 1, maxLength: 120 },
+          description: { anyOf: [{ type: 'string', maxLength: 2000 }, { type: 'null' }] },
+          goalAmount: { type: 'number', exclusiveMinimum: 0 }
+        },
+        additionalProperties: false
+      }
+    }
+  }, async (request, reply) => {
+    const params = request.params as { id: string }
+    const updated = await circleService.updateCircle(
+      params.id,
+      currentUserId(request),
+      request.body as Record<string, unknown>
+    )
+    return reply.send(updated)
+  })
+
+  fastify.post('/circles/:id/close', async (request, reply) => {
+    const params = request.params as { id: string }
+    const updated = await circleService.closeCircle(params.id, currentUserId(request))
+    return reply.send(updated)
+  })
+
+  fastify.post('/circles/:id/join', async (request, reply) => {
+    const params = request.params as { id: string }
+    const membership = await circleService.joinCircle(params.id, currentUserId(request))
+    return reply.code(201).send(membership)
+  })
+
+  fastify.post('/circles/:id/leave', async (request, reply) => {
+    const params = request.params as { id: string }
+    const result = await circleService.leaveCircle(params.id, currentUserId(request))
+    return reply.send(result)
+  })
+
+  fastify.get('/circles/:id/members', async (request, reply) => {
+    const params = request.params as { id: string }
+    const members = await circleService.listMembers(params.id, currentUserId(request))
+    return reply.send(members)
+  })
+
+  fastify.patch('/circles/:id/members/:userId/role', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['role'],
+        properties: {
+          role: { type: 'string', enum: roleEnum }
+        },
+        additionalProperties: false
+      }
+    }
+  }, async (request, reply) => {
+    const params = request.params as { id: string; userId: string }
+    const body = request.body as { role: 'member' | 'contributor' | 'creator' | 'admin' }
+    const updated = await circleService.updateMemberRole(
+      params.id,
+      currentUserId(request),
+      params.userId,
+      body.role
+    )
+    return reply.send(updated)
+  })
+}
