@@ -3,3 +3,7 @@ dist/
 packages/api/.env
 packages/api/prisma/migrations/
 *.js.map
+
+# Design tool scratch exports (Stitch previews, screenshots)
+/stitch-*.html
+/stitch-*-screenshot.png
