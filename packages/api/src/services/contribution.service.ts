@@ -109,6 +109,19 @@ export class ContributionService {
         data: { role: 'contributor' }
       })
 
+      await this.app.escrowAdapter.creditContribution({
+        circleId,
+        contributionId: contribution.id,
+        amount: contribution.amount.toString()
+      })
+
+      await this.app.notificationAdapter.send('CONTRIBUTION_VERIFIED', {
+        circleId,
+        contributionId: contribution.id,
+        userId: contribution.userId,
+        amount: contribution.amount.toString()
+      })
+
       return { contribution: updated, ledgerEntry: ledger }
     })
   }
@@ -138,10 +151,11 @@ export class ContributionService {
     if (sizeBytes > MAX_FILE_BYTES) throw new ValidationError('File size exceeds 10 MB limit', 'sizeBytes')
 
     const key = `${circleId}/${contributionId}/${uuidv4()}-${fileName}`
+    const upload = await this.app.storageAdapter.createUploadUrl({ fileKey: key, fileName, mimeType, sizeBytes })
     return {
-      uploadUrl: `http://localhost:4000/local-uploads/${encodeURIComponent(key)}`,
+      uploadUrl: upload.uploadUrl,
       fileKey: key,
-      expiresInSeconds: 900
+      expiresInSeconds: upload.expiresInSeconds
     }
   }
 
@@ -169,10 +183,7 @@ export class ContributionService {
     })
     if (!proof) throw new NotFoundError('Proof not found')
 
-    return {
-      downloadUrl: `http://localhost:4000/local-uploads/${encodeURIComponent(proof.fileKey)}`,
-      expiresInSeconds: 300
-    }
+    return this.app.storageAdapter.createDownloadUrl({ fileKey: proof.fileKey })
   }
 
   async listLedger(circleId: string, userId: string, page = 1, pageSize = 20) {
@@ -209,7 +220,8 @@ export class ContributionService {
     return {
       circleId,
       balance: lastEntry?.runningBalance ?? new Prisma.Decimal(0),
-      currency: 'USD'
+      currency: 'USD',
+      balanceLabel: this.app.demoMode ? 'Treasury balance (simulated)' : 'Treasury balance'
     }
   }
 

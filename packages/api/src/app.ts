@@ -6,6 +6,7 @@ import { prismaPlugin } from './plugins/prisma.js'
 import { jwtPlugin } from './plugins/jwt.js'
 import { corsPlugin } from './plugins/cors.js'
 import { rateLimitPlugin } from './plugins/rate-limit.js'
+import { demoModePlugin } from './plugins/demo-mode.js'
 import { authRoutes } from './routes/auth/index.js'
 import { configRoute } from './routes/config.js'
 import { circlesRoute } from './routes/circles.js'
@@ -27,6 +28,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(jwtPlugin)
   await app.register(corsPlugin)
   await app.register(rateLimitPlugin)
+  await app.register(demoModePlugin)
 
   // Root — API has no HTML UI; browsers hitting / otherwise get 404
   app.get('/', async (_request, reply) => {

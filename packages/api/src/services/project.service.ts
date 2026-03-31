@@ -89,15 +89,29 @@ export class ProjectService {
             metadata: { projectId: project.id, proposalId: project.proposalId }
           }
         })
+
+        await this.app.escrowAdapter.debitProjectFunding({
+          circleId,
+          projectId: project.id,
+          amount: project.budget.toString()
+        })
       }
 
-      return tx.project.update({
+      const updated = await tx.project.update({
         where: { id: project.id },
         data: {
           status,
           completedAt: status === 'complete' ? new Date() : null
         }
       })
+
+      await this.app.notificationAdapter.send('PROJECT_STATUS_CHANGED', {
+        circleId,
+        projectId: project.id,
+        status
+      })
+
+      return updated
     })
   }
 

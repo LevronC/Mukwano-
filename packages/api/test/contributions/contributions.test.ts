@@ -83,6 +83,10 @@ describe('Phase 3 - contributions and ledger', () => {
     })
     expect(treasury.statusCode).toBe(200)
     expect(Number(treasury.json().balance)).toBe(0)
+    expect(typeof treasury.json().balanceLabel).toBe('string')
+    if (app.demoMode) {
+      expect(treasury.json().balanceLabel.toLowerCase()).toContain('simulated')
+    }
   })
 
   it('CONTRIB-08: creator can list contributions', async () => {
@@ -123,6 +127,9 @@ describe('Phase 3 - contributions and ledger', () => {
     expect(proofReq.statusCode).toBe(200)
     const proofPayload = proofReq.json()
     expect(proofPayload.fileKey).toBeTruthy()
+    if (app.demoMode) {
+      expect(proofPayload.uploadUrl).toContain('/local-uploads/')
+    }
 
     const confirm = await app.inject({
       method: 'POST',
@@ -155,6 +162,9 @@ describe('Phase 3 - contributions and ledger', () => {
       headers: injectHeaders(memberToken)
     })
     expect(Number(treasury.json().balance)).toBe(250)
+    if (app.demoMode) {
+      expect(treasury.json().balanceLabel.toLowerCase()).toContain('simulated')
+    }
 
     const member = await app.prisma.circleMembership.findUnique({
       where: { circleId_userId: { circleId, userId: memberId } }
