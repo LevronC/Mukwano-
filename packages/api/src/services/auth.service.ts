@@ -9,6 +9,17 @@ const BCRYPT_COST = process.env.NODE_ENV === 'test' ? 4 : 12
 export class AuthService {
   constructor(private readonly app: FastifyInstance) {}
 
+  private get namespacedJwt(): { access: { sign: (payload: object) => Promise<string> }; refresh: { sign: (payload: object) => Promise<string>; verify: (token: string) => Promise<unknown>; decode: (token: string) => unknown } } {
+    return this.app.jwt as unknown as {
+      access: { sign: (payload: object) => Promise<string> }
+      refresh: {
+        sign: (payload: object) => Promise<string>
+        verify: (token: string) => Promise<unknown>
+        decode: (token: string) => unknown
+      }
+    }
+  }
+
   async signup(rawEmail: string, password: string, displayName: string) {
     const email = rawEmail.toLowerCase().trim()
 
@@ -41,7 +52,7 @@ export class AuthService {
   async refresh(rawRefreshToken: string) {
     let decoded: { sub: string; jti: string; tokenFamily: string; exp: number } | null
     try {
-      decoded = this.app.jwt.refresh.decode(rawRefreshToken) as typeof decoded
+      decoded = this.namespacedJwt.refresh.decode(rawRefreshToken) as typeof decoded
     } catch {
       throw new UnauthorizedError('INVALID_TOKEN', 'Invalid refresh token')
     }
@@ -68,7 +79,7 @@ export class AuthService {
     }
 
     try {
-      await this.app.jwt.refresh.verify(rawRefreshToken)
+      await this.namespacedJwt.refresh.verify(rawRefreshToken)
     } catch {
       throw new UnauthorizedError('INVALID_TOKEN', 'Invalid refresh token signature')
     }
@@ -82,7 +93,7 @@ export class AuthService {
   }
 
   async logout(rawRefreshToken: string) {
-    const decoded = this.app.jwt.refresh.decode(rawRefreshToken) as { jti?: string } | null
+    const decoded = this.namespacedJwt.refresh.decode(rawRefreshToken) as { jti?: string } | null
 
     if (!decoded?.jti) {
       return
@@ -143,14 +154,14 @@ export class AuthService {
     const family = existingFamily ?? uuidv4()
     const jti = uuidv4()
 
-    const accessToken = await this.app.jwt.access.sign({
+    const accessToken = await this.namespacedJwt.access.sign({
       sub: user.id,
       id: user.id,
       email: user.email,
       isGlobalAdmin: user.isGlobalAdmin
     })
 
-    const refreshToken = await this.app.jwt.refresh.sign({
+    const refreshToken = await this.namespacedJwt.refresh.sign({
       sub: user.id,
       tokenFamily: family,
       jti
