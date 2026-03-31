@@ -130,13 +130,80 @@
 
 ## Traceability
 
-| Phase | Requirements |
-|-------|-------------|
-| 1 — Foundation & Auth | AUTH-01–07, DEMO-01 |
-| 2 — Circles & Membership | CIRCLE-01–09, GOV-01–02 |
-| 3 — Contributions & Ledger | CONTRIB-01–08, LEDGER-01–05, FILE-01–05 |
-| 4 — Proposals & Voting | PROP-01–08 |
-| 5 — Projects | PROJ-01–06 |
-| 6 — Portfolio, Dashboard & Admin | PORT-01–02, DASH-01–02, ADMIN-01–04 |
-| 7 — DEMO_MODE & Config | DEMO-02–05 |
-| 8 — Frontend | FE-01–12 |
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| AUTH-01 | Phase 1 — Foundation & Auth | Pending |
+| AUTH-02 | Phase 1 — Foundation & Auth | Pending |
+| AUTH-03 | Phase 1 — Foundation & Auth | Pending |
+| AUTH-04 | Phase 1 — Foundation & Auth | Pending |
+| AUTH-05 | Phase 1 — Foundation & Auth | Pending |
+| AUTH-06 | Phase 1 — Foundation & Auth | Pending |
+| AUTH-07 | Phase 1 — Foundation & Auth | Pending |
+| DEMO-01 | Phase 1 — Foundation & Auth | Pending |
+| CIRCLE-01 | Phase 2 — Circles & Membership | Pending |
+| CIRCLE-02 | Phase 2 — Circles & Membership | Pending |
+| CIRCLE-03 | Phase 2 — Circles & Membership | Pending |
+| CIRCLE-04 | Phase 2 — Circles & Membership | Pending |
+| CIRCLE-05 | Phase 2 — Circles & Membership | Pending |
+| CIRCLE-06 | Phase 2 — Circles & Membership | Pending |
+| CIRCLE-07 | Phase 2 — Circles & Membership | Pending |
+| CIRCLE-08 | Phase 2 — Circles & Membership | Pending |
+| CIRCLE-09 | Phase 2 — Circles & Membership | Pending |
+| GOV-01 | Phase 2 — Circles & Membership | Pending |
+| GOV-02 | Phase 2 — Circles & Membership | Pending |
+| CONTRIB-01 | Phase 3 — Contributions & Ledger | Pending |
+| CONTRIB-02 | Phase 3 — Contributions & Ledger | Pending |
+| CONTRIB-03 | Phase 3 — Contributions & Ledger | Pending |
+| CONTRIB-04 | Phase 3 — Contributions & Ledger | Pending |
+| CONTRIB-05 | Phase 3 — Contributions & Ledger | Pending |
+| CONTRIB-06 | Phase 3 — Contributions & Ledger | Pending |
+| CONTRIB-07 | Phase 3 — Contributions & Ledger | Pending |
+| CONTRIB-08 | Phase 3 — Contributions & Ledger | Pending |
+| LEDGER-01 | Phase 3 — Contributions & Ledger | Pending |
+| LEDGER-02 | Phase 3 — Contributions & Ledger | Pending |
+| LEDGER-03 | Phase 3 — Contributions & Ledger | Pending |
+| LEDGER-04 | Phase 3 — Contributions & Ledger | Pending |
+| LEDGER-05 | Phase 3 — Contributions & Ledger | Pending |
+| FILE-01 | Phase 3 — Contributions & Ledger | Pending |
+| FILE-02 | Phase 3 — Contributions & Ledger | Pending |
+| FILE-03 | Phase 3 — Contributions & Ledger | Pending |
+| FILE-04 | Phase 3 — Contributions & Ledger | Pending |
+| FILE-05 | Phase 3 — Contributions & Ledger | Pending |
+| PROP-01 | Phase 4 — Proposals & Voting | Pending |
+| PROP-02 | Phase 4 — Proposals & Voting | Pending |
+| PROP-03 | Phase 4 — Proposals & Voting | Pending |
+| PROP-04 | Phase 4 — Proposals & Voting | Pending |
+| PROP-05 | Phase 4 — Proposals & Voting | Pending |
+| PROP-06 | Phase 4 — Proposals & Voting | Pending |
+| PROP-07 | Phase 4 — Proposals & Voting | Pending |
+| PROP-08 | Phase 4 — Proposals & Voting | Pending |
+| PROJ-01 | Phase 5 — Projects | Pending |
+| PROJ-02 | Phase 5 — Projects | Pending |
+| PROJ-03 | Phase 5 — Projects | Pending |
+| PROJ-04 | Phase 5 — Projects | Pending |
+| PROJ-05 | Phase 5 — Projects | Pending |
+| PROJ-06 | Phase 5 — Projects | Pending |
+| PORT-01 | Phase 6 — Portfolio, Dashboard & Admin | Pending |
+| PORT-02 | Phase 6 — Portfolio, Dashboard & Admin | Pending |
+| DASH-01 | Phase 6 — Portfolio, Dashboard & Admin | Pending |
+| DASH-02 | Phase 6 — Portfolio, Dashboard & Admin | Pending |
+| ADMIN-01 | Phase 6 — Portfolio, Dashboard & Admin | Pending |
+| ADMIN-02 | Phase 6 — Portfolio, Dashboard & Admin | Pending |
+| ADMIN-03 | Phase 6 — Portfolio, Dashboard & Admin | Pending |
+| ADMIN-04 | Phase 6 — Portfolio, Dashboard & Admin | Pending |
+| DEMO-02 | Phase 7 — DEMO_MODE & Config | Pending |
+| DEMO-03 | Phase 7 — DEMO_MODE & Config | Pending |
+| DEMO-04 | Phase 7 — DEMO_MODE & Config | Pending |
+| DEMO-05 | Phase 7 — DEMO_MODE & Config | Pending |
+| FE-01 | Phase 8 — Frontend | Pending |
+| FE-02 | Phase 8 — Frontend | Pending |
+| FE-03 | Phase 8 — Frontend | Pending |
+| FE-04 | Phase 8 — Frontend | Pending |
+| FE-05 | Phase 8 — Frontend | Pending |
+| FE-06 | Phase 8 — Frontend | Pending |
+| FE-07 | Phase 8 — Frontend | Pending |
+| FE-08 | Phase 8 — Frontend | Pending |
+| FE-09 | Phase 8 — Frontend | Pending |
+| FE-10 | Phase 8 — Frontend | Pending |
+| FE-11 | Phase 8 — Frontend | Pending |
+| FE-12 | Phase 8 — Frontend | Pending |
