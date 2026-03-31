@@ -12,6 +12,7 @@ import { circlesRoute } from './routes/circles.js'
 import { contributionsRoute } from './routes/contributions.js'
 import { proposalsRoute } from './routes/proposals.js'
 import { projectsRoute } from './routes/projects.js'
+import { reportingRoute } from './routes/reporting.js'
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -85,6 +86,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(contributionsRoute, { prefix: '/api/v1' })
   await app.register(proposalsRoute, { prefix: '/api/v1' })
   await app.register(projectsRoute, { prefix: '/api/v1' })
+  await app.register(reportingRoute, { prefix: '/api/v1' })
 
   return app
 }
