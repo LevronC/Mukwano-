@@ -20,6 +20,9 @@ model User {
   memberships   CircleMembership[]
   circles       Circle[]           @relation("CircleCreatedBy")
   refreshTokens RefreshToken[]
+  contributions Contribution[]
+  verifiedContributions Contribution[] @relation("ContributionVerifiedBy")
+  ledgerEntries LedgerEntry[]
 
   @@map("users")
 }
@@ -50,6 +53,8 @@ model Circle {
   memberships      CircleMembership[]
   creator          User               @relation("CircleCreatedBy", fields: [createdBy], references: [id])
   governanceConfig GovernanceConfig?
+  contributions    Contribution[]
+  ledgerEntries    LedgerEntry[]
 
   @@map("circles")
 }
@@ -83,4 +88,61 @@ model CircleMembership {
   @@index([circleId], map: "idx_memberships_circle")
   @@index([userId], map: "idx_memberships_user")
   @@map("circle_memberships")
+}
+
+model Contribution {
+  id              String   @id @default(uuid()) @db.Uuid
+  circleId        String   @db.Uuid
+  userId          String   @db.Uuid
+  amount          Decimal  @db.Decimal(18, 2)
+  currency        String   @default("USD")
+  status          String   @default("pending")
+  note            String?
+  submittedAt     DateTime @default(now())
+  verifiedAt      DateTime?
+  verifiedBy      String?  @db.Uuid
+  rejectionReason String?
+  ledgerEntryId   String?  @db.Uuid @unique
+  circle          Circle   @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verifier        User?    @relation("ContributionVerifiedBy", fields: [verifiedBy], references: [id], onDelete: SetNull)
+  proofDocuments  ProofDocument[]
+
+  @@index([circleId], map: "idx_contributions_circle")
+  @@index([userId], map: "idx_contributions_user")
+  @@index([status], map: "idx_contributions_status")
+  @@map("contributions")
+}
+
+model ProofDocument {
+  id             String   @id @default(uuid()) @db.Uuid
+  contributionId String   @db.Uuid
+  fileKey        String
+  fileName       String
+  mimeType       String?
+  sizeBytes      Int?
+  uploadedBy     String   @db.Uuid
+  uploadedAt     DateTime @default(now())
+  contribution   Contribution @relation(fields: [contributionId], references: [id], onDelete: Cascade)
+
+  @@map("proof_documents")
+}
+
+model LedgerEntry {
+  id                      String   @id @default(uuid()) @db.Uuid
+  circleId                String   @db.Uuid
+  userId                  String   @db.Uuid
+  amount                  Decimal  @db.Decimal(18, 2)
+  runningBalance          Decimal  @db.Decimal(18, 2)
+  currency                String   @default("USD")
+  type                    String
+  referenceContributionId String?  @db.Uuid
+  metadata                Json?
+  recordedAt              DateTime @default(now())
+  circle                  Circle   @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([circleId, recordedAt], map: "idx_ledger_circle")
+  @@index([userId], map: "idx_ledger_user")
+  @@map("ledger_entries")
 }
