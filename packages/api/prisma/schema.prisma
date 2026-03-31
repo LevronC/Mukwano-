@@ -23,6 +23,9 @@ model User {
   contributions Contribution[]
   verifiedContributions Contribution[] @relation("ContributionVerifiedBy")
   ledgerEntries LedgerEntry[]
+  proposals    Proposal[]      @relation("ProposalCreatedBy")
+  votes        Vote[]
+  projectUpdates ProjectUpdate[]
 
   @@map("users")
 }
@@ -55,6 +58,8 @@ model Circle {
   governanceConfig GovernanceConfig?
   contributions    Contribution[]
   ledgerEntries    LedgerEntry[]
+  proposals        Proposal[]
+  projects         Project[]
 
   @@map("circles")
 }
@@ -145,4 +150,82 @@ model LedgerEntry {
   @@index([circleId, recordedAt], map: "idx_ledger_circle")
   @@index([userId], map: "idx_ledger_user")
   @@map("ledger_entries")
+}
+
+model Proposal {
+  id              String   @id @default(uuid()) @db.Uuid
+  circleId        String   @db.Uuid
+  createdBy       String   @db.Uuid
+  title           String
+  description     String
+  requestedAmount Decimal  @db.Decimal(18, 2)
+  currency        String   @default("USD")
+  status          String   @default("open")
+  votingDeadline  DateTime
+  quorumMet       Boolean  @default(false)
+  finalYes        Int      @default(0)
+  finalNo         Int      @default(0)
+  finalAbstain    Int      @default(0)
+  closedAt        DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime @default(now())
+  circle          Circle   @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  creator         User     @relation("ProposalCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
+  votes           Vote[]
+  projects        Project[]
+
+  @@index([circleId], map: "idx_proposals_circle")
+  @@index([status], map: "idx_proposals_status")
+  @@map("proposals")
+}
+
+model Vote {
+  id         String   @id @default(uuid()) @db.Uuid
+  proposalId String   @db.Uuid
+  userId     String   @db.Uuid
+  vote       String
+  castAt     DateTime @default(now())
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, userId])
+  @@index([proposalId], map: "idx_votes_proposal")
+  @@index([userId], map: "idx_votes_user")
+  @@map("votes")
+}
+
+model Project {
+  id          String   @id @default(uuid()) @db.Uuid
+  circleId    String   @db.Uuid
+  proposalId  String   @db.Uuid
+  createdBy   String   @db.Uuid
+  title       String
+  description String
+  budget      Decimal  @db.Decimal(18, 2)
+  currency    String   @default("USD")
+  status      String   @default("approved")
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  circle      Circle   @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  proposal    Proposal @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+  updates     ProjectUpdate[]
+
+  @@index([circleId], map: "idx_projects_circle")
+  @@index([status], map: "idx_projects_status")
+  @@map("projects")
+}
+
+model ProjectUpdate {
+  id              String   @id @default(uuid()) @db.Uuid
+  projectId       String   @db.Uuid
+  postedBy        String   @db.Uuid
+  content         String
+  percentComplete Int      @default(0)
+  createdAt       DateTime @default(now())
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [postedBy], references: [id], onDelete: Cascade)
+
+  @@index([projectId], map: "idx_project_updates_project")
+  @@map("project_updates")
 }

@@ -10,6 +10,8 @@ import { authRoutes } from './routes/auth/index.js'
 import { configRoute } from './routes/config.js'
 import { circlesRoute } from './routes/circles.js'
 import { contributionsRoute } from './routes/contributions.js'
+import { proposalsRoute } from './routes/proposals.js'
+import { projectsRoute } from './routes/projects.js'
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -81,6 +83,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(configRoute, { prefix: '/api/v1' })
   await app.register(circlesRoute, { prefix: '/api/v1' })
   await app.register(contributionsRoute, { prefix: '/api/v1' })
+  await app.register(proposalsRoute, { prefix: '/api/v1' })
+  await app.register(projectsRoute, { prefix: '/api/v1' })
 
   return app
 }
