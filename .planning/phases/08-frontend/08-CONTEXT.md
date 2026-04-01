@@ -181,6 +181,18 @@ Two-step presigned flow:
 
 ---
 
+## 11. Landing — iframe vs React (decision)
+
+**Status (2026-03-31): Keep HTML landing in iframe.**
+
+- **Implementation:** `/` renders `SplashPage`, which embeds `public/avator-landing.html` (design-complete marketing shell). Primary app routes (`/login`, `/signup`, `/dashboard`, …) are React + shared theme (`RootLayout`, tokens, optional WebGL/cursor where enabled).
+- **Rationale:** Preserves approved visual design without a large parity rewrite; React shell already carries product UX and governance messaging elsewhere.
+- **Tradeoffs:** Harder to E2E the splash CTA flow inside the iframe; duplicate font/theme concerns between iframe and app; weaker SEO for `/` if iframe content is not server-rendered.
+- **E2E strategy:** Playwright tests start at **`/login`** and **`/signup`** (see `packages/e2e`). Optional later: `page.frameLocator` for splash CTAs or migrate landing to React in a scoped milestone.
+- **Revisit when:** Marketing owns `/` SEO, or iframe maintenance cost exceeds one-time port effort.
+
+---
+
 ## Deferred Ideas
 
 - Dark mode — defer to v2

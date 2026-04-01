@@ -167,11 +167,16 @@ export function CircleDetailPage() {
       {/* Contributions */}
       {tab === 'contributions' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold" style={{ color: 'var(--mk-white)' }}>Contributions</h2>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold" style={{ color: 'var(--mk-white)' }}>Contributions</h2>
+              <p className="mt-1 text-xs max-w-xl" style={{ color: 'var(--mk-muted)' }}>
+                Verified amounts are written to an append-only ledger on the server. Reject keeps the row with status rejected — records are not deleted.
+              </p>
+            </div>
             <Link
               to={`/circles/${id}/contributions/new`}
-              className="mukwano-btn mukwano-btn-primary flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold"
+              className="mukwano-btn mukwano-btn-primary flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold"
             >
               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
               New

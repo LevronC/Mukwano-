@@ -45,8 +45,15 @@ export function NewCirclePage() {
         onSubmit={(event: FormEvent) => { event.preventDefault(); createCircle.mutate() }}
       >
         <div className="space-y-1.5">
-          <label className="text-[0.8125rem] font-medium ml-1 label-font" style={{ color: 'var(--mk-muted)' }}>Circle Name</label>
+          <label
+            htmlFor="new-circle-name"
+            className="text-[0.8125rem] font-medium ml-1 label-font"
+            style={{ color: 'var(--mk-muted)' }}
+          >
+            Circle Name
+          </label>
           <input
+            id="new-circle-name"
             className="mukwano-input"
             placeholder="e.g. Kampala Health Builders"
             value={name}
@@ -55,8 +62,15 @@ export function NewCirclePage() {
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-[0.8125rem] font-medium ml-1 label-font" style={{ color: 'var(--mk-muted)' }}>Description</label>
+          <label
+            htmlFor="new-circle-description"
+            className="text-[0.8125rem] font-medium ml-1 label-font"
+            style={{ color: 'var(--mk-muted)' }}
+          >
+            Description
+          </label>
           <textarea
+            id="new-circle-description"
             className="mukwano-input resize-none"
             rows={3}
             placeholder="What mission does this circle support?"
@@ -65,8 +79,15 @@ export function NewCirclePage() {
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-[0.8125rem] font-medium ml-1 label-font" style={{ color: 'var(--mk-muted)' }}>Goal Amount (USD)</label>
+          <label
+            htmlFor="new-circle-goal"
+            className="text-[0.8125rem] font-medium ml-1 label-font"
+            style={{ color: 'var(--mk-muted)' }}
+          >
+            Goal Amount (USD)
+          </label>
           <input
+            id="new-circle-goal"
             className="mukwano-input"
             type="number"
             min={1}

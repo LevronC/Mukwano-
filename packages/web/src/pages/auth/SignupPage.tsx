@@ -21,7 +21,7 @@ export function SignupPage() {
     setFieldError(null)
     try {
       await signup({ displayName, email, password })
-      navigate('/onboarding/sector')
+      navigate('/onboarding/sector', { replace: true })
     } catch (error) {
       setFieldError(getErrorField(error))
       toast.error(getErrorMessage(error))
@@ -35,14 +35,26 @@ export function SignupPage() {
       </div>
 
       <div className="mb-8 text-center">
-        <img
-          src={mukwanoLogo}
-          alt="Mukwano logo"
-          className="mx-auto h-24 w-auto rounded-2xl bg-white/95 p-2 shadow-ambient"
-        />
+        <Link to="/" className="inline-block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mk-gold)]">
+          <img
+            src={mukwanoLogo}
+            alt="Mukwano logo"
+            className="mx-auto h-24 w-auto rounded-2xl bg-white/95 p-2 shadow-ambient"
+          />
+        </Link>
         <p className="mt-2 text-sm tracking-[0.08em] uppercase" style={{ color: 'var(--mk-muted)', fontFamily: "'Inter', sans-serif" }}>
           Building Together
         </p>
+        <Link
+          to="/"
+          className="mt-4 inline-flex items-center gap-1 text-sm font-medium label-font transition-opacity hover:opacity-90"
+          style={{ color: 'var(--mk-muted)' }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }} aria-hidden>
+            arrow_back
+          </span>
+          Back to home
+        </Link>
       </div>
 
       <div className="mukwano-card w-full max-w-[440px] p-8 shadow-ambient-lg">
@@ -51,12 +63,18 @@ export function SignupPage() {
         </h2>
         <form className="space-y-5" onSubmit={onSubmit}>
           <div className="space-y-1.5">
-            <label className="text-[0.8125rem] font-medium ml-1 label-font" style={{ color: 'var(--mk-muted)' }}>
+            <label
+              htmlFor="signup-display-name"
+              className="text-[0.8125rem] font-medium ml-1 label-font"
+              style={{ color: 'var(--mk-muted)' }}
+            >
               Full Name
             </label>
             <input
+              id="signup-display-name"
               className="mukwano-input"
               placeholder="Enter your full name"
+              autoComplete="name"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               required
@@ -69,13 +87,19 @@ export function SignupPage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[0.8125rem] font-medium ml-1 label-font" style={{ color: 'var(--mk-muted)' }}>
+            <label
+              htmlFor="signup-email"
+              className="text-[0.8125rem] font-medium ml-1 label-font"
+              style={{ color: 'var(--mk-muted)' }}
+            >
               Email Address
             </label>
             <input
+              id="signup-email"
               className="mukwano-input"
               type="email"
               placeholder="example@mukwano.com"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -83,14 +107,20 @@ export function SignupPage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[0.8125rem] font-medium ml-1 label-font" style={{ color: 'var(--mk-muted)' }}>
+            <label
+              htmlFor="signup-password"
+              className="text-[0.8125rem] font-medium ml-1 label-font"
+              style={{ color: 'var(--mk-muted)' }}
+            >
               Password
             </label>
             <div className="relative">
               <input
+                id="signup-password"
                 className="mukwano-input pr-12"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Create a password"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

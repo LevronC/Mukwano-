@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { getErrorMessage } from '@/hooks/useApiError'
 import { useAuth } from '@/contexts/AuthContext'
+import { flagEmojiForCountryName } from '@/lib/onboarding-display'
 
 export function ProfilePage() {
   const { refreshUser } = useAuth()
@@ -50,12 +51,24 @@ export function ProfilePage() {
         <h2 className="text-base font-semibold" style={{ color: 'var(--mk-white)' }}>Account Details</h2>
         {[
           { label: 'Email', value: data?.email },
-          { label: 'Country', value: data?.country },
+          {
+            label: 'Country',
+            value: data?.country ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="text-lg leading-none" aria-hidden>
+                  {flagEmojiForCountryName(data.country)}
+                </span>
+                {data.country}
+              </span>
+            ) : (
+              '–'
+            )
+          },
           { label: 'Sector', value: data?.sector },
         ].map(({ label, value }) => (
-          <div key={label} className="flex items-center justify-between py-3" style={{ borderBottom: '1px solid rgba(190,201,195,0.15)' }}>
-            <p className="text-[0.8125rem] font-medium label-font" style={{ color: 'var(--mk-muted)' }}>{label}</p>
-            <p className="text-[0.8125rem] font-semibold" style={{ color: 'var(--mk-white)' }}>{value ?? '–'}</p>
+          <div key={label} className="flex items-center justify-between gap-4 py-3" style={{ borderBottom: '1px solid rgba(190,201,195,0.15)' }}>
+            <p className="text-[0.8125rem] font-medium label-font shrink-0" style={{ color: 'var(--mk-muted)' }}>{label}</p>
+            <p className="text-[0.8125rem] font-semibold text-right min-w-0" style={{ color: 'var(--mk-white)' }}>{value ?? '–'}</p>
           </div>
         ))}
       </div>

@@ -988,7 +988,7 @@ DEMO_MODE=true
 FILE_STORAGE_PROVIDER=local|s3
 S3_BUCKET=mukwano-proofs
 S3_REGION=us-east-1
-CORS_ORIGIN=http://localhost:3000
+CORS_ORIGIN=http://localhost:5173
 PORT=4000
 ```
 

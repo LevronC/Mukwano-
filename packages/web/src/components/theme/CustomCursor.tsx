@@ -25,10 +25,12 @@ export function CustomCursor() {
     }
     document.addEventListener('mousemove', onMove)
 
+    /** Higher = ring follows pointer faster (0.15 felt sluggish in-app). */
+    const follow = 0.34
     let frame = 0
     const anim = () => {
-      rx += (mx - rx) * 0.15
-      ry += (my - ry) * 0.15
+      rx += (mx - rx) * follow
+      ry += (my - ry) * follow
       ring.style.left = `${rx}px`
       ring.style.top = `${ry}px`
       frame = requestAnimationFrame(anim)
@@ -74,12 +76,12 @@ export function CustomCursor() {
     <>
       <div
         ref={dotRef}
-        className="pointer-events-none fixed z-[10000] h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--mk-gold)] transition-[width,height,background] duration-200"
+        className="pointer-events-none fixed z-[10000] h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--mk-gold)] transition-[width,height,background] duration-100 ease-out"
         aria-hidden
       />
       <div
         ref={ringRef}
-        className="pointer-events-none fixed z-[9999] h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[rgba(240,165,0,0.5)] mix-blend-screen transition-all duration-[120ms] ease-out"
+        className="pointer-events-none fixed z-[9999] h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[rgba(240,165,0,0.5)] mix-blend-screen transition-[width,height,border-color] duration-75 ease-out"
         aria-hidden
       />
     </>

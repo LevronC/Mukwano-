@@ -4,14 +4,15 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { getErrorMessage } from '@/hooks/useApiError'
-
-const COUNTRIES = ['Uganda', 'Kenya', 'Nigeria', 'Ghana', 'Rwanda', 'Tanzania', 'South Africa', 'Ethiopia']
+import { flagEmojiForCountryName, ONBOARDING_COUNTRIES } from '@/lib/onboarding-display'
 
 export function OnboardingCountryPage() {
   const navigate = useNavigate()
   const [country, setCountry] = useState('Uganda')
   const [search, setSearch] = useState('')
-  const filtered = COUNTRIES.filter((value) => value.toLowerCase().includes(search.toLowerCase()))
+  const filtered = ONBOARDING_COUNTRIES.filter(({ name }) =>
+    name.toLowerCase().includes(search.toLowerCase())
+  )
   const save = useMutation({
     mutationFn: () => api.patch('/auth/me', { country }),
     onSuccess: () => navigate('/onboarding/complete'),
@@ -37,48 +38,67 @@ export function OnboardingCountryPage() {
           Pick the country where your circle will create impact.
         </p>
 
-        {/* Search */}
-        <div className="relative mb-6">
-          <span
-            className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ fontSize: '20px', color: 'var(--mk-muted)' }}
+        {/* Search — flex row so icon never overlaps text/caret (absolute+pl-* fought .mukwano-input padding) */}
+        <div className="mb-6">
+          <label htmlFor="country-search" className="sr-only">
+            Search countries
+          </label>
+          <div
+            className="flex w-full items-center gap-3 rounded-[0.75rem] border border-[rgba(240,165,0,0.2)] bg-[rgba(255,255,255,0.08)] px-4 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-[box-shadow,border-color] focus-within:border-[rgba(240,165,0,0.45)] focus-within:shadow-[0_0_0_2px_rgba(240,165,0,0.35)]"
           >
-            search
-          </span>
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search country…"
-            className="mukwano-input pl-11"
-            style={{ background: 'rgba(255,255,255,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
-          />
+            <span
+              className="material-symbols-outlined pointer-events-none shrink-0 select-none"
+              style={{ fontSize: '22px', color: 'var(--mk-muted)' }}
+              aria-hidden
+            >
+              search
+            </span>
+            <input
+              id="country-search"
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search country…"
+              autoComplete="off"
+              className="min-w-0 flex-1 border-0 bg-transparent p-0 text-base outline-none placeholder:text-[rgba(122,149,196,0.65)]"
+              style={{ color: 'var(--mk-white)', fontFamily: "'Outfit', sans-serif" }}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {filtered.map((value) => (
-            <button
-              key={value}
-              onClick={() => setCountry(value)}
-              className="rounded-xl p-4 text-left transition-all active:scale-[0.98]"
-              style={
-                country === value
-                  ? {
-                      background: 'rgba(240,165,0,0.12)',
-                      outline: '2px solid var(--mk-gold)',
-                      color: 'var(--mk-gold)',
-                      fontWeight: 600
-                    }
-                  : {
-                      background: 'var(--mk-navy2)',
-                      outline: '2px solid rgba(240,165,0,0.15)',
-                      color: 'var(--mk-white)',
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.25)'
-                    }
-              }
-            >
-              <p className="font-medium text-sm">{value}</p>
-            </button>
-          ))}
+          {filtered.map(({ name }) => {
+            const flag = flagEmojiForCountryName(name)
+            const selected = country === name
+            return (
+              <button
+                key={name}
+                type="button"
+                onClick={() => setCountry(name)}
+                className="flex items-center gap-3 rounded-xl p-4 text-left transition-all active:scale-[0.98]"
+                style={
+                  selected
+                    ? {
+                        background: 'rgba(240,165,0,0.12)',
+                        outline: '2px solid var(--mk-gold)',
+                        color: 'var(--mk-gold)',
+                        fontWeight: 600
+                      }
+                    : {
+                        background: 'var(--mk-navy2)',
+                        outline: '2px solid rgba(240,165,0,0.15)',
+                        color: 'var(--mk-white)',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.25)'
+                      }
+                }
+              >
+                <span className="text-3xl leading-none select-none" aria-hidden title={name}>
+                  {flag}
+                </span>
+                <p className="font-medium text-sm leading-snug">{name}</p>
+              </button>
+            )
+          })}
         </div>
       </div>
 

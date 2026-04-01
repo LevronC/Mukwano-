@@ -18,19 +18,26 @@ export function OnboardingCompletePage() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
-            to="/explore"
+            to="/dashboard"
             className="mukwano-btn-primary rounded-xl px-6 py-3 text-center font-semibold"
           >
-            Explore circles
+            Go to dashboard
           </Link>
           <Link
-            to="/onboarding/sector"
+            to="/explore"
             className="rounded-xl px-6 py-3 text-center font-semibold"
             style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--mk-white)' }}
           >
-            Change preferences
+            Explore circles
           </Link>
         </div>
+        <Link
+          to="/onboarding/sector"
+          className="block text-center text-sm font-medium pt-2"
+          style={{ color: 'var(--mk-muted)' }}
+        >
+          Change preferences
+        </Link>
       </div>
     </div>
   )

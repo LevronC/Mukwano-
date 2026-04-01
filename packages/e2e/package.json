@@ -1,0 +1,16 @@
+{
+  "name": "@mukwano/e2e",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:critical": "playwright test tests/critical-stories.spec.ts",
+    "test:headed": "playwright test --headed",
+    "playwright:install": "playwright install chromium",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.1"
+  }
+}

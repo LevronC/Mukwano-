@@ -16,7 +16,7 @@ export function ProposalDetailPage() {
         currency?: string
         status?: string
         votingDeadline?: string
-        votes?: { yes: number; no: number; abstain: number }
+        voteSummary?: { cast: number; yes: number; no: number; abstain: number }
       }>(`/circles/${id}/proposals/${pid}`)
   })
 
@@ -82,15 +82,21 @@ export function ProposalDetailPage() {
         </div>
       </section>
 
-      {/* Vote tally */}
-      {data?.votes && (
+      {/* Vote tally — server-computed voteSummary from API */}
+      {data?.voteSummary && (
         <section className="mukwano-card p-6">
-          <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--mk-white)' }}>Vote Tally</h2>
+          <h2 className="text-lg font-semibold mb-1" style={{ color: 'var(--mk-white)' }}>Vote tally</h2>
+          <p className="text-xs mb-4 max-w-xl" style={{ color: 'var(--mk-muted)' }}>
+            Totals are calculated on the server from recorded votes — the UI only displays what the API returns.
+          </p>
+          <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font mb-3" style={{ color: 'var(--mk-muted)' }}>
+            Cast: {data.voteSummary.cast}
+          </p>
           <div className="flex gap-6">
             {(['yes', 'no', 'abstain'] as const).map((v) => (
               <div key={v} className="text-center">
                 <p className="text-2xl font-bold" style={{ color: v === 'yes' ? 'var(--mk-gold)' : v === 'no' ? '#ba1a1a' : 'var(--mk-muted)' }}>
-                  {data.votes?.[v] ?? 0}
+                  {data.voteSummary?.[v] ?? 0}
                 </p>
                 <p className="text-xs font-bold uppercase tracking-widest label-font capitalize" style={{ color: 'var(--mk-muted)' }}>{v}</p>
               </div>

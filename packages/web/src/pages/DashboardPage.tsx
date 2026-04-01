@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { getErrorMessage } from '@/hooks/useApiError'
+import { getLocalTimeGreeting } from '@/lib/time-greeting'
 
 export function DashboardPage() {
   const { user } = useAuth()
@@ -54,7 +55,7 @@ export function DashboardPage() {
               className="font-display text-4xl font-semibold tracking-tight md:text-5xl"
               style={{ color: '#ffffff' }}
             >
-              Good morning, {firstName}.
+              {getLocalTimeGreeting()}, {firstName}.
             </h1>
             <p className="text-lg max-w-md" style={{ color: 'var(--mk-muted)' }}>
               Your circles have raised funds for community impact this month.

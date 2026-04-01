@@ -1,0 +1,5 @@
+.e2e-credentials.json
+.auth/
+playwright-report/
+test-results/
+blob-report/

@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
+import { getErrorMessage } from '@/hooks/useApiError'
 
 export function CirclesListPage() {
-  const { data } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['circles'],
     queryFn: () =>
       api.get<
@@ -17,6 +18,36 @@ export function CirclesListPage() {
   })
 
   const requestsByCircleId = new Map((myRequests ?? []).map((entry) => [entry.circleId, entry.role]))
+
+  if (isLoading) {
+    return (
+      <div className="space-y-10">
+        <section className="mukwano-hero p-8 md:p-12">
+          <h1 className="text-4xl font-bold" style={{ color: '#ffffff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            My Circles
+          </h1>
+        </section>
+        <div className="mukwano-card rounded-2xl p-12 text-center">
+          <p style={{ color: 'var(--mk-muted)' }}>Loading circles…</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-10">
+        <section className="mukwano-hero p-8 md:p-12">
+          <h1 className="text-4xl font-bold" style={{ color: '#ffffff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            My Circles
+          </h1>
+        </section>
+        <div className="rounded-2xl border border-red-900/40 bg-red-950/30 p-8 text-center">
+          <p className="font-medium" style={{ color: '#fecaca' }}>{getErrorMessage(error)}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-10">

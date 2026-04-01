@@ -11,7 +11,7 @@ const schema = {
     REFRESH_TOKEN_SECRET: { type: 'string' },
     DEMO_MODE: { type: 'string', default: 'false' },
     PORT: { type: 'integer', default: 4000 },
-    CORS_ORIGIN: { type: 'string', default: 'http://localhost:3000' }
+    CORS_ORIGIN: { type: 'string', default: 'http://localhost:5173' }
   }
 } as const
 

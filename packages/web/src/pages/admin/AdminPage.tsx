@@ -259,14 +259,44 @@ export function AdminPage() {
           <div className="space-y-4">
             <h2 className="text-2xl font-semibold" style={{ color: 'var(--mk-white)' }}>Members</h2>
             <div className="mukwano-card overflow-hidden">
-              {(members.data ?? []).map((member) => (
-                <div key={member.id} className="grid grid-cols-4 gap-4 border-b px-5 py-4 text-sm" style={{ borderColor: 'rgba(190,201,195,0.15)' }}>
-                  <div>{member.displayName}</div>
-                  <div>{member.email}</div>
-                  <div>{member.country ?? '-'}</div>
-                  <div>{member.isGlobalAdmin ? 'Global Admin' : 'Member'}</div>
+              <div className="px-5 py-3" style={{ background: 'var(--mk-navy2)' }}>
+                <div
+                  className="grid grid-cols-4 gap-4 w-full text-[0.6875rem] font-bold uppercase tracking-widest label-font min-w-0"
+                  style={{ color: 'var(--mk-muted)' }}
+                >
+                  <span className="min-w-0">Name</span>
+                  <span className="min-w-0">Email</span>
+                  <span className="min-w-0">Country</span>
+                  <span className="min-w-0">Role</span>
                 </div>
-              ))}
+              </div>
+              <div className="divide-y" style={{ borderColor: 'rgba(190,201,195,0.15)' }}>
+                {(members.data ?? []).length === 0 ? (
+                  <div className="px-5 py-12 text-center">
+                    <p className="font-medium text-sm" style={{ color: 'var(--mk-muted)' }}>No members yet.</p>
+                  </div>
+                ) : (
+                  (members.data ?? []).map((member) => (
+                    <div
+                      key={member.id}
+                      className="grid grid-cols-4 gap-4 items-start px-5 py-4 text-sm min-w-0"
+                    >
+                      <div className="min-w-0 font-medium" style={{ color: 'var(--mk-white)' }}>
+                        {member.displayName}
+                      </div>
+                      <div
+                        className="min-w-0 break-all text-xs leading-relaxed"
+                        style={{ color: 'var(--mk-muted)' }}
+                        title={member.email}
+                      >
+                        {member.email}
+                      </div>
+                      <div className="min-w-0">{member.country ?? '-'}</div>
+                      <div className="min-w-0">{member.isGlobalAdmin ? 'Global Admin' : 'Member'}</div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         )}

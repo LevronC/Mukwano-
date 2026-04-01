@@ -124,7 +124,7 @@ export function AppLayout() {
               type="button"
               onClick={async () => {
                 await logout()
-                navigate('/login')
+                navigate('/login', { replace: true })
               }}
             >
               Logout

@@ -11,6 +11,7 @@ Mukwano ("friend" in Luganda) is a governance-first platform for diaspora commun
 
 - **Tech stack**: Node.js + Fastify + TypeScript, PostgreSQL 16, Prisma ORM, React + TypeScript frontend
 - **Structure**: npm workspaces monorepo (`/api`, `/web`)
+- **Local dev**: From repo root, `npm run dev` runs **API** (port **4000**) and **Vite** (port **5173**) together. Use **http://localhost:5173** for the UI; `/api` is proxied to the API. Needs `packages/api/.env` (`DATABASE_URL`, `JWT_SECRET`, `REFRESH_TOKEN_SECRET`) and a running Postgres (e.g. `docker compose up -d`). Use `npm run dev:api` or `npm run dev:web` for one process only. If you see **EADDRINUSE** on 4000 or Vite cannot bind 5173, stop old dev servers: **`npm run dev:kill`** (frees **4000** and **5173**), then `npm run dev` again.
 - **Auth**: JWT (HS256) with 15-min access tokens + 30-day refresh tokens with family rotation
 - **Ledger**: Append-only enforced at app layer (INSERT only) + DB trigger (raises exception on UPDATE/DELETE) + DB user has no UPDATE/DELETE grants on ledger_entries
 - **DEMO_MODE**: All governance logic is identical to production; only bank rails differ

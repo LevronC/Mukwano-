@@ -1,5 +1,7 @@
 import type { ApiError } from './types'
 
+export const AUTH_REDIRECT_ERROR_MESSAGE = 'AUTH_REDIRECT'
+
 const BASE = '/api/v1'
 const ACCESS_KEY = 'access_token'
 const REFRESH_KEY = 'refresh_token'
@@ -62,11 +64,26 @@ async function request<T>(path: string, init: ReqInit = {}, retried = false): Pr
 
   const res = await fetch(`${BASE}${path}`, { ...init, headers })
   if (res.status === 401 && !retried && path !== '/auth/refresh' && !init.skipAuth) {
+    let errorCode: string | undefined
+    try {
+      const body = (await res.clone().json()) as ApiError
+      errorCode = body?.error?.code
+    } catch {
+      /* non-JSON 401 */
+    }
     const refreshed = await tryRefresh()
     if (refreshed) return request<T>(path, init, true)
     removeStorage(ACCESS_KEY)
     removeStorage(REFRESH_KEY)
-    window.location.href = '/login'
+    if (errorCode === 'TOKEN_EXPIRED') {
+      try {
+        sessionStorage.setItem('mukwano_auth_notice', 'session_expired')
+      } catch {
+        /* private mode */
+      }
+    }
+    window.location.replace('/login')
+    throw new Error(AUTH_REDIRECT_ERROR_MESSAGE)
   }
   if (!res.ok) {
     const fallback: ApiError = {

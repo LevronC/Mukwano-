@@ -2,12 +2,25 @@
   "name": "mukwano",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "npm -w packages/api run dev",
+    "dev": "concurrently -n api,web -c blue,magenta \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:kill": "bash scripts/kill-dev-ports.sh",
+    "dev:api": "npm -w packages/api run dev",
+    "dev:web": "npm -w packages/web run dev",
     "build": "npm -w packages/api run build",
+    "build:api": "npm -w packages/api run build",
+    "build:web": "npm -w packages/web run build",
+    "build:all": "npm run build:api && npm run build:web",
     "test": "npm -w packages/api test",
+    "test:e2e": "npm -w @mukwano/e2e test",
+    "test:e2e:critical": "npm -w @mukwano/e2e run test:critical",
     "prisma:push": "prisma db push",
     "prisma:generate": "prisma generate"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

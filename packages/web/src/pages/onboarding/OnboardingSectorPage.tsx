@@ -4,15 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { getErrorMessage } from '@/hooks/useApiError'
-
-const SECTORS = [
-  { label: 'Healthcare', icon: 'local_hospital' },
-  { label: 'Education', icon: 'school' },
-  { label: 'Agriculture', icon: 'agriculture' },
-  { label: 'Technology', icon: 'devices' },
-  { label: 'Infrastructure', icon: 'construction' },
-  { label: 'Clean Energy', icon: 'solar_power' },
-]
+import { ONBOARDING_SECTORS } from '@/lib/onboarding-display'
 
 export function OnboardingSectorPage() {
   const navigate = useNavigate()
@@ -43,41 +35,61 @@ export function OnboardingSectorPage() {
         </p>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {SECTORS.map(({ label, icon }) => (
-            <button
-              key={label}
-              onClick={() => setSector(label)}
-              className="flex items-center gap-4 rounded-2xl p-5 text-left transition-all active:scale-[0.98]"
-              style={
-                sector === label
-                  ? { background: 'rgba(240,165,0,0.12)', outline: '2px solid var(--mk-gold)' }
-                  : {
-                      background: 'var(--mk-navy2)',
-                      outline: '2px solid rgba(240,165,0,0.15)',
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.25)'
-                    }
-              }
-            >
-              <span
-                className="material-symbols-outlined"
-                style={{
-                  fontSize: '24px',
-                  color: sector === label ? 'var(--mk-gold)' : 'var(--mk-muted)',
-                  fontVariationSettings: "'FILL' 1"
-                }}
+          {ONBOARDING_SECTORS.map(({ label, icon, shortHint }) => {
+            const selected = sector === label
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setSector(label)}
+                className="flex items-start gap-4 rounded-2xl p-5 text-left transition-all active:scale-[0.98]"
+                style={
+                  selected
+                    ? { background: 'rgba(240,165,0,0.12)', outline: '2px solid var(--mk-gold)' }
+                    : {
+                        background: 'var(--mk-navy2)',
+                        outline: '2px solid rgba(240,165,0,0.15)',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.25)'
+                      }
+                }
               >
-                {icon}
-              </span>
-              <p className="font-semibold" style={{ color: sector === label ? 'var(--mk-gold)' : 'var(--mk-white)' }}>{label}</p>
-            </button>
-          ))}
+                <span
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+                  style={{
+                    background: selected ? 'rgba(240,165,0,0.2)' : 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(240,165,0,0.2)'
+                  }}
+                  aria-hidden
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{
+                      fontSize: '28px',
+                      color: selected ? 'var(--mk-gold)' : 'var(--mk-muted)',
+                      fontVariationSettings: "'FILL' 1"
+                    }}
+                  >
+                    {icon}
+                  </span>
+                </span>
+                <span className="min-w-0 flex-1">
+                  <p className="font-semibold" style={{ color: selected ? 'var(--mk-gold)' : 'var(--mk-white)' }}>
+                    {label}
+                  </p>
+                  <p className="mt-1 text-sm leading-snug" style={{ color: 'var(--mk-muted)' }}>
+                    {shortHint}
+                  </p>
+                </span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
       {/* Sticky footer */}
       <div
         className="fixed bottom-0 left-0 w-full px-6 py-5 glass-nav"
-        style={{ background: 'rgba(252,249,245,0.92)', borderTop: '1px solid rgba(190,201,195,0.15)' }}
+        style={{ background: 'rgba(6,13,31,0.92)', borderTop: '1px solid rgba(240,165,0,0.12)' }}
       >
         <div className="mx-auto flex max-w-2xl justify-end">
           <button
