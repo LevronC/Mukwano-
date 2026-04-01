@@ -17,6 +17,7 @@
 - [ ] **Phase 6: Portfolio, Dashboard & Admin** — All data surfaces as actionable read-only views
 - [ ] **Phase 7: DEMO_MODE & Config** — DEMO_MODE is explicit, labeled, and complete — all governance runs identically
 - [ ] **Phase 8: Frontend** — React app implements all backend phases with consistent UX
+- [ ] **Phase 9: Clerk Auth Integration** — Replace custom JWT/bcrypt auth with Clerk: embedded sign-in/sign-up, social logins (Google+GitHub), JWKS-verified tokens, auto-provisioned DB users
 
 ---
 
@@ -118,6 +119,26 @@
 **Plans**: TBD
 **UI hint**: yes
 
+### Phase 9: Clerk Auth Integration
+**Goal**: Custom JWT/bcrypt auth is fully replaced by Clerk — embedded sign-in/sign-up components, Google+GitHub social logins, backend verifies Clerk JWTs via JWKS, and DB users are auto-provisioned on first Clerk login
+**Depends on**: Phase 1, Phase 8
+**Requirements**: CLERK-01, CLERK-02, CLERK-03, CLERK-04, CLERK-05, CLERK-06, CLERK-07, CLERK-08
+**Success Criteria** (what must be TRUE):
+  1. A user can sign up via the embedded `<SignUp />` component (email/password, Google, or GitHub) and land on the dashboard — no custom password form exists
+  2. The backend verifies Clerk JWTs using `clerk.verifyToken()` (JWKS-based RS256 validation); presenting a tampered or expired token returns 401
+  3. A first-time Clerk login auto-creates a User row in the DB using the primary verified email from Clerk; subsequent logins reuse the existing row
+  4. `req.user` in all Fastify routes is populated via typed `FastifyRequest` decoration (no `as any` casts) with `{ id, email, isGlobalAdmin }`
+  5. `@fastify/jwt`, `bcryptjs`, the `RefreshToken` model, and all custom auth routes (`/auth/signup`, `/auth/login`, `/auth/logout`, `/auth/refresh`) are removed from the codebase
+  6. `CLERK_SECRET_KEY` is the only Clerk env var on the backend; `VITE_CLERK_PUBLISHABLE_KEY` is the only one on the frontend
+  7. The frontend `client.ts` injects Clerk session tokens via `getToken()` — no tokens in localStorage, no manual refresh loop
+  8. Google and GitHub social login buttons are visible on the embedded sign-in component (configured in Clerk dashboard)
+**Plans:** 4 plans
+Plans:
+- [ ] 09-01-PLAN.md — Test infrastructure: create mock Clerk helpers and validate them
+- [ ] 09-02-PLAN.md — Backend: install @clerk/backend, Clerk plugin, new authGuard, migrate tests
+- [ ] 09-03-PLAN.md — Frontend: install @clerk/clerk-react, ClerkProvider, embedded components, client.ts rewrite
+- [ ] 09-04-PLAN.md — Cleanup: remove old auth routes, packages, schema, update docs
+
 ---
 
 ## Progress
@@ -132,3 +153,4 @@
 | 6. Portfolio, Dashboard & Admin | 0/? | Not started | - |
 | 7. DEMO_MODE & Config | 0/? | Not started | - |
 | 8. Frontend | 0/? | Not started | - |
+| 9. Clerk Auth Integration | 0/4 | Planned | - |
