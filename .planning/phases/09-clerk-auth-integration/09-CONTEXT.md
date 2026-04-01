@@ -10,7 +10,7 @@
 Replace the existing custom JWT/bcrypt authentication system with Clerk. This phase covers:
 
 - **Backend**: Remove `@fastify/jwt`, `bcryptjs`, custom auth routes, and `RefreshToken` model. Install `@clerk/backend`, add a Clerk Fastify plugin, replace `authGuard` with JWKS-based token verification using `clerk.verifyToken()`, and auto-provision DB users on first Clerk login.
-- **Frontend**: Remove custom token storage and refresh loop in `client.ts`. Install `@clerk/clerk-react`, wrap app in `ClerkProvider`, replace `LoginPage`/`SignupPage` with embedded `<SignIn />`/`<SignUp />` components.
+- **Frontend**: Remove custom token storage and refresh loop in `client.ts`. Install `@clerk/react`, wrap app in `ClerkProvider`, replace `LoginPage`/`SignupPage` with embedded `<SignIn />`/`<SignUp />` components.
 - **DB schema**: Add `clerkId String @unique` to User, make `passwordHash` nullable, run migration, then drop `RefreshToken` table.
 
 Out of scope: multi-tenancy, Clerk Organizations, webhooks, user management UI (Clerk dashboard handles this).
@@ -118,9 +118,9 @@ Key points:
 
 ### Frontend ClerkProvider (`packages/web/src/main.tsx`)
 ```tsx
-import { ClerkProvider } from '@clerk/clerk-react'
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
-// Wrap <App /> with <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+import { ClerkProvider } from '@clerk/react'
+// Wrap <App /> with <ClerkProvider afterSignOutUrl="/" signInUrl="/login" signUpUrl="/signup">
+// DO NOT pass publishableKey as a prop — Vite auto-detects VITE_CLERK_PUBLISHABLE_KEY from env
 ```
 
 ### Frontend client.ts token injection
