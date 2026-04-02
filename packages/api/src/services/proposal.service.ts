@@ -146,9 +146,9 @@ export class ProposalService {
       const votes = await tx.vote.findMany({ where: { proposalId: proposal.id } })
       const eligible = await tx.circleMembership.count({ where: { circleId } })
       const cast = votes.length
-      const yes = votes.filter((v) => v.vote === 'yes').length
-      const no = votes.filter((v) => v.vote === 'no').length
-      const abstain = votes.filter((v) => v.vote === 'abstain').length
+      const yes = votes.filter((v: { vote: string }) => v.vote === 'yes').length
+      const no = votes.filter((v: { vote: string }) => v.vote === 'no').length
+      const abstain = votes.filter((v: { vote: string }) => v.vote === 'abstain').length
 
       const gov = await tx.governanceConfig.findUnique({ where: { circleId } })
       if (!gov) throw new NotFoundError('Governance config not found')

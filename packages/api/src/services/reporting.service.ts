@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { Prisma } from '@prisma/client'
 import { ForbiddenError, NotFoundError } from '../errors/http-errors.js'
 import { ContributionService } from './contribution.service.js'
 
@@ -10,6 +11,8 @@ type ActivityItem = {
   createdAt: Date
   metadata: Record<string, unknown>
 }
+
+type DecimalLike = Prisma.Decimal | number | string
 
 export class ReportingService {
   constructor(private readonly app: FastifyInstance) {}
@@ -27,10 +30,10 @@ export class ReportingService {
   async getPortfolioSummary(userId: string) {
     const contributions = await this.app.prisma.contribution.findMany({ where: { userId } })
 
-    const totalContributed = contributions.reduce((acc, c) => acc + Number(c.amount), 0)
+    const totalContributed = contributions.reduce((acc: number, c: { amount: DecimalLike }) => acc + Number(c.amount), 0)
     const totalVerified = contributions
-      .filter((c) => c.status === 'verified')
-      .reduce((acc, c) => acc + Number(c.amount), 0)
+      .filter((c: { status: string }) => c.status === 'verified')
+      .reduce((acc: number, c: { amount: DecimalLike }) => acc + Number(c.amount), 0)
 
     const circleIds = [
       ...new Set(
@@ -39,7 +42,7 @@ export class ReportingService {
             where: { userId },
             select: { circleId: true }
           })
-        ).map((m) => m.circleId)
+        ).map((m: { circleId: string }) => m.circleId)
       )
     ]
 
@@ -50,7 +53,7 @@ export class ReportingService {
       }
     })
 
-    const inProjects = projects.reduce((acc, p) => acc + Number(p.budget), 0)
+    const inProjects = projects.reduce((acc: number, p: { budget: DecimalLike }) => acc + Number(p.budget), 0)
 
     return {
       totalContributed,
@@ -76,7 +79,7 @@ export class ReportingService {
       }
     })
 
-    const circleIds = memberships.map((m) => m.circleId)
+    const circleIds = memberships.map((m: { circleId: string }) => m.circleId)
 
     const pendingContributions = await this.app.prisma.contribution.count({
       where: {
@@ -96,17 +99,17 @@ export class ReportingService {
     const voted = await this.app.prisma.vote.findMany({
       where: {
         userId,
-        proposalId: { in: openProposals.map((p) => p.id) }
+        proposalId: { in: openProposals.map((p: { id: string }) => p.id) }
       },
       select: { proposalId: true }
     })
-    const votedSet = new Set(voted.map((v) => v.proposalId))
-    const unvotedProposals = openProposals.filter((p) => !votedSet.has(p.id)).length
+    const votedSet = new Set(voted.map((v: { proposalId: string }) => v.proposalId))
+    const unvotedProposals = openProposals.filter((p: { id: string }) => !votedSet.has(p.id)).length
 
     const recentActivity = await this.getActivityForCircles(circleIds, 20)
 
     return {
-      circles: memberships.map((m) => ({ ...m.circle, role: m.role })),
+      circles: memberships.map((m: { circle: Record<string, unknown>; role: string }) => ({ ...m.circle, role: m.role })),
       pendingContributions,
       unvotedProposals,
       recentActivity
@@ -200,7 +203,7 @@ export class ReportingService {
   async getAdminActivity(requestUserId: string) {
     await this.ensureGlobalAdmin(requestUserId)
     const circles = await this.app.prisma.circle.findMany({ select: { id: true } })
-    return this.getActivityForCircles(circles.map((c) => c.id), 500)
+    return this.getActivityForCircles(circles.map((c: { id: string }) => c.id), 500)
   }
 
   async getAdminMetrics(requestUserId: string) {
