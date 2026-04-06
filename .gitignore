@@ -10,3 +10,4 @@ packages/api/prisma/migrations/
 # Design tool scratch exports (Stitch previews, screenshots)
 /stitch-*.html
 /stitch-*-screenshot.png
+/DEMO_SCRIPT.md

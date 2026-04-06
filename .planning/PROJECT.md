@@ -43,7 +43,7 @@ Governance enforced in the server layer, not the UI — every balance mutation, 
 ## Context
 
 - Full system design exists in `SYSTEM_DESIGN.md` at repo root — 20 sections covering domain model, DB schema, API design, auth, ledger, voting, escrow, and DAO upgrade path
-- Demo materials in `DEMO_SCRIPT.md` and `SLIDE_OUTLINE.md` describe the expected user journey
+- Demo presentation materials describe the expected user journey
 - Architecture validated before implementation: 4 correctness issues identified and resolved (votes.weight column, DB trigger vs RULE for ledger append-only, ON CONFLICT vote handling, proof confirm endpoint)
 - Greenfield build — no existing application code
 
