@@ -17,20 +17,24 @@ CORS_ORIGIN=https://mukwano.vercel.app  # Your Vercel frontend URL
 
 ### Railway Build & Start Commands:
 
-- **Build Command**: `npm install && npm run build`
-- **Start Command**: `npm run start`
-- **Root Directory**: `packages/api`
+**IMPORTANT**: Deploy from the repository **root**, not `packages/api`.
 
-Or configure via `railway.toml` (optional):
+The `railway.toml` is configured to:
+- **Build**: `npm install && npm run build:api` (runs Prisma generate + TypeScript build)
+- **Start**: `node packages/api/dist/server.js` (direct Node.js execution)
+
+**Critical**: Railway must have `DATABASE_URL` set as an environment variable **during the build phase** because `prisma generate` runs during the build.
+
+### Railway Configuration (already in `railway.toml`):
 
 ```toml
 [build]
-builder = "NIXPACKS"
-buildCommand = "npm install && npm run build"
+builder = "nixpacks"
+buildCommand = "npm install && npm run build:api"
 
 [deploy]
-startCommand = "npm run start"
-restartPolicyType = "ON_FAILURE"
+startCommand = "node packages/api/dist/server.js"
+restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 ```
 

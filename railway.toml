@@ -1,8 +1,8 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm run build --workspace=@mukwano/api"
+buildCommand = "npm install && npm run build:api"
 
 [deploy]
-startCommand = "npm run start --workspace=@mukwano/api"
+startCommand = "node packages/api/dist/server.js"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
