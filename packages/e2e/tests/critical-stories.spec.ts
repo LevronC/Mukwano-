@@ -12,13 +12,31 @@ test.describe('Critical user stories (plan §2)', () => {
     const email = `cs_${Date.now()}_${Math.random().toString(36).slice(2, 10)}@mukwano.test`
     const circleName = `E2E Circle ${Date.now()}`
 
+    // Capture console errors
+    const consoleErrors: string[] = []
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text())
+      }
+    })
+
     // 1 — Sign up → onboarding → dashboard
     await page.goto('/signup')
     await page.getByLabel('Full Name').fill('Story User')
     await page.getByLabel('Email Address').fill(email)
     await page.getByLabel('Password').fill(password)
     await page.getByRole('button', { name: 'Continue' }).click()
-    await expect(page.getByText('Step 1 of 2')).toBeVisible({ timeout: 15_000 })
+    
+    // Wait a moment and log state if it fails
+    try {
+      await expect(page.getByText('Step 1 of 2')).toBeVisible({ timeout: 15_000 })
+    } catch (e) {
+      console.log('=== DEBUG: Signup failed to navigate ===')
+      console.log('Current URL:', page.url())
+      console.log('Console errors:', consoleErrors)
+      console.log('Page content preview:', await page.content().then(c => c.substring(0, 500)))
+      throw e
+    }
     await page.getByRole('button', { name: 'Next: Choose country' }).click()
     await expect(page.getByText('Step 2 of 2')).toBeVisible()
     await page.getByRole('button', { name: /Let's go/i }).click()

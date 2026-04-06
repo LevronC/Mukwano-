@@ -22,15 +22,31 @@ test.describe('D2 — auth spine', () => {
   test('seeded user logs in and reaches dashboard', async ({ page }) => {
     const { email, password } = loadCredentials()
 
+    // Capture console errors
+    const consoleErrors: string[] = []
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text())
+      }
+    })
+
     await page.goto('/login')
     await page.getByLabel('Email Address').fill(email)
     await page.getByLabel('Password').fill(password)
     await page.getByRole('button', { name: 'Sign in' }).click()
 
-    await expect(
-      page.getByRole('heading', { name: /Good (morning|afternoon|evening), E2E/i })
-    ).toBeVisible({
-      timeout: 15_000
-    })
+    try {
+      await expect(
+        page.getByRole('heading', { name: /Good (morning|afternoon|evening), E2E/i })
+      ).toBeVisible({
+        timeout: 15_000
+      })
+    } catch (e) {
+      console.log('=== DEBUG: Login failed to navigate ===')
+      console.log('Current URL:', page.url())
+      console.log('Console errors:', consoleErrors)
+      console.log('Page content preview:', await page.content().then(c => c.substring(0, 500)))
+      throw e
+    }
   })
 })
