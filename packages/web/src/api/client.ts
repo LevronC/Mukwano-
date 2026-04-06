@@ -2,7 +2,8 @@ import type { ApiError } from './types'
 
 export const AUTH_REDIRECT_ERROR_MESSAGE = 'AUTH_REDIRECT'
 
-const BASE = '/api/v1'
+const RAW_BASE = import.meta.env.VITE_API_BASE_URL?.trim()
+const BASE = (RAW_BASE && RAW_BASE.length > 0 ? RAW_BASE : '/api/v1').replace(/\/+$/, '')
 const ACCESS_KEY = 'access_token'
 const REFRESH_KEY = 'refresh_token'
 
