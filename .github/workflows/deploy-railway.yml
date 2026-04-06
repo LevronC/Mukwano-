@@ -1,0 +1,32 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Railway service name to deploy"
+        required: false
+        default: "api"
+
+jobs:
+  deploy:
+    name: Deploy API
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        # RAILWAY_TOKEN must be set in repository secrets.
+        # The service name defaults to "api"; override via workflow_dispatch input
+        # if your Railway project uses a different name.
+        run: railway up --service "${{ inputs.service || 'api' }}" --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

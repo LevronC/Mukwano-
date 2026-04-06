@@ -40,6 +40,10 @@ export async function buildApp(): Promise<FastifyInstance> {
     })
   })
 
+  app.get('/health', async (_request, reply) => {
+    return reply.send({ status: 'ok' })
+  })
+
   app.get('/favicon.ico', async (_request, reply) => {
     return reply.code(204).send()
   })

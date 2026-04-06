@@ -6,6 +6,7 @@
     "packages/*"
   ],
   "scripts": {
+    "start": "node packages/api/dist/server.js",
     "dev": "concurrently -n api,web -c blue,magenta \"npm run dev:api\" \"npm run dev:web\"",
     "dev:kill": "bash scripts/kill-dev-ports.sh",
     "dev:api": "npm -w packages/api run dev",
