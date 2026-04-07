@@ -3,7 +3,8 @@ import type { ApiError } from './types'
 export const AUTH_REDIRECT_ERROR_MESSAGE = 'AUTH_REDIRECT'
 
 const RAW_BASE = import.meta.env.VITE_API_BASE_URL?.trim()
-const BASE = (RAW_BASE && RAW_BASE.length > 0 ? RAW_BASE : '/api/v1').replace(/\/+$/, '')
+const isPlaceholderBase = RAW_BASE?.includes('your-railway-app.up.railway.app') ?? false
+const BASE = (RAW_BASE && RAW_BASE.length > 0 && !isPlaceholderBase ? RAW_BASE : '/api/v1').replace(/\/+$/, '')
 const ACCESS_KEY = 'access_token'
 const REFRESH_KEY = 'refresh_token'
 
