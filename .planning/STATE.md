@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 Phase: 1 of 8 (Foundation & Auth)
 Plan: 0 of ? in current phase
 Status: Ready to plan
-Last activity: 2026-03-30 — ROADMAP.md and STATE.md initialized
+Last activity: 2026-04-07 - Completed quick task 260407-jmz: Fix Vercel API deployment: compile api/index.ts, fix vercel.json functions config, add prisma generate to build, fix CORS for deployed frontend
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -54,6 +54,12 @@ None yet.
 ### Blockers/Concerns
 
 None yet.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260407-jmz | Fix Vercel API deployment: compile api/index.ts, fix vercel.json functions config, add prisma generate to build, fix CORS for deployed frontend | 2026-04-07 | de46ab2 | [260407-jmz-fix-vercel-api-deployment-compile-api-in](./quick/260407-jmz-fix-vercel-api-deployment-compile-api-in/) |
 
 ## Session Continuity
 
