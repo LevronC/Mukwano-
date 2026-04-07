@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "buildCommand": "npm run prisma:generate",
+  "outputDirectory": ".",
   "functions": {
     "api/index.ts": {
       "includeFiles": "src/**,prisma/**"
