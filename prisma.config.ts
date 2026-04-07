@@ -10,9 +10,14 @@ if (!process.env.RAILWAY_ENVIRONMENT) {
   loadEnv({ path: resolve(__dirname, 'packages/api/.env') })
 }
 
+const databaseUrl =
+  process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/postgres?schema=public'
+
 export default defineConfig({
   schema: 'packages/api/prisma/schema.prisma',
   datasource: {
-    url: env('DATABASE_URL')
+    // Keep Prisma CLI commands (generate/migrate) from failing in CI environments
+    // where DATABASE_URL isn't injected at build time.
+    url: databaseUrl
   }
 })
