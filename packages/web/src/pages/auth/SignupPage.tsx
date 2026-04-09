@@ -143,7 +143,18 @@ export function SignupPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-sm text-center" style={{ color: 'var(--mk-muted)', fontFamily: "'Inter', sans-serif" }}>
+        <p className="mt-5 text-xs text-center" style={{ color: 'var(--mk-muted)', fontFamily: "'Inter', sans-serif" }}>
+          This platform is in demo mode. No real funds are collected or processed. By signing up, you agree to our{' '}
+          <Link className="font-medium" style={{ color: 'var(--mk-gold)' }} to="/terms">
+            Terms of Service
+          </Link>{' '}
+          and{' '}
+          <Link className="font-medium" style={{ color: 'var(--mk-gold)' }} to="/privacy">
+            Privacy Policy
+          </Link>.
+        </p>
+
+        <p className="mt-4 text-sm text-center" style={{ color: 'var(--mk-muted)', fontFamily: "'Inter', sans-serif" }}>
           Already have an account?{' '}
           <Link className="font-semibold" style={{ color: 'var(--mk-gold)' }} to="/login">
             Sign in
