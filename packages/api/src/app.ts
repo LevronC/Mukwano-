@@ -5,6 +5,7 @@ import { envPlugin } from './plugins/env.js'
 import { prismaPlugin } from './plugins/prisma.js'
 import { jwtPlugin } from './plugins/jwt.js'
 import { corsPlugin } from './plugins/cors.js'
+import { helmetPlugin } from './plugins/helmet.js'
 import { rateLimitPlugin } from './plugins/rate-limit.js'
 import { demoModePlugin } from './plugins/demo-mode.js'
 import { authRoutes } from './routes/auth/index.js'
@@ -27,6 +28,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(prismaPlugin)
   await app.register(jwtPlugin)
   await app.register(corsPlugin)
+  await app.register(helmetPlugin)
   await app.register(rateLimitPlugin)
   await app.register(demoModePlugin)
 
