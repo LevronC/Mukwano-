@@ -205,15 +205,10 @@ export function ExplorePage() {
     </div>
   )
 
-  // When authenticated, the ProtectedLayout/AppLayout provides the shell.
-  // When unauthenticated, we render a minimal header + the content + footer.
-  if (user) {
-    return pageContent
-  }
-
+  // Always render a self-contained layout so the page has proper container/centering
+  // regardless of whether the user arrived via the public route or the protected shell.
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--mk-navy, #060d1f)' }}>
-      {/* Minimal header for unauthenticated users */}
       <header
         className="sticky top-0 z-50 border-b"
         style={{
@@ -222,24 +217,50 @@ export function ExplorePage() {
         }}
       >
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link to="/">
+          <Link to={user ? '/dashboard' : '/'}>
             <img src={mukwanoLogo} alt="Mukwano logo" className="h-10 w-auto rounded-xl bg-white/95 p-1" />
           </Link>
-          <div className="flex items-center gap-3">
-            <Link
-              to="/login"
-              className="text-sm font-medium transition-colors hover:text-[var(--mk-gold)]"
-              style={{ color: 'var(--mk-muted)', fontFamily: "'Inter', sans-serif" }}
-            >
-              Sign in
-            </Link>
-            <Link
-              to="/signup"
-              className="mukwano-btn-primary rounded-xl px-5 py-2 text-sm font-semibold"
-            >
-              Join a Circle
-            </Link>
-          </div>
+          {user ? (
+            <div className="flex items-center gap-3">
+              <Link
+                to="/dashboard"
+                className="text-sm font-medium transition-colors hover:text-[var(--mk-gold)]"
+                style={{ color: 'var(--mk-muted)', fontFamily: "'Outfit', sans-serif" }}
+              >
+                Home
+              </Link>
+              <Link
+                to="/circles"
+                className="text-sm font-medium transition-colors hover:text-[var(--mk-gold)]"
+                style={{ color: 'var(--mk-muted)', fontFamily: "'Outfit', sans-serif" }}
+              >
+                My Circles
+              </Link>
+              <Link
+                to="/portfolio"
+                className="text-sm font-medium transition-colors hover:text-[var(--mk-gold)]"
+                style={{ color: 'var(--mk-muted)', fontFamily: "'Outfit', sans-serif" }}
+              >
+                Portfolio
+              </Link>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Link
+                to="/login"
+                className="text-sm font-medium transition-colors hover:text-[var(--mk-gold)]"
+                style={{ color: 'var(--mk-muted)', fontFamily: "'Inter', sans-serif" }}
+              >
+                Sign in
+              </Link>
+              <Link
+                to="/signup"
+                className="mukwano-btn-primary rounded-xl px-5 py-2 text-sm font-semibold"
+              >
+                Join a Circle
+              </Link>
+            </div>
+          )}
         </nav>
       </header>
 
