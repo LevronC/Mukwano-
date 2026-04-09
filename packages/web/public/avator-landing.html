@@ -145,6 +145,31 @@ footer{position:relative;z-index:2;background:#030810;border-top:1px solid rgba(
 @media(max-width:768px){nav{padding:18px 24px;}.nav-links{display:none;}.nav-cta-group{gap:10px;}.nav-cta{padding:8px 18px;font-size:11px;}.nav-signin{font-size:11px;}#hero{padding:120px 24px 80px;}.hero-logo-scene{width:180px;height:180px;margin-bottom:32px;}.hero-desc{font-size:13px;margin-bottom:36px;}.hero-btns{flex-direction:column;align-items:center;gap:12px;}.btn-gold,.btn-outline{padding:14px 32px;font-size:12px;width:100%;max-width:280px;justify-content:center;}.features-grid{grid-template-columns:1fr;}.feat{padding:32px 24px;}.feat-num{font-size:48px;}#features{padding:60px 20px;}#showcase{padding:60px 20px;}.showcase-logo-wrap .logo-surface{width:min(220px,70vw);height:min(220px,70vw);}#values{padding:60px 20px;}.val-card{padding:32px 24px;}#cta{padding:80px 20px;}.cta-btns{flex-direction:column;align-items:center;gap:12px;}.cta-btns .btn-gold,.cta-btns .btn-outline{width:100%;max-width:280px;justify-content:center;}footer{padding:40px 20px 30px;}.footer-top{grid-template-columns:1fr;gap:30px;}.section-header-row{flex-direction:column;}.tagline-primary{font-size:.72rem;letter-spacing:.25em;}.building-together{font-size:1.3rem;}}
 @media(max-width:480px){nav{padding:14px 16px;}#hero{padding:100px 16px 60px;}h1.hero-title{font-size:36px;}.hero-script{font-size:16px;}.section-title{font-size:28px;}.showcase-title{font-size:30px;}.cta-title{font-size:36px;}.hero-logo-scene{width:140px;height:140px;}}
 @media (hover: hover) and (pointer: fine){body{cursor:none;}#cursor,#cursor-ring{display:block;}body:hover #cursor{width:8px;height:8px;}}
+.footer-legal{display:flex;flex-direction:row;align-items:center;gap:16px;font-size:12px;}
+.footer-legal a{color:var(--muted2);text-decoration:none;transition:color 0.2s;}
+.footer-legal a:hover{color:var(--gold);}
+.legal-modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity 0.3s,visibility 0.3s;}
+.legal-modal-overlay.active{opacity:1;visibility:visible;}
+.legal-modal{background:#0b1630;border:1px solid rgba(240,165,0,0.1);border-radius:16px;max-width:680px;width:90%;max-height:80vh;overflow-y:auto;padding:40px;position:relative;}
+.legal-modal::-webkit-scrollbar{width:6px;}.legal-modal::-webkit-scrollbar-track{background:transparent;}.legal-modal::-webkit-scrollbar-thumb{background:rgba(240,165,0,0.2);border-radius:3px;}
+.legal-modal h2{font-family:'Outfit',sans-serif;font-size:24px;font-weight:600;color:var(--white);margin-bottom:8px;}
+.legal-modal .legal-date{font-size:12px;color:var(--muted2);margin-bottom:24px;display:block;}
+.legal-modal .legal-disclaimer{background:rgba(240,165,0,0.08);border-left:3px solid var(--gold);border-radius:12px;padding:20px;margin-bottom:28px;}
+.legal-modal .legal-disclaimer h3{font-size:13px;font-weight:600;color:var(--gold);margin-bottom:10px;text-transform:uppercase;}
+.legal-modal .legal-disclaimer p,.legal-modal .legal-disclaimer li{font-size:13px;color:var(--muted);line-height:1.7;}
+.legal-modal .legal-disclaimer ul{list-style:disc;margin-left:18px;margin-top:6px;}
+.legal-modal section{margin-bottom:24px;}
+.legal-modal section h3{font-size:16px;font-weight:600;color:var(--white);margin-bottom:10px;font-family:'Outfit',sans-serif;}
+.legal-modal section p{font-size:13px;color:var(--muted);line-height:1.8;}
+.legal-modal section ul{list-style:disc;margin-left:20px;margin-top:8px;}
+.legal-modal section li{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:4px;}
+.legal-modal a{color:var(--gold);text-decoration:none;transition:color 0.2s;}
+.legal-modal a:hover{color:var(--gold2);}
+.legal-modal strong{color:var(--white);}
+.legal-modal-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:background 0.2s,color 0.2s;}
+.legal-modal-close:hover{background:rgba(255,255,255,0.05);color:var(--white);}
+@media(max-width:768px){.legal-modal{width:95%;max-height:85vh;padding:24px;}}
+@media(max-width:480px){.legal-modal{padding:20px;}}
 </style>
 </head>
 <body>
@@ -160,7 +185,132 @@ footer{position:relative;z-index:2;background:#030810;border-top:1px solid rgba(
 <section id="showcase"><div class="showcase-inner"><div class="showcase-visual"><div class="sc-ring"></div><div class="sc-ring"></div><div class="showcase-logo-wrap"><div class="logo-surface"><img class="brand-logo" src="assets/mukwano-logo.png" alt="Mukwano" width="300" height="300" decoding="async"/></div></div></div><div class="showcase-text"><span class="section-eyebrow">Our Foundation</span><h2 class="showcase-title">Friendship as a<br/><em>Foundation</em> for<br/>Financial Freedom</h2><p class="showcase-p">Mukwano means friendship in Luganda.</p></div></div></section>
 <section id="values"><div class="values-header"><span class="section-eyebrow">Core Principles</span><h2 class="section-title">The Pillars of <em>Mukwano</em></h2></div><div class="values-grid"><div class="val-card"><div class="val-num">01</div><div class="val-title">Radical Transparency</div><div class="val-desc">Every shilling is tracked.</div></div><div class="val-card"><div class="val-num">02</div><div class="val-title">Community First</div><div class="val-desc">Collective growth, shared outcomes.</div></div></div></section>
 <section id="cta"><div class="cta-glow-bg"></div><span class="cta-eyebrow">Begin Your Journey</span><h2 class="cta-title">Start <em>Building</em><br/>Together Today</h2><p class="cta-sub">Join members growing wealth through friendship.</p><div class="cta-btns"><a href="/signup" target="_top" class="btn-gold">Create Your Circle</a><a href="#" class="btn-outline">View Live Demo</a></div></section>
-<footer><div class="footer-top"><div><div class="footer-brand-wrap"><div class="logo-surface"><img class="brand-logo" src="assets/mukwano-logo.png" alt="Mukwano" width="300" height="300" decoding="async"/></div></div><div class="footer-tagline">Friendship · Investment · Growth</div></div></div><div class="footer-bottom"><p class="footer-copy">© 2026 <span>Mukwano</span>. All rights reserved.</p></div></footer>
+<footer><div class="footer-top"><div><div class="footer-brand-wrap"><div class="logo-surface"><img class="brand-logo" src="assets/mukwano-logo.png" alt="Mukwano" width="300" height="300" decoding="async"/></div></div><div class="footer-tagline">Friendship · Investment · Growth</div></div></div><div class="footer-bottom"><p class="footer-copy">© 2026 <span>Mukwano</span>. All rights reserved.</p><div class="footer-legal"><a href="#" onclick="openLegalModal('terms'); return false;">Terms of Service</a><span style="color:rgba(122,149,196,.15);">|</span><a href="#" onclick="openLegalModal('privacy'); return false;">Privacy Policy</a></div></div></footer>
+<!-- Terms of Service Modal -->
+<div id="termsModal" class="legal-modal-overlay" onclick="if(event.target===this)closeLegalModal('terms')">
+  <div class="legal-modal" onclick="event.stopPropagation()">
+    <button class="legal-modal-close" onclick="closeLegalModal('terms')" aria-label="Close">&#215;</button>
+    <h2>Terms of Service</h2>
+    <span class="legal-date">Last updated: April 2026</span>
+    <div class="legal-disclaimer">
+      <h3>Demo Mode Disclaimer</h3>
+      <ul>
+        <li>Mukwano is currently operating in <strong>DEMO MODE</strong>. No real money is collected, transferred, or held. All financial transactions shown are simulated for demonstration purposes only.</li>
+        <li>Mukwano is <strong>NOT</strong> a licensed financial institution, bank, money transmitter, or investment advisor.</li>
+        <li>No fiduciary relationship exists between Mukwano and its users.</li>
+      </ul>
+    </div>
+    <section>
+      <h3>1. Acceptance of Terms</h3>
+      <p>By accessing or using the Mukwano platform, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the platform. Continued use of Mukwano after any changes to these terms constitutes your acceptance of those changes.</p>
+    </section>
+    <section>
+      <h3>2. Platform Description</h3>
+      <p>Mukwano is a governance platform designed to help diaspora communities pool resources collectively toward projects in their home countries. Members can form Circles, submit contributions, vote on proposals, and execute funded projects. All governance logic is enforced at the server layer, ensuring accountable and transparent operations.</p>
+      <p style="margin-top:8px;">In its current demo phase, Mukwano uses simulated funds with real accounting logic. No actual financial transactions occur.</p>
+    </section>
+    <section>
+      <h3>3. User Accounts</h3>
+      <p>To use Mukwano, you must create an account. You agree to provide accurate, complete, and current information during registration and to keep your account information up to date. You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</p>
+    </section>
+    <section>
+      <h3>4. Prohibited Conduct</h3>
+      <p>You agree not to:</p>
+      <ul>
+        <li>Use the platform for any fraudulent or unlawful purpose</li>
+        <li>Attempt to gain unauthorized access to any part of the platform</li>
+        <li>Abuse or manipulate governance mechanisms</li>
+        <li>Harass, threaten, or harm other users</li>
+        <li>Introduce malware or attempt to disrupt platform operations</li>
+      </ul>
+    </section>
+    <section>
+      <h3>5. Intellectual Property</h3>
+      <p>All content, design, code, and materials on the Mukwano platform are the intellectual property of Mukwano and its licensors. You may not copy, reproduce, distribute, or create derivative works without express written permission.</p>
+    </section>
+    <section>
+      <h3>6. Limitation of Liability</h3>
+      <p>The Mukwano platform is provided "as is" without warranties of any kind. To the fullest extent permitted by law, Mukwano disclaims all warranties, express or implied. In particular, as this platform is in demo mode, no real financial outcomes, returns, or guarantees are made. Mukwano shall not be liable for any indirect, incidental, or consequential damages arising from your use of the platform.</p>
+    </section>
+    <section>
+      <h3>7. Changes to Terms</h3>
+      <p>We may update these Terms of Service from time to time. When we do, we will update the "Last updated" date at the top of this page. Your continued use of the platform after changes are posted constitutes your acceptance of the revised terms.</p>
+    </section>
+    <section>
+      <h3>8. Contact</h3>
+      <p>If you have questions about these Terms of Service, please contact us at <a href="mailto:support@mukwano.app">support@mukwano.app</a>.</p>
+    </section>
+  </div>
+</div>
+
+<!-- Privacy Policy Modal -->
+<div id="privacyModal" class="legal-modal-overlay" onclick="if(event.target===this)closeLegalModal('privacy')">
+  <div class="legal-modal" onclick="event.stopPropagation()">
+    <button class="legal-modal-close" onclick="closeLegalModal('privacy')" aria-label="Close">&#215;</button>
+    <h2>Privacy Policy</h2>
+    <span class="legal-date">Last updated: April 2026</span>
+    <div class="legal-disclaimer">
+      <h3>Demo Mode Notice</h3>
+      <p>In demo mode, no real financial data is processed. Account data (email, display name) is stored solely for platform functionality and demonstration purposes.</p>
+    </div>
+    <section>
+      <h3>1. Introduction</h3>
+      <p>Mukwano ("we", "us", "our") is committed to protecting your privacy. This Privacy Policy explains what data we collect, how we use it, and your rights regarding your personal information. By using the Mukwano platform, you agree to the collection and use of information in accordance with this policy.</p>
+    </section>
+    <section>
+      <h3>2. Information We Collect</h3>
+      <p>We collect the following types of information:</p>
+      <ul>
+        <li><strong>Account information:</strong> Your email address, display name, and securely hashed password when you register</li>
+        <li><strong>Circle participation data:</strong> Circles you join or create, contributions, proposals you vote on, and projects you participate in</li>
+        <li><strong>Usage data:</strong> How you interact with the platform, including pages visited and features used</li>
+      </ul>
+    </section>
+    <section>
+      <h3>3. How We Use Information</h3>
+      <p>We use the information we collect to:</p>
+      <ul>
+        <li>Operate and maintain the Mukwano platform</li>
+        <li>Enforce governance rules and ensure platform accountability</li>
+        <li>Provide you with access to circles, contributions, proposals, and projects</li>
+        <li>Improve the platform experience through usage analytics</li>
+        <li>Communicate important updates about the platform</li>
+      </ul>
+    </section>
+    <section>
+      <h3>4. Data Sharing</h3>
+      <p>We do not sell, trade, or rent your personal information to third parties. We may share your information with trusted service providers who assist in operating the platform, provided those parties agree to keep this information confidential. We may disclose information where required by law or to protect the rights, property, or safety of Mukwano or others.</p>
+    </section>
+    <section>
+      <h3>5. Data Security</h3>
+      <p>We implement industry-standard security measures to protect your data. These include JWT-based authentication with short-lived access tokens and rotating refresh tokens, encrypted password storage, and server-enforced governance controls. However, no method of transmission over the internet or electronic storage is 100% secure, and we cannot guarantee absolute security.</p>
+    </section>
+    <section>
+      <h3>6. Data Retention</h3>
+      <p>We retain your personal data for as long as your account is active or as needed to provide you with platform services. If you request deletion of your account, we will delete your personal data unless we are required to retain it by law or for legitimate business purposes.</p>
+    </section>
+    <section>
+      <h3>7. Your Rights</h3>
+      <p>You have the right to:</p>
+      <ul>
+        <li>Access the personal data we hold about you</li>
+        <li>Correct inaccurate or incomplete data</li>
+        <li>Request deletion of your account and associated data</li>
+        <li>Object to how we process your personal data</li>
+      </ul>
+      <p style="margin-top:8px;">To exercise any of these rights, please contact us at the address below.</p>
+    </section>
+    <section>
+      <h3>8. Changes to This Policy</h3>
+      <p>We may update this Privacy Policy from time to time. When we do, we will update the "Last updated" date at the top of this page. We encourage you to review this policy periodically for any changes. Your continued use of the platform after changes are posted constitutes your acceptance of the revised policy.</p>
+    </section>
+    <section>
+      <h3>9. Contact</h3>
+      <p>If you have questions about this Privacy Policy or how we handle your data, please contact us at <a href="mailto:support@mukwano.app">support@mukwano.app</a>.</p>
+    </section>
+  </div>
+</div>
+
 <script>
 const hasCursorSupport = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 const cur = document.getElementById('cursor');
@@ -185,6 +335,9 @@ const exploreBtn=document.getElementById('exploreBtn');
 if(exploreBtn){exploreBtn.addEventListener('click',()=>{exploreBtn.style.transform='scale(0.97)';setTimeout(()=>{exploreBtn.style.transform='';},200);});}
 const mainLogoSvg=document.getElementById('mainLogoSvg');
 window.addEventListener('scroll',()=>{if(!mainLogoSvg)return;const intensity=Math.min(scrollY/400,1);mainLogoSvg.style.filter='drop-shadow(0 0 '+(30+intensity*40)+'px rgba(240,165,0,'+(.15+intensity*.25)+'))';},{passive:true});
+function openLegalModal(type){var id=type==='terms'?'termsModal':'privacyModal';document.getElementById(id).classList.add('active');document.body.style.overflow='hidden';}
+function closeLegalModal(type){var id=type==='terms'?'termsModal':'privacyModal';document.getElementById(id).classList.remove('active');document.body.style.overflow='';}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){var tm=document.getElementById('termsModal');var pm=document.getElementById('privacyModal');if(tm&&tm.classList.contains('active'))closeLegalModal('terms');if(pm&&pm.classList.contains('active'))closeLegalModal('privacy');}});
 </script>
 </body>
 </html>
