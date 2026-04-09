@@ -3,11 +3,17 @@ import { useEffect, useRef } from 'react'
 const INTERACTIVE =
   'a[href], button, [role="button"], input, select, textarea, label, .mukwano-cursor-hover'
 
+const hasFinePointer =
+  typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches
+
 export function CustomCursor() {
   const dotRef = useRef<HTMLDivElement>(null)
   const ringRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    // Do not register any listeners or render cursor on touch/coarse pointer devices
+    if (!hasFinePointer) return
+
     const dot = dotRef.current
     const ring = ringRef.current
     if (!dot || !ring) return
@@ -71,6 +77,9 @@ export function CustomCursor() {
       document.removeEventListener('pointerout', onOut, true)
     }
   }, [])
+
+  // Do not render cursor DOM elements on touch/coarse pointer devices
+  if (!hasFinePointer) return null
 
   return (
     <>

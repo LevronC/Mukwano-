@@ -54,9 +54,11 @@
   vertical-align: middle;
 }
 
-html.mk-theme-cursor,
-html.mk-theme-cursor body {
-  cursor: none;
+@media (hover: hover) and (pointer: fine) {
+  html.mk-theme-cursor,
+  html.mk-theme-cursor body {
+    cursor: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
