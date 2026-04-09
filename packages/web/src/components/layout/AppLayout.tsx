@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '@/api/client'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -10,15 +11,21 @@ const navActive = { color: 'var(--mk-gold)', borderColor: 'var(--mk-gold)' }
 
 export function AppLayout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, logout } = useAuth()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { data: config } = useQuery({
     queryKey: ['config'],
     queryFn: () => api.get<{ demoMode: boolean; escrowLabel: string }>('/config'),
     staleTime: Infinity
   })
 
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [location.pathname])
+
   return (
-    <div className="min-h-screen bg-transparent">
+    <div className="min-h-screen bg-transparent flex flex-col">
       <header
         className="glass-nav sticky top-0 z-50 border-b"
         style={{
@@ -104,7 +111,7 @@ export function AppLayout() {
             </button>
             <button
               onClick={() => navigate('/profile')}
-              className="mukwano-cursor-hover rounded-full p-2 transition-colors hover:bg-white/5"
+              className="mukwano-cursor-hover rounded-full p-2 transition-colors hover:bg-white/5 hidden md:flex"
               style={{ color: 'var(--mk-gold)' }}
               aria-label="Profile"
               type="button"
@@ -114,7 +121,7 @@ export function AppLayout() {
               </span>
             </button>
             <button
-              className="mukwano-cursor-hover rounded-xl border px-4 py-2 text-sm font-medium transition-all hover:border-[var(--mk-gold)] hover:text-[var(--mk-gold)]"
+              className="mukwano-cursor-hover rounded-xl border px-4 py-2 text-sm font-medium transition-all hover:border-[var(--mk-gold)] hover:text-[var(--mk-gold)] hidden md:block"
               style={{
                 background: 'transparent',
                 borderColor: 'rgba(240, 165, 0, 0.35)',
@@ -129,13 +136,127 @@ export function AppLayout() {
             >
               Logout
             </button>
+            {/* Hamburger button — mobile only */}
+            <button
+              className="md:hidden rounded-full p-2 transition-colors hover:bg-white/5"
+              style={{ color: 'var(--mk-gold)' }}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              type="button"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '26px' }}>
+                {mobileMenuOpen ? 'close' : 'menu'}
+              </span>
+            </button>
           </div>
         </nav>
+
+        {/* Mobile slide-out drawer */}
+        {mobileMenuOpen && (
+          <div
+            className="md:hidden flex flex-col"
+            style={{ background: 'rgba(6, 13, 31, 0.95)' }}
+          >
+            {(
+              [
+                { to: '/dashboard', label: 'Home' },
+                { to: '/circles', label: 'My Circles' },
+                { to: '/explore', label: 'Explore' },
+                { to: '/portfolio', label: 'Portfolio' },
+                ...(user?.isGlobalAdmin ? [{ to: '/admin', label: 'Admin' }] : [])
+              ] as Array<{ to: string; label: string }>
+            ).map(({ to, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  isActive
+                    ? 'block px-6 py-4 text-sm font-medium border-l-2 transition-colors'
+                    : 'block px-6 py-4 text-sm font-medium transition-colors hover:text-[var(--mk-gold)]'
+                }
+                style={({ isActive }) =>
+                  isActive
+                    ? { color: 'var(--mk-gold)', borderColor: 'var(--mk-gold)', borderBottom: '1px solid rgba(240, 165, 0, 0.08)', fontFamily: "'Outfit', sans-serif" }
+                    : { color: 'var(--mk-muted)', borderBottom: '1px solid rgba(240, 165, 0, 0.08)', fontFamily: "'Outfit', sans-serif" }
+                }
+              >
+                {label}
+              </NavLink>
+            ))}
+            <div className="px-6 py-4 flex items-center gap-4" style={{ borderBottom: '1px solid rgba(240, 165, 0, 0.08)' }}>
+              <button
+                onClick={() => navigate('/profile')}
+                className="flex items-center gap-2 text-sm font-medium transition-colors hover:text-[var(--mk-gold)]"
+                style={{ color: 'var(--mk-muted)', fontFamily: "'Outfit', sans-serif" }}
+                type="button"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--mk-gold)' }}>account_circle</span>
+                Profile
+              </button>
+            </div>
+            <div className="px-6 py-4">
+              <button
+                className="mukwano-cursor-hover rounded-xl border px-4 py-2 text-sm font-medium transition-all hover:border-[var(--mk-gold)] hover:text-[var(--mk-gold)]"
+                style={{
+                  background: 'transparent',
+                  borderColor: 'rgba(240, 165, 0, 0.35)',
+                  color: 'var(--mk-white)',
+                  fontFamily: "'Inter', sans-serif"
+                }}
+                type="button"
+                onClick={async () => {
+                  await logout()
+                  navigate('/login', { replace: true })
+                }}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-8 pb-20">
+      {/* DEMO MODE banner */}
+      {config?.demoMode && (
+        <div
+          className="text-center text-xs py-1.5"
+          style={{ background: 'rgba(240, 165, 0, 0.1)', color: 'var(--mk-gold)' }}
+        >
+          DEMO MODE &mdash; No real funds are processed
+        </div>
+      )}
+
+      <main className="mx-auto w-full max-w-7xl px-6 py-8 pb-20 flex-1">
         <Outlet />
       </main>
+
+      {/* Footer */}
+      <footer
+        className="border-t mt-auto"
+        style={{ borderColor: 'rgba(240, 165, 0, 0.08)', background: 'rgba(6, 13, 31, 0.6)' }}
+      >
+        <div className="mx-auto max-w-7xl px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-xs" style={{ color: 'var(--mk-muted)', fontFamily: "'Inter', sans-serif" }}>
+            &copy; {new Date().getFullYear()} Mukwano. All rights reserved.
+          </p>
+          <div className="flex items-center gap-4 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>
+            <Link
+              to="/terms"
+              className="transition-colors hover:text-[var(--mk-gold)]"
+              style={{ color: 'var(--mk-muted)' }}
+            >
+              Terms of Service
+            </Link>
+            <Link
+              to="/privacy"
+              className="transition-colors hover:text-[var(--mk-gold)]"
+              style={{ color: 'var(--mk-muted)' }}
+            >
+              Privacy Policy
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
