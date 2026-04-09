@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 Phase: 1 of 8 (Foundation & Auth)
 Plan: 0 of ? in current phase
 Status: Ready to plan
-Last activity: 2026-04-09 - Completed quick task 260409-o23: Add SEO meta tags, Open Graph tags, and Twitter Card tags to both HTML entry points
+Last activity: 2026-04-09 - Completed quick task 260409-ocp: Dashboard Recent Activity feed + per-circle treasury progress bars
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -65,9 +65,10 @@ None yet.
 | 260409-mu9 | Terms of Service and Privacy Policy modal overlays in landing page footer — dark themed, scrollable, dismissible via X/outside click/Escape, responsive | 2026-04-09 | 9d50335 | [260409-mu9-add-terms-of-service-and-privacy-policy-](./quick/260409-mu9-add-terms-of-service-and-privacy-policy-/) |
 | 260409-nsw | Install @fastify/helmet: fintech CSP, HSTS 1yr+preload, X-Frame-Options DENY, noSniff, strict-origin-when-cross-origin referrer policy | 2026-04-09 | be518c0 | [260409-nsw-install-and-configure-fastify-helmet-sec](./quick/260409-nsw-install-and-configure-fastify-helmet-sec/) |
 | 260409-o23 | SEO + Open Graph + Twitter Card meta tags on index.html and avator-landing.html; 1200x630 navy/gold OG share image | 2026-04-09 | cc986f6 | [260409-o23-add-seo-meta-tags-and-open-graph-tags-to](./quick/260409-o23-add-seo-meta-tags-and-open-graph-tags-to/) |
+| 260409-ocp | Dashboard Recent Activity feed with icon/label/timestamp + per-circle treasury progress bars with gold gradient | 2026-04-09 | 381cbe6 | [260409-ocp-fix-dashboard-render-recentactivity-feed](./quick/260409-ocp-fix-dashboard-render-recentactivity-feed/) |
 
 ## Session Continuity
 
 Last session: 2026-04-09
-Stopped at: Completed quick task 260409-o23 — SEO/OG/Twitter Card meta tags and OG share image added
+Stopped at: Completed quick task 260409-ocp — Dashboard Recent Activity feed and progress bars added
 Resume file: None
