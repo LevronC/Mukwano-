@@ -20,6 +20,8 @@ import { ProfilePage } from '@/pages/ProfilePage'
 import { OnboardingSectorPage } from '@/pages/onboarding/OnboardingSectorPage'
 import { OnboardingCountryPage } from '@/pages/onboarding/OnboardingCountryPage'
 import { OnboardingCompletePage } from '@/pages/onboarding/OnboardingCompletePage'
+import { TermsPage } from '@/pages/legal/TermsPage'
+import { PrivacyPage } from '@/pages/legal/PrivacyPage'
 
 function ProtectedLayout() {
   const { user, loading } = useAuth()
@@ -35,6 +37,9 @@ export const router = createBrowserRouter([
       { index: true, element: <SplashPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'signup', element: <SignupPage /> },
+      { path: 'explore', element: <ExplorePage /> },
+      { path: 'terms', element: <TermsPage /> },
+      { path: 'privacy', element: <PrivacyPage /> },
       {
         element: <ProtectedLayout />,
         children: [
@@ -50,7 +55,6 @@ export const router = createBrowserRouter([
           { path: 'circles/:id/proposals/:pid', element: <ProposalDetailPage /> },
           { path: 'circles/:id/projects/:projId', element: <ProjectDetailPage /> },
           { path: 'portfolio', element: <PortfolioPage /> },
-          { path: 'explore', element: <ExplorePage /> },
           { path: 'admin', element: <AdminPage /> },
           { path: 'profile', element: <ProfilePage /> }
         ]
