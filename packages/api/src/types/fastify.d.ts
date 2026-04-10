@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
 import type { JWT } from '@fastify/jwt'
 import type { EscrowAdapter, StorageAdapter, NotificationAdapter } from '../plugins/demo-mode.js'
+import type { NotificationService } from '../services/notification.service.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -21,6 +22,7 @@ declare module 'fastify' {
     escrowAdapter: EscrowAdapter
     storageAdapter: StorageAdapter
     notificationAdapter: NotificationAdapter
+    notificationService: NotificationService
   }
   interface FastifyRequest {
     user: {

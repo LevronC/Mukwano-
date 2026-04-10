@@ -8,6 +8,7 @@ import { corsPlugin } from './plugins/cors.js'
 import { helmetPlugin } from './plugins/helmet.js'
 import { rateLimitPlugin } from './plugins/rate-limit.js'
 import { demoModePlugin } from './plugins/demo-mode.js'
+import { notificationsPlugin } from './plugins/notifications.js'
 import { authRoutes } from './routes/auth/index.js'
 import { configRoute } from './routes/config.js'
 import { circlesRoute } from './routes/circles.js'
@@ -15,6 +16,7 @@ import { contributionsRoute } from './routes/contributions.js'
 import { proposalsRoute } from './routes/proposals.js'
 import { projectsRoute } from './routes/projects.js'
 import { reportingRoute } from './routes/reporting.js'
+import { notificationsRoute } from './routes/notifications.js'
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -31,6 +33,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(helmetPlugin)
   await app.register(rateLimitPlugin)
   await app.register(demoModePlugin)
+  await app.register(notificationsPlugin)
 
   // Root — API has no HTML UI; browsers hitting / otherwise get 404
   app.get('/', async (_request, reply) => {
@@ -91,6 +94,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(proposalsRoute, { prefix: '/api/v1' })
   await app.register(projectsRoute, { prefix: '/api/v1' })
   await app.register(reportingRoute, { prefix: '/api/v1' })
+  await app.register(notificationsRoute, { prefix: '/api/v1' })
 
   return app
 }

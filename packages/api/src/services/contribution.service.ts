@@ -124,6 +124,12 @@ export class ContributionService {
         amount: contribution.amount.toString()
       })
 
+      await this.app.notificationService.createForUser(
+        contribution.userId,
+        'CONTRIBUTION_VERIFIED',
+        `Your contribution of ${contribution.amount} ${contribution.currency} was verified`
+      )
+
       return { contribution: updated, ledgerEntry: ledger }
     })
   }

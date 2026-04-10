@@ -111,6 +111,12 @@ export class ProjectService {
         status
       })
 
+      await this.app.notificationService.createForCircle(
+        circleId,
+        'PROJECT_STATUS_CHANGED',
+        `Project "${project.title}" moved to ${status}`
+      )
+
       return updated
     })
   }
