@@ -89,6 +89,52 @@ export function AdminPage() {
 
   if (!user?.isGlobalAdmin) return <Navigate replace to="/dashboard" />
 
+  function generateReport() {
+    const ts = new Date().toISOString().slice(0, 10)
+
+    const sections: string[] = [
+      `Mukwano Admin Report — ${ts}`,
+      '',
+      '=== METRICS ===',
+      `Pending Verifications,${metrics.data?.pendingVerifications ?? 0}`,
+      `Active Circles,${metrics.data?.activeCircles ?? 0}`,
+      `Active Projects,${metrics.data?.activeProjects ?? 0}`,
+      `Total Verified (${metrics.data?.currency ?? 'USD'}),${metrics.data?.totalContributed ?? 0}`,
+      '',
+      '=== PENDING CONTRIBUTIONS ===',
+      'Member,Email,Circle,Amount,Currency',
+      ...(pending.data ?? []).map((c) =>
+        [c.user?.displayName ?? '', c.user?.email ?? '', c.circle?.name ?? '', c.amount, c.currency].join(',')
+      ),
+      '',
+      '=== LEDGER ===',
+      'Circle,Type,Amount,Currency,Date',
+      ...(ledger.data ?? []).map((e) =>
+        [e.circle?.name ?? '', e.type, e.amount, e.currency, new Date(e.recordedAt).toLocaleString()].join(',')
+      ),
+      '',
+      '=== MEMBERS ===',
+      'Name,Email,Country,Role',
+      ...(members.data ?? []).map((m) =>
+        [m.displayName, m.email, m.country ?? '', m.isGlobalAdmin ? 'Global Admin' : 'Member'].join(',')
+      ),
+      '',
+      '=== ACTIVITY ===',
+      'Type,Summary,Date',
+      ...(activity.data ?? []).map((a) =>
+        [formatActivityType(a.type), summarizeMetadata(a.metadata), new Date(a.createdAt).toLocaleString()].join(',')
+      ),
+    ]
+
+    const blob = new Blob([sections.join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `mukwano-report-${ts}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const isLoading = pending.isLoading || members.isLoading || ledger.isLoading || activity.isLoading || metrics.isLoading
   const error = pending.error ?? members.error ?? ledger.error ?? activity.error ?? metrics.error
 
@@ -124,7 +170,10 @@ export function AdminPage() {
         </nav>
 
         <div className="pt-4" style={{ borderTop: '1px solid rgba(190,201,195,0.2)' }}>
-          <button className="w-full mukwano-btn-primary flex items-center justify-center gap-2 rounded-xl py-3 font-semibold text-sm">
+          <button
+            className="w-full mukwano-btn-primary flex items-center justify-center gap-2 rounded-xl py-3 font-semibold text-sm"
+            onClick={generateReport}
+          >
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>analytics</span>
             Generate Report
           </button>
