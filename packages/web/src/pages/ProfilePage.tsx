@@ -1,5 +1,5 @@
-import type { FormEvent } from 'react'
-import { useState, useEffect } from 'react'
+import type { FormEvent, ChangeEvent } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -45,15 +45,42 @@ function nextMissingField(data: MeData | undefined): string | null {
   return null
 }
 
+function resizeToBase64(file: File, maxPx = 200, quality = 0.82): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = reject
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onerror = reject
+      img.onload = () => {
+        const scale = Math.min(maxPx / img.width, maxPx / img.height, 1)
+        const w = Math.round(img.width * scale)
+        const h = Math.round(img.height * scale)
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return reject(new Error('canvas unavailable'))
+        ctx.drawImage(img, 0, 0, w, h)
+        resolve(canvas.toDataURL('image/jpeg', quality))
+      }
+      img.src = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
 export function ProfilePage() {
   const { refreshUser, logout } = useAuth()
   const qc = useQueryClient()
   const navigate = useNavigate()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [displayName, setDisplayName] = useState('')
   const [sector, setSector] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [avatarError, setAvatarError] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [privacyVisible, setPrivacyVisible] = useState(true)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -260,33 +287,97 @@ export function ProfilePage() {
             />
           </div>
 
-          <div className="space-y-1.5">
+          {/* ── Avatar upload ── */}
+          <div className="space-y-2">
             <label className="text-[0.8125rem] font-medium ml-1 label-font" style={{ color: 'var(--mk-muted)' }}>
-              Profile Picture URL
+              Profile Picture
             </label>
-            <input
-              className="mukwano-input"
-              placeholder="https://example.com/your-photo.jpg"
-              value={avatarUrl}
-              onChange={(e) => { setAvatarUrl(e.target.value); setAvatarError(false) }}
-            />
-            {avatarUrl && !avatarError && (
-              <div className="flex items-center gap-3 pt-1">
-                <img
-                  src={avatarUrl}
-                  alt="Preview"
-                  onError={() => setAvatarError(true)}
-                  className="h-10 w-10 rounded-full object-cover"
-                  style={{ border: '2px solid var(--mk-gold)' }}
-                />
-                <span className="text-xs label-font" style={{ color: '#84d6b9' }}>Preview looks good</span>
+            <div className="flex items-center gap-4">
+              {/* Clickable avatar preview */}
+              <button
+                type="button"
+                className="relative shrink-0 rounded-full focus:outline-none group"
+                style={{ width: 72, height: 72 }}
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="Upload profile picture"
+              >
+                {avatarUrl && !avatarError ? (
+                  <img
+                    src={avatarUrl}
+                    alt="Avatar preview"
+                    onError={() => setAvatarError(true)}
+                    className="h-full w-full rounded-full object-cover"
+                    style={{ border: '2px solid var(--mk-gold)' }}
+                  />
+                ) : (
+                  <div
+                    className="flex h-full w-full items-center justify-center rounded-full text-2xl font-bold"
+                    style={{ background: 'var(--mk-gold)', color: '#ffffff', border: '2px solid var(--mk-gold)' }}
+                  >
+                    {data?.displayName?.[0]?.toUpperCase() ?? '?'}
+                  </div>
+                )}
+                {/* Camera overlay */}
+                <span
+                  className="absolute inset-0 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ background: 'rgba(0,0,0,0.5)' }}
+                >
+                  {uploadingAvatar ? (
+                    <span className="material-symbols-outlined animate-spin" style={{ fontSize: 22, color: '#fff' }}>progress_activity</span>
+                  ) : (
+                    <span className="material-symbols-outlined" style={{ fontSize: 22, color: '#fff' }}>photo_camera</span>
+                  )}
+                </span>
+              </button>
+
+              <div className="flex-1 min-w-0">
+                <button
+                  type="button"
+                  className="text-sm font-semibold rounded-xl px-4 py-2 transition-all"
+                  style={{ background: 'rgba(240,165,0,0.12)', color: 'var(--mk-gold)', border: '1px solid rgba(240,165,0,0.25)' }}
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                >
+                  {uploadingAvatar ? 'Processing…' : avatarUrl ? 'Change photo' : 'Upload photo'}
+                </button>
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    className="ml-2 text-xs label-font"
+                    style={{ color: 'var(--mk-muted)' }}
+                    onClick={() => { setAvatarUrl(''); setAvatarError(false) }}
+                  >
+                    Remove
+                  </button>
+                )}
+                <p className="text-xs label-font mt-1.5" style={{ color: 'var(--mk-muted)' }}>
+                  JPG, PNG or WebP · auto-resized to 200 × 200 px
+                </p>
               </div>
-            )}
-            {avatarError && (
-              <p className="text-xs label-font pt-1" style={{ color: '#f87171' }}>
-                Could not load image — check the URL
-              </p>
-            )}
+            </div>
+
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={async (e: ChangeEvent<HTMLInputElement>) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                setUploadingAvatar(true)
+                setAvatarError(false)
+                try {
+                  const b64 = await resizeToBase64(file)
+                  setAvatarUrl(b64)
+                } catch {
+                  toast.error('Could not process image — please try another file')
+                } finally {
+                  setUploadingAvatar(false)
+                  e.target.value = ''
+                }
+              }}
+            />
           </div>
 
           <button
