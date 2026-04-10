@@ -75,6 +75,7 @@ export function ProfilePage() {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const initialized = useRef(false)
 
   const [displayName, setDisplayName] = useState('')
   const [sector, setSector] = useState('')
@@ -87,7 +88,7 @@ export function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
-  const { data, refetch } = useQuery<MeData>({
+  const { data } = useQuery<MeData>({
     queryKey: ['me'],
     queryFn: () => api.get<MeData>('/auth/me')
   })
@@ -97,51 +98,47 @@ export function ProfilePage() {
     queryFn: () => api.get<CircleMembership[]>('/auth/me/circles')
   })
 
+  // Only initialise form state once — never overwrite fields the user is
+  // currently editing (avoids the race where saveAvatar triggers a refetch
+  // that resets a displayName the user just typed).
   useEffect(() => {
-    if (!data) return
+    if (!data || initialized.current) return
     setDisplayName(data.displayName ?? '')
     setSector(data.sector ?? '')
     setAvatarUrl(data.avatarUrl ?? '')
     setAvatarError(false)
+    initialized.current = true
   }, [data])
 
   const save = useMutation({
     mutationFn: () => {
       const body: Record<string, string> = {}
-      // Always include displayName if non-empty
       if (displayName.trim()) body.displayName = displayName.trim()
-      // Include sector if it differs from server (allows clearing to empty string)
       const serverSector = data?.sector ?? ''
       if (sector !== serverSector) body.sector = sector
-      // avatarUrl handled by saveAvatar — only include if manually changed via URL
-      const serverAvatar = data?.avatarUrl ?? ''
-      if (avatarUrl !== serverAvatar && !avatarUrl.startsWith('data:')) {
-        body.avatarUrl = avatarUrl
-      }
       if (Object.keys(body).length === 0) return Promise.resolve(null)
-      return api.patch('/auth/me', body)
+      return api.patch<MeData>('/auth/me', body)
     },
     onSuccess: (result) => {
-      if (!result) return
-      toast.success('Profile updated')
-      void refetch()
+      if (!result) { toast.info('No changes to save'); return }
+      // Update cache directly — no refetch so the user's other edits aren't reset
+      qc.setQueryData<MeData>(['me'], (old) => old ? { ...old, ...result } : result)
       void refreshUser()
-      void qc.invalidateQueries({ queryKey: ['me'] })
+      toast.success('Profile updated')
     },
     onError: (error) => toast.error(getErrorMessage(error))
   })
 
   const saveAvatar = useMutation({
-    mutationFn: (b64: string) => api.patch('/auth/me', { avatarUrl: b64 }),
-    onSuccess: () => {
-      toast.success('Profile picture updated')
-      void refetch()
+    mutationFn: (b64: string) => api.patch<MeData>('/auth/me', { avatarUrl: b64 }),
+    onSuccess: (result) => {
+      // Update cache directly — preserve any display name the user is editing
+      qc.setQueryData<MeData>(['me'], (old) => old ? { ...old, ...result } : result)
       void refreshUser()
-      void qc.invalidateQueries({ queryKey: ['me'] })
+      toast.success('Profile picture updated')
     },
     onError: (error) => {
       toast.error(getErrorMessage(error))
-      // Revert preview to server value on failure
       setAvatarUrl(data?.avatarUrl ?? '')
     }
   })
