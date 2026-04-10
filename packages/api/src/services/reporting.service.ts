@@ -22,7 +22,8 @@ export class ReportingService {
       where: { userId },
       orderBy: { submittedAt: 'desc' },
       include: {
-        circle: { select: { id: true, name: true, currency: true } }
+        circle: { select: { id: true, name: true, currency: true } },
+        verifier: { select: { displayName: true } }
       }
     })
   }
