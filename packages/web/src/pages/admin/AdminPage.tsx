@@ -131,8 +131,10 @@ export function AdminPage() {
     const a = document.createElement('a')
     a.href = url
     a.download = `mukwano-report-${ts}.csv`
+    document.body.appendChild(a)
     a.click()
-    URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 100)
   }
 
   const isLoading = pending.isLoading || members.isLoading || ledger.isLoading || activity.isLoading || metrics.isLoading

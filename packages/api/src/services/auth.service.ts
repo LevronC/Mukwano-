@@ -128,7 +128,8 @@ export class AuthService {
     const allowed = {
       displayName: typeof body.displayName === 'string' ? body.displayName : undefined,
       country: typeof body.country === 'string' ? body.country : undefined,
-      sector: typeof body.sector === 'string' ? body.sector : undefined
+      sector: typeof body.sector === 'string' ? body.sector : undefined,
+      avatarUrl: typeof body.avatarUrl === 'string' ? body.avatarUrl : undefined
     }
     const data = Object.fromEntries(Object.entries(allowed).filter(([, v]) => v !== undefined))
 
@@ -148,6 +149,30 @@ export class AuthService {
       }
     })
     return user
+  }
+
+  async getMyCircles(userId: string) {
+    return this.app.prisma.circleMembership.findMany({
+      where: { userId, role: { notIn: ['pending', 'rejected'] } },
+      include: { circle: { select: { id: true, name: true, status: true } } },
+      orderBy: { joinedAt: 'desc' }
+    })
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    if (newPassword.length < 8) {
+      throw new ValidationError('New password must be at least 8 characters', 'newPassword')
+    }
+    const user = await this.app.prisma.user.findUnique({ where: { id: userId } })
+    if (!user) throw new NotFoundError('User not found')
+    const match = await bcrypt.compare(currentPassword, user.passwordHash)
+    if (!match) throw new UnauthorizedError('WRONG_PASSWORD', 'Current password is incorrect')
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_COST)
+    await this.app.prisma.user.update({ where: { id: userId }, data: { passwordHash } })
+  }
+
+  async deleteAccount(userId: string) {
+    await this.app.prisma.user.delete({ where: { id: userId } })
   }
 
   private async issueTokenPair(user: User | Pick<User, 'id' | 'email' | 'displayName' | 'isGlobalAdmin'>, existingFamily?: string) {

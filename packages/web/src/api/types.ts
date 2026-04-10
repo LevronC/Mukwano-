@@ -14,6 +14,8 @@ export type User = {
   isGlobalAdmin: boolean
   country?: string | null
   sector?: string | null
+  avatarUrl?: string | null
+  createdAt?: string
 }
 
 export type AuthResponse = {
