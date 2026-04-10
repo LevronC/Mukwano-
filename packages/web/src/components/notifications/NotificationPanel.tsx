@@ -26,7 +26,7 @@ export function NotificationPanel({ notifications, onClose }: NotificationPanelP
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
+    function handleOutside(e: MouseEvent | TouchEvent) {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
         onClose()
       }
@@ -34,26 +34,41 @@ export function NotificationPanel({ notifications, onClose }: NotificationPanelP
     function handleEsc(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
     }
-    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('touchstart', handleOutside, { passive: true })
     document.addEventListener('keydown', handleEsc)
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('mousedown', handleOutside)
+      document.removeEventListener('touchstart', handleOutside)
       document.removeEventListener('keydown', handleEsc)
     }
   }, [onClose])
 
   return (
-    <div
-      ref={panelRef}
-      role="dialog"
-      aria-label="Notifications"
-      className="absolute right-0 top-full mt-2 z-50 w-80 rounded-2xl border shadow-2xl overflow-hidden"
-      style={{
-        background: 'rgba(10, 20, 45, 0.98)',
-        borderColor: 'rgba(240, 165, 0, 0.18)',
-        backdropFilter: 'blur(16px)'
-      }}
-    >
+    <>
+      {/* Mobile backdrop */}
+      <div
+        className="fixed inset-0 z-40 md:hidden"
+        style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(2px)' }}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-label="Notifications"
+        className={[
+          /* mobile: fixed full-width sheet below the navbar */
+          'fixed left-3 right-3 top-20 z-50 rounded-2xl border shadow-2xl overflow-hidden',
+          /* desktop: classic dropdown anchored to the bell */
+          'md:absolute md:left-auto md:right-0 md:top-full md:mt-2 md:w-80'
+        ].join(' ')}
+        style={{
+          background: 'rgba(10, 20, 45, 0.98)',
+          borderColor: 'rgba(240, 165, 0, 0.18)',
+          backdropFilter: 'blur(16px)'
+        }}
+      >
       <div
         className="flex items-center justify-between px-4 py-3 border-b"
         style={{ borderColor: 'rgba(240, 165, 0, 0.12)' }}
@@ -74,7 +89,7 @@ export function NotificationPanel({ notifications, onClose }: NotificationPanelP
         </button>
       </div>
 
-      <div className="max-h-96 overflow-y-auto">
+      <div className="max-h-[60vh] md:max-h-96 overflow-y-auto">
         {notifications.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 px-4 text-center">
             <span
@@ -131,5 +146,6 @@ export function NotificationPanel({ notifications, onClose }: NotificationPanelP
         )}
       </div>
     </div>
+    </>
   )
 }
