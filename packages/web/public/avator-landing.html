@@ -193,6 +193,42 @@ footer{position:relative;z-index:2;background:#030810;border-top:1px solid rgba(
 .legal-modal-close:hover{background:rgba(255,255,255,0.05);color:var(--white);}
 @media(max-width:768px){.legal-modal{width:95%;max-height:85vh;padding:24px;}}
 @media(max-width:480px){.legal-modal{padding:20px;}}
+
+/* ── How It Works ── */
+#how-it-works{position:relative;z-index:2;padding:120px 60px;max-width:1200px;margin:0 auto;text-align:center;}
+.hiw-header{margin-bottom:80px;}
+.hiw-header .section-title{font-size:clamp(40px,5vw,68px);}
+.hiw-subtitle{font-size:15px;font-weight:300;color:var(--muted);margin-top:18px;max-width:520px;margin-left:auto;margin-right:auto;line-height:1.8;}
+.hiw-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative;}
+.hiw-steps::before{content:'';position:absolute;top:36px;left:12.5%;right:12.5%;height:1px;background:linear-gradient(to right,transparent 0%,var(--gold) 15%,var(--gold) 85%,transparent 100%);opacity:.3;z-index:0;}
+.hiw-step{position:relative;z-index:1;padding:0 20px;}
+.hiw-num{width:72px;height:72px;border-radius:50%;border:2px solid var(--gold);background:rgba(240,165,0,.1);display:flex;align-items:center;justify-content:center;margin:0 auto 28px;font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--gold);position:relative;transition:all .4s;}
+.hiw-num::before{content:'';position:absolute;inset:-5px;border-radius:50%;border:1px solid rgba(240,165,0,.15);}
+.hiw-step:hover .hiw-num{background:rgba(240,165,0,.2);box-shadow:0 0 28px rgba(240,165,0,.25);}
+.hiw-step-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--white);margin-bottom:12px;}
+.hiw-step-desc{font-size:13px;font-weight:300;color:var(--muted);line-height:1.85;}
+
+/* ── FAQ ── */
+#faq{position:relative;z-index:2;padding:120px 60px;background:linear-gradient(180deg,transparent 0%,rgba(11,22,48,.5) 50%,transparent 100%);border-top:1px solid rgba(240,165,0,.06);border-bottom:1px solid rgba(240,165,0,.06);}
+.faq-inner{max-width:760px;margin:0 auto;}
+.faq-header{text-align:center;margin-bottom:64px;}
+.faq-header h2{font-family:'Cormorant Garamond',serif;font-size:clamp(34px,4vw,56px);font-weight:700;line-height:1.1;margin-bottom:14px;}
+.faq-header p{font-size:14px;font-weight:300;color:var(--muted);line-height:1.85;}
+.faq-item{border:1px solid rgba(240,165,0,.12);border-radius:14px;margin-bottom:10px;overflow:hidden;transition:border-color .3s;}
+.faq-item.open{border-color:rgba(240,165,0,.32);}
+.faq-q{width:100%;background:none;border:none;color:var(--white);text-align:left;padding:22px 28px;font-family:'Outfit',sans-serif;font-size:15px;font-weight:500;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px;transition:background .3s;}
+.faq-q:hover{background:rgba(240,165,0,.04);}
+.faq-item.open .faq-q{background:rgba(240,165,0,.06);}
+.faq-chevron{flex-shrink:0;width:20px;height:20px;border-radius:50%;border:1px solid rgba(240,165,0,.3);display:flex;align-items:center;justify-content:center;transition:transform .35s,background .3s;}
+.faq-item.open .faq-chevron{transform:rotate(180deg);background:var(--gold);border-color:var(--gold);}
+.faq-chevron svg{width:10px;height:10px;stroke:var(--gold);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;transition:stroke .3s;}
+.faq-item.open .faq-chevron svg{stroke:var(--navy);}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .4s cubic-bezier(.4,0,.2,1);}
+.faq-a-inner{padding:0 28px 22px;font-size:13px;font-weight:300;color:var(--muted);line-height:1.9;}
+
+@media(max-width:1024px){.hiw-steps{grid-template-columns:repeat(2,1fr);gap:48px;}.hiw-steps::before{display:none;}}
+@media(max-width:768px){#how-it-works{padding:60px 20px;}#faq{padding:60px 20px;}.faq-q{font-size:14px;padding:18px 20px;}.faq-a-inner{padding:0 20px 18px;}.hiw-steps{grid-template-columns:1fr 1fr;gap:36px;}}
+@media(max-width:480px){.hiw-steps{grid-template-columns:1fr;gap:36px;}}
 </style>
 </head>
 <body>
@@ -202,11 +238,84 @@ footer{position:relative;z-index:2;background:#030810;border-top:1px solid rgba(
 <div class="radial-overlay"></div>
 <canvas id="bgCanvas"></canvas>
 <div id="intro"><div class="intro-logo" id="iLogo"><div class="logo-surface"><img class="brand-logo" src="assets/mukwano-logo.png" alt="Mukwano" width="300" height="300"/></div></div><div class="intro-bar" id="iBar"></div><div class="intro-text" id="iText"></div></div>
-<nav id="mainNav"><a href="#" class="nav-logo"><div class="logo-surface"><img class="brand-logo" src="assets/mukwano-logo.png" alt="" width="300" height="300" decoding="async"/></div><span class="sr-only">Mukwano</span></a><ul class="nav-links"><li><a href="#features">Features</a></li><li><a href="#showcase">About</a></li><li><a href="#values">Values</a></li><li><a href="#cta">Contact</a></li></ul><div class="nav-cta-group"><a href="/login" target="_top" class="nav-signin">Sign in</a><a href="/signup" target="_top" class="nav-cta">Join a Circle</a></div></nav>
+<nav id="mainNav"><a href="#" class="nav-logo"><div class="logo-surface"><img class="brand-logo" src="assets/mukwano-logo.png" alt="" width="300" height="300" decoding="async"/></div><span class="sr-only">Mukwano</span></a><ul class="nav-links"><li><a href="#features">Features</a></li><li><a href="#how-it-works">How It Works</a></li><li><a href="#values">Values</a></li><li><a href="#faq">FAQ</a></li></ul><div class="nav-cta-group"><a href="/login" target="_top" class="nav-signin">Sign in</a><a href="/signup" target="_top" class="nav-cta">Join a Circle</a></div></nav>
 <section id="hero"><div class="orbit-ring"></div><div class="orbit-ring"></div><div class="orbit-ring"></div><div class="hero-logo-wrap"><div class="hero-logo-scene" id="logoScene"><div class="logo-3d-wrap" id="logo3d"><div class="logo-glow-ring2"></div><div class="logo-glow-ring"></div><div class="logo-surface"><img id="mainLogoSvg" class="brand-logo" src="assets/mukwano-logo.png" alt="Mukwano — Friendship — Building Together" width="300" height="300" decoding="async"/></div></div></div></div><div class="tagline-primary">A FRIENDSHIP</div><div class="building-together">Building Together</div><h1 class="hero-title">Where <em class="gold shimmer">Friendship</em><br/>Builds <span class="outline">Wealth</span></h1><p class="hero-script">Together We Grow, Together We Prosper</p><p class="hero-desc">Mukwano unites communities through trusted investment circles — save together, invest wisely, grow with transparency.</p><div class="hero-btns"><a href="/signup" target="_top" class="btn-gold" id="exploreBtn">Start Your Circle</a><a href="#showcase" class="btn-outline">Discover More</a></div><div class="scroll-cue"><span>Explore</span><div class="scroll-mouse"><div class="scroll-wheel"></div></div></div></section>
 <section id="features"><div class="section-header-row"><div><span class="section-eyebrow">Platform Capabilities</span><h2 class="section-title">Built for <em>Trust.</em><br/>Engineered for <em>Growth.</em></h2></div></div><div class="features-grid"><div class="feat"><div class="feat-num">01</div><div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="feat-title">Investment Circles</div><div class="feat-desc">Join or create savings groups with trusted community members. Pool resources, share profits, and build generational wealth together.</div></div><div class="feat"><div class="feat-num">02</div><div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div><div class="feat-title">Transparent Ledger</div><div class="feat-desc">Every transaction is cryptographically logged. Real-time visibility into circle funds ensures full accountability for all members.</div></div><div class="feat"><div class="feat-num">03</div><div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="feat-title">Compliance &amp; Safety</div><div class="feat-desc">Server-enforced governance rules, contribution verification, and admin oversight keeps every circle accountable and transparent.</div></div><div class="feat"><div class="feat-num">04</div><div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="feat-title">Simulated Escrow</div><div class="feat-desc">Funds are held securely in escrow before being distributed. Payment verification ensures no capital moves without member consent.</div></div><div class="feat"><div class="feat-num">05</div><div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div class="feat-title">Live Analytics</div><div class="feat-desc">Real-time dashboards track circle performance, member activity, and investment returns — giving you the insights to grow smarter.</div></div><div class="feat"><div class="feat-num">06</div><div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></div><div class="feat-title">Circle Governance</div><div class="feat-desc">Propose votes, approve payout order, and update circle rules together — democratic controls keep every group aligned with its members.</div></div></div></section>
 <section id="showcase"><div class="showcase-inner"><div class="showcase-visual"><div class="sc-ring"></div><div class="sc-ring"></div><div class="showcase-logo-wrap"><div class="logo-surface"><img class="brand-logo" src="assets/mukwano-logo.png" alt="Mukwano" width="300" height="300" decoding="async"/></div></div></div><div class="showcase-text"><span class="section-eyebrow">Our Foundation</span><h2 class="showcase-title">Friendship as a<br/><em>Foundation</em> for<br/>Financial Freedom</h2><p class="showcase-p">Mukwano means friendship in Luganda.</p></div></div></section>
 <section id="values"><div class="values-header"><span class="section-eyebrow">Core Principles</span><h2 class="section-title">The Pillars of <em>Mukwano</em></h2></div><div class="values-grid"><div class="val-card"><div class="val-num">01</div><div class="val-title">Radical Transparency</div><div class="val-desc">Every shilling is tracked.</div></div><div class="val-card"><div class="val-num">02</div><div class="val-title">Community First</div><div class="val-desc">Collective growth, shared outcomes.</div></div></div></section>
+<section id="how-it-works">
+  <div class="hiw-header">
+    <span class="section-eyebrow">Simple Process</span>
+    <h2 class="section-title">How It <em>Works</em></h2>
+    <p class="hiw-subtitle">Get started in four simple steps and begin building wealth together.</p>
+  </div>
+  <div class="hiw-steps">
+    <div class="hiw-step">
+      <div class="hiw-num">01</div>
+      <h3 class="hiw-step-title">Create Your Circle</h3>
+      <p class="hiw-step-desc">Set up a new investment circle with your friends and define your goals and contribution rules.</p>
+    </div>
+    <div class="hiw-step">
+      <div class="hiw-num">02</div>
+      <h3 class="hiw-step-title">Invite Members</h3>
+      <p class="hiw-step-desc">Add trusted members to your circle and assign roles and permissions through the governance layer.</p>
+    </div>
+    <div class="hiw-step">
+      <div class="hiw-num">03</div>
+      <h3 class="hiw-step-title">Make Contributions</h3>
+      <p class="hiw-step-desc">Members contribute regularly via mobile money or bank transfer. Every shilling is tracked in the transparent ledger.</p>
+    </div>
+    <div class="hiw-step">
+      <div class="hiw-num">04</div>
+      <h3 class="hiw-step-title">Track &amp; Invest</h3>
+      <p class="hiw-step-desc">Monitor contributions in real-time and make collective investment decisions through transparent, on-chain voting.</p>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="faq-inner">
+    <div class="faq-header">
+      <span class="section-eyebrow">FAQ</span>
+      <h2>Have questions?<br/>We've got answers.</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">What is Mukwano?<span class="faq-chevron"><svg viewBox="0 0 10 6"><polyline points="1 1 5 5 9 1"/></svg></span></button>
+        <div class="faq-a"><p class="faq-a-inner">Mukwano (meaning "friend" in Luganda) is a governance-first platform for diaspora communities to pool money collectively toward projects in their home countries. Members form Circles, submit contributions, vote on proposals, and execute funded projects — all with server-enforced rules so no single person can override governance in the UI.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Is my money safe on Mukwano?<span class="faq-chevron"><svg viewBox="0 0 10 6"><polyline points="1 1 5 5 9 1"/></svg></span></button>
+        <div class="faq-a"><p class="faq-a-inner">Mukwano is currently in Demo Mode — no real money is collected, transferred, or held. All financial transactions shown are simulated. When live, funds will be held in a verified escrow account and every disbursement requires a passed circle vote before any money moves.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">How do I add members to my circle?<span class="faq-chevron"><svg viewBox="0 0 10 6"><polyline points="1 1 5 5 9 1"/></svg></span></button>
+        <div class="faq-a"><p class="faq-a-inner">From your Circle dashboard, share your unique invite link or enter member email addresses directly. New members submit a join request and existing members with the right role can approve or reject them. All membership changes are logged in the activity feed.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">What payment methods are supported?<span class="faq-chevron"><svg viewBox="0 0 10 6"><polyline points="1 1 5 5 9 1"/></svg></span></button>
+        <div class="faq-a"><p class="faq-a-inner">In the upcoming live release, Mukwano will support mobile money (M-Pesa, Airtel Money), bank transfers, and card payments. During the current demo phase, contributions are submitted and verified manually to simulate the full governance flow.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Can I withdraw my money anytime?<span class="faq-chevron"><svg viewBox="0 0 10 6"><polyline points="1 1 5 5 9 1"/></svg></span></button>
+        <div class="faq-a"><p class="faq-a-inner">Withdrawals follow the rules set by your circle. Funds committed to a project proposal that has passed cannot be withdrawn unilaterally — this protects the collective. Individual withdrawal rules are defined per circle and enforced at the server layer, not the UI.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">How much does Mukwano cost?<span class="faq-chevron"><svg viewBox="0 0 10 6"><polyline points="1 1 5 5 9 1"/></svg></span></button>
+        <div class="faq-a"><p class="faq-a-inner">Mukwano is free to use during the demo phase. When we launch for real transactions, we will operate on a small platform fee model that keeps the service sustainable while remaining accessible to diaspora communities worldwide. Full fee details will be published before launch.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Is Mukwano available on mobile?<span class="faq-chevron"><svg viewBox="0 0 10 6"><polyline points="1 1 5 5 9 1"/></svg></span></button>
+        <div class="faq-a"><p class="faq-a-inner">The web app is fully responsive and works great in mobile browsers. A dedicated native app for iOS and Android is on the roadmap for later in 2026.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">How do I contact support?<span class="faq-chevron"><svg viewBox="0 0 10 6"><polyline points="1 1 5 5 9 1"/></svg></span></button>
+        <div class="faq-a"><p class="faq-a-inner">Reach out to us at <a href="mailto:support@mukwano.app" style="color:var(--gold);">support@mukwano.app</a> or use the contact form on our website. We respond within 24 hours.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="cta"><div class="cta-glow-bg"></div><span class="cta-eyebrow">Begin Your Journey</span><h2 class="cta-title">Start <em>Building</em><br/>Together Today</h2><p class="cta-sub">Join members growing wealth through friendship.</p><div class="cta-btns"><a href="/signup" target="_top" class="btn-gold">Create Your Circle</a><a href="#" class="btn-outline">View Live Demo</a></div></section>
 <footer><div class="footer-top"><div><div class="footer-brand-wrap"><div class="logo-surface"><img class="brand-logo" src="assets/mukwano-logo.png" alt="Mukwano" width="300" height="300" decoding="async"/></div></div><div class="footer-tagline">Friendship · Investment · Growth</div></div></div><div class="footer-bottom"><p class="footer-copy">© 2026 <span>Mukwano</span>. All rights reserved.</p><div class="footer-legal"><a href="#" onclick="openLegalModal('terms'); return false;">Terms of Service</a><span style="color:rgba(122,149,196,.15);">|</span><a href="#" onclick="openLegalModal('privacy'); return false;">Privacy Policy</a></div></div></footer>
 <!-- Terms of Service Modal -->
@@ -361,6 +470,26 @@ window.addEventListener('scroll',()=>{if(!mainLogoSvg)return;const intensity=Mat
 function openLegalModal(type){var id=type==='terms'?'termsModal':'privacyModal';document.getElementById(id).classList.add('active');document.body.style.overflow='hidden';}
 function closeLegalModal(type){var id=type==='terms'?'termsModal':'privacyModal';document.getElementById(id).classList.remove('active');document.body.style.overflow='';}
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){var tm=document.getElementById('termsModal');var pm=document.getElementById('privacyModal');if(tm&&tm.classList.contains('active'))closeLegalModal('terms');if(pm&&pm.classList.contains('active'))closeLegalModal('privacy');}});
+
+// FAQ accordion
+document.querySelectorAll('.faq-q').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    var item=this.closest('.faq-item');
+    var answer=item.querySelector('.faq-a');
+    var isOpen=item.classList.contains('open');
+    // close all
+    document.querySelectorAll('.faq-item.open').forEach(function(openItem){
+      openItem.classList.remove('open');
+      openItem.querySelector('.faq-a').style.maxHeight='0';
+      openItem.querySelector('.faq-q').setAttribute('aria-expanded','false');
+    });
+    if(!isOpen){
+      item.classList.add('open');
+      answer.style.maxHeight=answer.scrollHeight+'px';
+      this.setAttribute('aria-expanded','true');
+    }
+  });
+});
 </script>
 </body>
 </html>
