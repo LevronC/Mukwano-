@@ -209,12 +209,16 @@ export class ReportingService {
 
   async getAdminMetrics(requestUserId: string) {
     await this.ensureGlobalAdmin(requestUserId)
-    const [pendingVerifications, totalContributed, activeCircles, activeProjects] = await Promise.all([
+    const [pendingVerifications, totalContributed, escrowBalance, activeCircles, activeProjects] = await Promise.all([
       this.app.prisma.contribution.count({ where: { status: 'pending' } }),
+      // Gross: total ever verified (never decreases)
       this.app.prisma.contribution.aggregate({
         _sum: { amount: true },
         where: { status: 'verified' }
       }),
+      // Net: sum of all ledger entries — CONTRIBUTION_VERIFIED are positive,
+      // PROJECT_FUNDED are negative, so this equals current escrow balance.
+      this.app.prisma.ledgerEntry.aggregate({ _sum: { amount: true } }),
       this.app.prisma.circle.count({ where: { status: 'active' } }),
       this.app.prisma.project.count({ where: { status: { in: ['approved', 'executing'] } } })
     ])
@@ -222,6 +226,7 @@ export class ReportingService {
     return {
       pendingVerifications,
       totalContributed: Number(totalContributed._sum.amount ?? 0),
+      escrowBalance: Number(escrowBalance._sum.amount ?? 0),
       activeCircles,
       activeProjects,
       currency: 'USD'

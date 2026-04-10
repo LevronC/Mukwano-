@@ -62,7 +62,7 @@ export function AdminPage() {
   const metrics = useQuery({
     queryKey: ['admin-metrics'],
     queryFn: () =>
-      api.get<{ pendingVerifications: number; totalContributed: number; activeCircles: number; activeProjects: number; currency: string }>('/admin/metrics')
+      api.get<{ pendingVerifications: number; totalContributed: number; escrowBalance: number; activeCircles: number; activeProjects: number; currency: string }>('/admin/metrics')
   })
 
   const verify = useMutation({
@@ -99,7 +99,8 @@ export function AdminPage() {
       `Pending Verifications,${metrics.data?.pendingVerifications ?? 0}`,
       `Active Circles,${metrics.data?.activeCircles ?? 0}`,
       `Active Projects,${metrics.data?.activeProjects ?? 0}`,
-      `Total Verified (${metrics.data?.currency ?? 'USD'}),${metrics.data?.totalContributed ?? 0}`,
+      `Total Contributed (${metrics.data?.currency ?? 'USD'}),${metrics.data?.totalContributed ?? 0}`,
+      `Escrow Balance (${metrics.data?.currency ?? 'USD'}),${metrics.data?.escrowBalance ?? 0}`,
       '',
       '=== PENDING CONTRIBUTIONS ===',
       'Member,Email,Circle,Amount,Currency',
@@ -216,7 +217,7 @@ export function AdminPage() {
 
         {!isLoading && !error && (
           <>
-        <section className="mb-8 grid gap-4 md:grid-cols-4">
+        <section className="mb-8 grid gap-4 md:grid-cols-5">
           <div className="mukwano-card p-4">
             <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font" style={{ color: 'var(--mk-muted)' }}>Pending</p>
             <p className="mt-2 text-2xl font-bold" style={{ color: '#6b3f00' }}>{metrics.data?.pendingVerifications ?? 0}</p>
@@ -230,10 +231,18 @@ export function AdminPage() {
             <p className="mt-2 text-2xl font-bold" style={{ color: 'var(--mk-white)' }}>{metrics.data?.activeProjects ?? 0}</p>
           </div>
           <div className="mukwano-card p-4">
-            <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font" style={{ color: 'var(--mk-muted)' }}>Verified Total</p>
+            <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font" style={{ color: 'var(--mk-muted)' }}>Escrow Balance</p>
             <p className="mt-2 text-2xl font-bold" style={{ color: 'var(--mk-gold)' }}>
+              {metrics.data?.escrowBalance ?? 0} {metrics.data?.currency ?? 'USD'}
+            </p>
+            <p className="mt-1 text-[0.625rem] label-font" style={{ color: 'var(--mk-muted)' }}>Contributions minus disbursements</p>
+          </div>
+          <div className="mukwano-card p-4">
+            <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font" style={{ color: 'var(--mk-muted)' }}>Total Contributed</p>
+            <p className="mt-2 text-2xl font-bold" style={{ color: 'var(--mk-white)' }}>
               {metrics.data?.totalContributed ?? 0} {metrics.data?.currency ?? 'USD'}
             </p>
+            <p className="mt-1 text-[0.625rem] label-font" style={{ color: 'var(--mk-muted)' }}>Gross verified, all time</p>
           </div>
         </section>
 
