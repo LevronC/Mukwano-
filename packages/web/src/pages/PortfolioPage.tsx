@@ -14,7 +14,37 @@ export function PortfolioPage() {
     currency?: string
     status: string
     submittedAt?: string
+    verifier?: { displayName: string | null } | null
   }>
+
+  function escapeCSV(value: string): string {
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+      return '"' + value.replace(/"/g, '""') + '"'
+    }
+    return value
+  }
+
+  function downloadCSV() {
+    const headers = ['Date', 'Circle', 'Amount', 'Currency', 'Status', 'Verified By']
+    const rows = entries.map((entry) => {
+      const date = entry.submittedAt ? entry.submittedAt.slice(0, 10) : ''
+      const circle = entry.circle?.name ?? 'Unknown'
+      const amount = entry.amount
+      const currency = entry.currency ?? 'USD'
+      const status = entry.status
+      const verifiedBy = entry.verifier?.displayName ?? ''
+      return [date, circle, amount, currency, status, verifiedBy].map(escapeCSV).join(',')
+    })
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    const today = new Date().toISOString().slice(0, 10)
+    anchor.href = url
+    anchor.download = `mukwano-contributions-${today}.csv`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
   const loading = portfolioLoading || summaryLoading
   const error = portfolioError ?? summaryError
 
@@ -87,7 +117,18 @@ export function PortfolioPage() {
 
       {/* Contribution history */}
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold" style={{ color: 'var(--mk-white)' }}>Contribution History</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold" style={{ color: 'var(--mk-white)' }}>Contribution History</h2>
+          {entries.length > 0 && (
+            <button
+              onClick={downloadCSV}
+              className="mukwano-btn-primary flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold"
+            >
+              <span className="material-symbols-outlined text-base">download</span>
+              Export CSV
+            </button>
+          )}
+        </div>
         {entries.length === 0 ? (
           <div className="rounded-2xl p-12 text-center" style={{ background: 'var(--mk-navy2)' }}>
             <span className="material-symbols-outlined text-4xl mb-3 block" style={{ color: '#bec9c3' }}>account_balance_wallet</span>
