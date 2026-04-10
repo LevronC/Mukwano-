@@ -108,18 +108,42 @@ export function ProfilePage() {
   const save = useMutation({
     mutationFn: () => {
       const body: Record<string, string> = {}
+      // Always include displayName if non-empty
       if (displayName.trim()) body.displayName = displayName.trim()
-      if (sector !== (data?.sector ?? '')) body.sector = sector
-      if (avatarUrl !== (data?.avatarUrl ?? '')) body.avatarUrl = avatarUrl
+      // Include sector if it differs from server (allows clearing to empty string)
+      const serverSector = data?.sector ?? ''
+      if (sector !== serverSector) body.sector = sector
+      // avatarUrl handled by saveAvatar — only include if manually changed via URL
+      const serverAvatar = data?.avatarUrl ?? ''
+      if (avatarUrl !== serverAvatar && !avatarUrl.startsWith('data:')) {
+        body.avatarUrl = avatarUrl
+      }
+      if (Object.keys(body).length === 0) return Promise.resolve(null)
       return api.patch('/auth/me', body)
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (!result) return
       toast.success('Profile updated')
       void refetch()
       void refreshUser()
       void qc.invalidateQueries({ queryKey: ['me'] })
     },
     onError: (error) => toast.error(getErrorMessage(error))
+  })
+
+  const saveAvatar = useMutation({
+    mutationFn: (b64: string) => api.patch('/auth/me', { avatarUrl: b64 }),
+    onSuccess: () => {
+      toast.success('Profile picture updated')
+      void refetch()
+      void refreshUser()
+      void qc.invalidateQueries({ queryKey: ['me'] })
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error))
+      // Revert preview to server value on failure
+      setAvatarUrl(data?.avatarUrl ?? '')
+    }
   })
 
   const changePassword = useMutation({
@@ -322,7 +346,7 @@ export function ProfilePage() {
                   className="absolute inset-0 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                   style={{ background: 'rgba(0,0,0,0.5)' }}
                 >
-                  {uploadingAvatar ? (
+                  {(uploadingAvatar || saveAvatar.isPending) ? (
                     <span className="material-symbols-outlined animate-spin" style={{ fontSize: 22, color: '#fff' }}>progress_activity</span>
                   ) : (
                     <span className="material-symbols-outlined" style={{ fontSize: 22, color: '#fff' }}>photo_camera</span>
@@ -336,9 +360,9 @@ export function ProfilePage() {
                   className="text-sm font-semibold rounded-xl px-4 py-2 transition-all"
                   style={{ background: 'rgba(240,165,0,0.12)', color: 'var(--mk-gold)', border: '1px solid rgba(240,165,0,0.25)' }}
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingAvatar}
+                  disabled={uploadingAvatar || saveAvatar.isPending}
                 >
-                  {uploadingAvatar ? 'Processing…' : avatarUrl ? 'Change photo' : 'Upload photo'}
+                  {uploadingAvatar ? 'Processing…' : saveAvatar.isPending ? 'Saving…' : avatarUrl ? 'Change photo' : 'Upload photo'}
                 </button>
                 {avatarUrl && (
                   <button
@@ -370,6 +394,8 @@ export function ProfilePage() {
                 try {
                   const b64 = await resizeToBase64(file)
                   setAvatarUrl(b64)
+                  // Auto-save immediately — no need to click Save Changes
+                  saveAvatar.mutate(b64)
                 } catch {
                   toast.error('Could not process image — please try another file')
                 } finally {
