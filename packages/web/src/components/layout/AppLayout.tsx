@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '@/api/client'
 import { useAuth } from '@/contexts/AuthContext'
+import { useNotifications } from '@/hooks/useNotifications'
+import { NotificationPanel } from '@/components/notifications/NotificationPanel'
 
 const mukwanoLogo = '/assets/mukwano-logo.png'
 
@@ -14,15 +16,28 @@ export function AppLayout() {
   const location = useLocation()
   const { user, logout } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const bellRef = useRef<HTMLDivElement>(null)
   const { data: config } = useQuery({
     queryKey: ['config'],
     queryFn: () => api.get<{ demoMode: boolean; escrowLabel: string }>('/config'),
     staleTime: Infinity
   })
 
+  const { notifications, unreadCount, markAllRead } = useNotifications(!!user)
+
   useEffect(() => {
     setMobileMenuOpen(false)
   }, [location.pathname])
+
+  function handleBellClick() {
+    if (!notifOpen) {
+      setNotifOpen(true)
+      if (unreadCount > 0) markAllRead()
+    } else {
+      setNotifOpen(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-transparent flex flex-col">
@@ -99,16 +114,40 @@ export function AppLayout() {
                 Simulated Escrow
               </span>
             )}
-            <button
-              className="mukwano-cursor-hover rounded-full p-2 transition-colors hover:bg-white/5"
-              style={{ color: 'var(--mk-muted)' }}
-              aria-label="Notifications"
-              type="button"
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>
-                notifications
-              </span>
-            </button>
+            <div ref={bellRef} className="relative">
+              <button
+                onClick={handleBellClick}
+                className="mukwano-cursor-hover rounded-full p-2 transition-colors hover:bg-white/5"
+                style={{ color: notifOpen ? 'var(--mk-gold)' : 'var(--mk-muted)' }}
+                aria-label="Notifications"
+                aria-expanded={notifOpen}
+                type="button"
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{
+                    fontSize: '22px',
+                    fontVariationSettings: notifOpen ? "'FILL' 1" : undefined
+                  }}
+                >
+                  notifications
+                </span>
+                {unreadCount > 0 && !notifOpen && (
+                  <span
+                    className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none"
+                    style={{ background: '#e53e3e', color: '#fff' }}
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <NotificationPanel
+                  notifications={notifications}
+                  onClose={() => setNotifOpen(false)}
+                />
+              )}
+            </div>
             <button
               onClick={() => navigate('/profile')}
               className="mukwano-cursor-hover rounded-full p-2 transition-colors hover:bg-white/5 hidden md:flex"
