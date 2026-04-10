@@ -56,7 +56,7 @@ export class ProjectService {
   async transitionStatus(circleId: string, projectId: string, userId: string, status: 'approved'|'executing'|'complete'|'cancelled') {
     await this.ensureAdmin(circleId, userId)
 
-    return this.app.prisma.$transaction(async (tx) => {
+    const result = await this.app.prisma.$transaction(async (tx) => {
       const project = await tx.project.findFirst({ where: { id: projectId, circleId } })
       if (!project) throw new NotFoundError('Project not found')
 
@@ -105,20 +105,24 @@ export class ProjectService {
         }
       })
 
-      await this.app.notificationAdapter.send('PROJECT_STATUS_CHANGED', {
-        circleId,
-        projectId: project.id,
-        status
-      })
-
-      await this.app.notificationService.createForCircle(
-        circleId,
-        'PROJECT_STATUS_CHANGED',
-        `Project "${project.title}" moved to ${status}`
-      )
-
-      return updated
+      return { updated, project }
     })
+
+    // Fire side-effects AFTER the transaction commits so a failure here
+    // cannot mask the successfully committed status transition to the caller.
+    await this.app.notificationAdapter.send('PROJECT_STATUS_CHANGED', {
+      circleId,
+      projectId: result.project.id,
+      status
+    })
+
+    this.app.notificationService.createForCircle(
+      circleId,
+      'PROJECT_STATUS_CHANGED',
+      `Project "${result.project.title}" moved to ${status}`
+    ).catch((err) => this.app.log.error({ err }, 'notification.createForCircle failed silently'))
+
+    return result.updated
   }
 
   async postUpdate(circleId: string, projectId: string, userId: string, content: string, percentComplete?: number) {

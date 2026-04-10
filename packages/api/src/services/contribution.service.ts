@@ -60,7 +60,7 @@ export class ContributionService {
       await this.ensureAdmin(circleId, adminUserId)
     }
 
-    return this.app.prisma.$transaction(async (tx) => {
+    const result = await this.app.prisma.$transaction(async (tx) => {
       const contribution = await tx.contribution.findFirst({
         where: { id: contributionId, circleId }
       })
@@ -111,27 +111,31 @@ export class ContributionService {
         data: { role: 'contributor' }
       })
 
-      await this.app.escrowAdapter.creditContribution({
-        circleId,
-        contributionId: contribution.id,
-        amount: contribution.amount.toString()
-      })
-
-      await this.app.notificationAdapter.send('CONTRIBUTION_VERIFIED', {
-        circleId,
-        contributionId: contribution.id,
-        userId: contribution.userId,
-        amount: contribution.amount.toString()
-      })
-
-      await this.app.notificationService.createForUser(
-        contribution.userId,
-        'CONTRIBUTION_VERIFIED',
-        `Your contribution of ${contribution.amount} ${contribution.currency} was verified`
-      )
-
-      return { contribution: updated, ledgerEntry: ledger }
+      return { contribution: updated, ledgerEntry: ledger, verifiedContribution: contribution }
     })
+
+    // Fire side-effects AFTER the transaction commits so a failure here
+    // cannot mask the successfully committed verification to the caller.
+    await this.app.escrowAdapter.creditContribution({
+      circleId,
+      contributionId: result.verifiedContribution.id,
+      amount: result.verifiedContribution.amount.toString()
+    })
+
+    await this.app.notificationAdapter.send('CONTRIBUTION_VERIFIED', {
+      circleId,
+      contributionId: result.verifiedContribution.id,
+      userId: result.verifiedContribution.userId,
+      amount: result.verifiedContribution.amount.toString()
+    })
+
+    this.app.notificationService.createForUser(
+      result.verifiedContribution.userId,
+      'CONTRIBUTION_VERIFIED',
+      `Your contribution of ${result.verifiedContribution.amount} ${result.verifiedContribution.currency} was verified`
+    ).catch((err) => this.app.log.error({ err }, 'notification.createForUser failed silently'))
+
+    return { contribution: result.contribution, ledgerEntry: result.ledgerEntry }
   }
 
   async rejectContribution(
