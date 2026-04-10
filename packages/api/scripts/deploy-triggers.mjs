@@ -17,9 +17,10 @@ if (!DATABASE_URL) {
   process.exit(0)
 }
 
+const isLocalDb = /localhost|127\.0\.0\.1/.test(DATABASE_URL)
 const client = new pg.Client({
   connectionString: DATABASE_URL,
-  ssl: { rejectUnauthorized: true },
+  ssl: isLocalDb ? undefined : { rejectUnauthorized: true },
   connectionTimeoutMillis: 10000,
 })
 await client.connect()

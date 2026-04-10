@@ -9,9 +9,11 @@ const prismaPlugin: FastifyPluginAsync = fp(async (server) => {
   // mismatch: packages/api/node_modules/pg vs root node_modules/pg used by
   // @prisma/adapter-pg, which makes PrismaPg ignore the passed Pool and fall
   // back to localhost:5432.
+  const dbUrl = process.env.DATABASE_URL ?? ''
+  const isLocalDb = /localhost|127\.0\.0\.1/.test(dbUrl)
   const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: true },
+    connectionString: dbUrl,
+    ssl: isLocalDb ? undefined : { rejectUnauthorized: true },
     connectionTimeoutMillis: 5000,
   })
   const prisma = new PrismaClient({ adapter })
