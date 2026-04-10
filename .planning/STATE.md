@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 Phase: 1 of 8 (Foundation & Auth)
 Plan: 0 of ? in current phase
 Status: Ready to plan
-Last activity: 2026-04-09 - Completed quick task 260409-ocp: Dashboard Recent Activity feed + per-circle treasury progress bars
+Last activity: 2026-04-09 - Completed quick task 260409-rxx: CSV export download button on Portfolio page
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -66,9 +66,10 @@ None yet.
 | 260409-nsw | Install @fastify/helmet: fintech CSP, HSTS 1yr+preload, X-Frame-Options DENY, noSniff, strict-origin-when-cross-origin referrer policy | 2026-04-09 | be518c0 | [260409-nsw-install-and-configure-fastify-helmet-sec](./quick/260409-nsw-install-and-configure-fastify-helmet-sec/) |
 | 260409-o23 | SEO + Open Graph + Twitter Card meta tags on index.html and avator-landing.html; 1200x630 navy/gold OG share image | 2026-04-09 | cc986f6 | [260409-o23-add-seo-meta-tags-and-open-graph-tags-to](./quick/260409-o23-add-seo-meta-tags-and-open-graph-tags-to/) |
 | 260409-ocp | Dashboard Recent Activity feed with icon/label/timestamp + per-circle treasury progress bars with gold gradient | 2026-04-09 | 381cbe6 | [260409-ocp-fix-dashboard-render-recentactivity-feed](./quick/260409-ocp-fix-dashboard-render-recentactivity-feed/) |
+| 260409-rxx | CSV export button on Portfolio page — BOM-prefixed file with Date/Circle/Amount/Currency/Status/Verified By columns | 2026-04-09 | 532e6f2 | [260409-rxx-add-csv-export-download-button-for-contr](./quick/260409-rxx-add-csv-export-download-button-for-contr/) |
 
 ## Session Continuity
 
 Last session: 2026-04-09
-Stopped at: Completed quick task 260409-ocp — Dashboard Recent Activity feed and progress bars added
+Stopped at: Completed quick task 260409-rxx — CSV export button on Portfolio page
 Resume file: None
