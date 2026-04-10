@@ -17,7 +17,11 @@ if (!DATABASE_URL) {
   process.exit(0)
 }
 
-const client = new pg.Client({ connectionString: DATABASE_URL })
+const client = new pg.Client({
+  connectionString: DATABASE_URL,
+  ssl: { rejectUnauthorized: true },
+  connectionTimeoutMillis: 10000,
+})
 await client.connect()
 
 try {
