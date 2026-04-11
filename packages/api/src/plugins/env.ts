@@ -14,6 +14,15 @@ const schema = {
     CORS_ORIGIN: {
       type: 'string',
       default: 'http://localhost:5173,https://mukwano-web.vercel.app,https://mukwano.vercel.app'
+    },
+    APP_URL: {
+      type: 'string',
+      default: 'http://localhost:5173'
+    },
+    RESEND_API_KEY: { type: 'string', default: '' },
+    RESEND_FROM: {
+      type: 'string',
+      default: 'Mukwano <onboarding@resend.dev>'
     }
   }
 } as const

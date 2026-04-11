@@ -4,11 +4,15 @@ import { loginRoute } from './login.js'
 import { refreshRoute } from './refresh.js'
 import { logoutRoute } from './logout.js'
 import { meRoute } from './me.js'
+import { verifyEmailRoute } from './verify-email.js'
+import { forgotPasswordRoute } from './forgot-password.js'
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
   await fastify.register(signupRoute)
   await fastify.register(loginRoute)
   await fastify.register(refreshRoute)
   await fastify.register(logoutRoute)
+  await fastify.register(verifyEmailRoute)
+  await fastify.register(forgotPasswordRoute)
   await fastify.register(meRoute)
 }

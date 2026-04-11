@@ -4,6 +4,9 @@ import { RootLayout } from '@/components/theme/RootLayout'
 import { useAuth } from '@/contexts/AuthContext'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { SignupPage } from '@/pages/auth/SignupPage'
+import { VerifyEmailPage } from '@/pages/auth/VerifyEmailPage'
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { SplashPage } from '@/pages/SplashPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { CirclesListPage } from '@/pages/circles/CirclesListPage'
@@ -37,6 +40,9 @@ export const router = createBrowserRouter([
       { index: true, element: <SplashPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'signup', element: <SignupPage /> },
+      { path: 'verify-email', element: <VerifyEmailPage /> },
+      { path: 'forgot-password', element: <ForgotPasswordPage /> },
+      { path: 'reset-password', element: <ResetPasswordPage /> },
       { path: 'explore', element: <ExplorePage /> },
       { path: 'terms', element: <TermsPage /> },
       { path: 'privacy', element: <PrivacyPage /> },

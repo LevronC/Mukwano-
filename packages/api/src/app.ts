@@ -9,6 +9,7 @@ import { helmetPlugin } from './plugins/helmet.js'
 import { rateLimitPlugin } from './plugins/rate-limit.js'
 import { demoModePlugin } from './plugins/demo-mode.js'
 import { notificationsPlugin } from './plugins/notifications.js'
+import { emailPlugin } from './plugins/email.js'
 import { authRoutes } from './routes/auth/index.js'
 import { configRoute } from './routes/config.js'
 import { circlesRoute } from './routes/circles.js'
@@ -34,6 +35,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(helmetPlugin)
   await app.register(rateLimitPlugin)
   await app.register(demoModePlugin)
+  await app.register(emailPlugin)
   await app.register(notificationsPlugin)
 
   // Root — API has no HTML UI; browsers hitting / otherwise get 404

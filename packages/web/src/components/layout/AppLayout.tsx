@@ -5,6 +5,7 @@ import { api } from '@/api/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNotifications } from '@/hooks/useNotifications'
 import { NotificationPanel } from '@/components/notifications/NotificationPanel'
+import { VerifyEmailBanner } from '@/components/auth/VerifyEmailBanner'
 
 const mukwanoLogo = '/assets/mukwano-logo.png'
 
@@ -264,6 +265,8 @@ export function AppLayout() {
           DEMO MODE &mdash; No real funds are processed
         </div>
       )}
+
+      <VerifyEmailBanner />
 
       <main className="mx-auto w-full max-w-7xl px-6 py-8 pb-20 flex-1">
         <Outlet />

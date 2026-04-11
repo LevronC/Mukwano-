@@ -2,6 +2,7 @@ import type { PrismaClient } from '@prisma/client'
 import type { JWT } from '@fastify/jwt'
 import type { EscrowAdapter, StorageAdapter, NotificationAdapter } from '../plugins/demo-mode.js'
 import type { NotificationService } from '../services/notification.service.js'
+import type { EmailService } from '../services/email.service.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -13,6 +14,9 @@ declare module 'fastify' {
       DEMO_MODE: string
       PORT: number
       CORS_ORIGIN: string
+      APP_URL: string
+      RESEND_API_KEY: string
+      RESEND_FROM: string
     }
     jwt: {
       access: JWT
@@ -23,6 +27,7 @@ declare module 'fastify' {
     storageAdapter: StorageAdapter
     notificationAdapter: NotificationAdapter
     notificationService: NotificationService
+    emailService: EmailService
   }
   interface FastifyRequest {
     user: {

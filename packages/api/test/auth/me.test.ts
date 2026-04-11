@@ -38,6 +38,7 @@ describe('GET /api/v1/auth/me (AUTH-05)', () => {
     expect(body.email).toBe(EMAIL)
     expect(body.displayName).toBe('Me User')
     expect(body.id).toBeTruthy()
+    expect(body.emailVerified).toBe(false)
     expect(body.passwordHash).toBeUndefined()
   })
 

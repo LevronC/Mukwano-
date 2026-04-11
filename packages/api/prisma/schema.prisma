@@ -16,8 +16,11 @@ model User {
   sector        String?
   avatarUrl     String?
   isGlobalAdmin Boolean            @default(false)
+  emailVerified Boolean            @default(false)
+  lastVerificationEmailSent DateTime?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
+  emailTokens   EmailToken[]
   memberships   CircleMembership[]
   circles       Circle[]           @relation("CircleCreatedBy")
   refreshTokens RefreshToken[]
@@ -43,6 +46,20 @@ model RefreshToken {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
+}
+
+model EmailToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  token     String    @unique
+  type      String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type], map: "idx_email_tokens_user_type")
+  @@map("email_tokens")
 }
 
 model Circle {

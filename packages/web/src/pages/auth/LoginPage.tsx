@@ -121,6 +121,11 @@ export function LoginPage() {
                 </span>
               </button>
             </div>
+            <div className="flex justify-end pt-1">
+              <Link className="text-xs font-medium hover:underline" style={{ color: 'var(--mk-gold)' }} to="/forgot-password">
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           <button type="submit" className="mukwano-btn-primary mukwano-cursor-hover w-full rounded-xl py-3.5 font-semibold text-base mt-2">

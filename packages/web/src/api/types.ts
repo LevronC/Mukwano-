@@ -12,6 +12,7 @@ export type User = {
   email: string
   displayName: string
   isGlobalAdmin: boolean
+  emailVerified?: boolean
   country?: string | null
   sector?: string | null
   avatarUrl?: string | null

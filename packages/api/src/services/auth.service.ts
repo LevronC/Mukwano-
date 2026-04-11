@@ -1,10 +1,18 @@
+import crypto from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import { v4 as uuidv4 } from 'uuid'
 import type { FastifyInstance } from 'fastify'
 import type { User } from '@prisma/client'
-import { UnauthorizedError, ConflictError, ValidationError, NotFoundError } from '../errors/http-errors.js'
+import { UnauthorizedError, ConflictError, ValidationError, NotFoundError, HttpError } from '../errors/http-errors.js'
 
 const BCRYPT_COST = process.env.NODE_ENV === 'test' ? 4 : 12
+const EMAIL_TOKEN_VERIFY = 'VERIFY'
+const EMAIL_TOKEN_RESET = 'RESET'
+const VERIFY_TTL_MS = 24 * 60 * 60 * 1000
+const RESET_TTL_MS = 60 * 60 * 1000
+const RESEND_COOLDOWN_MS = 60 * 1000
+
+type TokenUser = Pick<User, 'id' | 'email' | 'displayName' | 'isGlobalAdmin' | 'emailVerified'>
 
 export class AuthService {
   constructor(private readonly app: FastifyInstance) {}
@@ -32,10 +40,26 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(password, BCRYPT_COST)
     const user = await this.app.prisma.user.create({
-      data: { email, passwordHash, displayName }
+      data: { email, passwordHash, displayName, emailVerified: false }
     })
 
-    return this.issueTokenPair(user)
+    const verifyToken = crypto.randomBytes(32).toString('hex')
+    await this.app.prisma.emailToken.create({
+      data: {
+        userId: user.id,
+        token: verifyToken,
+        type: EMAIL_TOKEN_VERIFY,
+        expiresAt: new Date(Date.now() + VERIFY_TTL_MS)
+      }
+    })
+    await this.app.emailService.sendVerificationEmail(user.email, user.displayName, verifyToken)
+    await this.app.prisma.user.update({
+      where: { id: user.id },
+      data: { lastVerificationEmailSent: new Date() }
+    })
+
+    const userWithSent = await this.app.prisma.user.findUniqueOrThrow({ where: { id: user.id } })
+    return this.issueTokenPair(userWithSent)
   }
 
   async login(rawEmail: string, password: string) {
@@ -116,12 +140,130 @@ export class AuthService {
         sector: true,
         avatarUrl: true,
         isGlobalAdmin: true,
+        emailVerified: true,
         createdAt: true,
         updatedAt: true
       }
     })
     if (!user) throw new NotFoundError('User not found')
     return user
+  }
+
+  async verifyEmail(rawToken: string) {
+    const token = rawToken.trim()
+    if (!token) throw new ValidationError('Token is required', 'token')
+
+    const row = await this.app.prisma.emailToken.findFirst({
+      where: {
+        token,
+        type: EMAIL_TOKEN_VERIFY,
+        usedAt: null,
+        expiresAt: { gt: new Date() }
+      }
+    })
+    if (!row) throw new ValidationError('Invalid or expired verification link', 'token')
+
+    await this.app.prisma.$transaction(async (tx) => {
+      await tx.emailToken.update({
+        where: { id: row.id },
+        data: { usedAt: new Date() }
+      })
+      await tx.user.update({
+        where: { id: row.userId },
+        data: { emailVerified: true }
+      })
+    })
+  }
+
+  async resendVerification(userId: string) {
+    const user = await this.app.prisma.user.findUnique({ where: { id: userId } })
+    if (!user) throw new NotFoundError('User not found')
+    if (user.emailVerified) {
+      throw new ConflictError('ALREADY_VERIFIED', 'Email is already verified')
+    }
+
+    const lastSent = user.lastVerificationEmailSent
+    if (lastSent && lastSent.getTime() > Date.now() - RESEND_COOLDOWN_MS) {
+      throw new HttpError(429, 'RATE_LIMIT', 'Please wait before requesting another verification email')
+    }
+
+    await this.app.prisma.emailToken.updateMany({
+      where: { userId, type: EMAIL_TOKEN_VERIFY, usedAt: null },
+      data: { usedAt: new Date() }
+    })
+
+    const verifyToken = crypto.randomBytes(32).toString('hex')
+    await this.app.prisma.emailToken.create({
+      data: {
+        userId: user.id,
+        token: verifyToken,
+        type: EMAIL_TOKEN_VERIFY,
+        expiresAt: new Date(Date.now() + VERIFY_TTL_MS)
+      }
+    })
+    await this.app.emailService.sendVerificationEmail(user.email, user.displayName, verifyToken)
+    await this.app.prisma.user.update({
+      where: { id: user.id },
+      data: { lastVerificationEmailSent: new Date() }
+    })
+  }
+
+  async forgotPassword(rawEmail: string) {
+    const email = rawEmail.toLowerCase().trim()
+    if (!email) return
+
+    const user = await this.app.prisma.user.findUnique({ where: { email } })
+    if (!user) return
+
+    await this.app.prisma.emailToken.updateMany({
+      where: { userId: user.id, type: EMAIL_TOKEN_RESET, usedAt: null },
+      data: { usedAt: new Date() }
+    })
+
+    const resetToken = crypto.randomBytes(32).toString('hex')
+    await this.app.prisma.emailToken.create({
+      data: {
+        userId: user.id,
+        token: resetToken,
+        type: EMAIL_TOKEN_RESET,
+        expiresAt: new Date(Date.now() + RESET_TTL_MS)
+      }
+    })
+    await this.app.emailService.sendPasswordResetEmail(user.email, user.displayName, resetToken)
+  }
+
+  async resetPassword(rawToken: string, newPassword: string) {
+    if (newPassword.length < 8) {
+      throw new ValidationError('Password must be at least 8 characters', 'newPassword')
+    }
+    const token = rawToken.trim()
+    if (!token) throw new ValidationError('Token is required', 'token')
+
+    const row = await this.app.prisma.emailToken.findFirst({
+      where: {
+        token,
+        type: EMAIL_TOKEN_RESET,
+        usedAt: null,
+        expiresAt: { gt: new Date() }
+      }
+    })
+    if (!row) throw new ValidationError('Invalid or expired reset link', 'token')
+
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_COST)
+    await this.app.prisma.$transaction(async (tx) => {
+      await tx.emailToken.update({
+        where: { id: row.id },
+        data: { usedAt: new Date() }
+      })
+      await tx.user.update({
+        where: { id: row.userId },
+        data: { passwordHash }
+      })
+      await tx.refreshToken.updateMany({
+        where: { userId: row.userId, revokedAt: null },
+        data: { revokedAt: new Date() }
+      })
+    })
   }
 
   async updateMe(userId: string, body: Record<string, unknown>) {
@@ -144,6 +286,7 @@ export class AuthService {
         sector: true,
         avatarUrl: true,
         isGlobalAdmin: true,
+        emailVerified: true,
         createdAt: true,
         updatedAt: true
       }
@@ -175,15 +318,18 @@ export class AuthService {
     await this.app.prisma.user.delete({ where: { id: userId } })
   }
 
-  private async issueTokenPair(user: User | Pick<User, 'id' | 'email' | 'displayName' | 'isGlobalAdmin'>, existingFamily?: string) {
+  private async issueTokenPair(user: User | TokenUser, existingFamily?: string) {
     const family = existingFamily ?? uuidv4()
     const jti = uuidv4()
+
+    const emailVerified = 'emailVerified' in user ? user.emailVerified : false
 
     const accessToken = await this.namespacedJwt.access.sign({
       sub: user.id,
       id: user.id,
       email: user.email,
-      isGlobalAdmin: user.isGlobalAdmin
+      isGlobalAdmin: user.isGlobalAdmin,
+      emailVerified
     })
 
     const refreshToken = await this.namespacedJwt.refresh.sign({
@@ -209,7 +355,8 @@ export class AuthService {
         id: user.id,
         email: user.email,
         displayName: user.displayName,
-        isGlobalAdmin: user.isGlobalAdmin
+        isGlobalAdmin: user.isGlobalAdmin,
+        emailVerified
       }
     }
   }
