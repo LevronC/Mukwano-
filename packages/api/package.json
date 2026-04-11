@@ -12,6 +12,7 @@
     "test": "vitest",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:push": "prisma db push",
     "deploy:triggers": "node scripts/deploy-triggers.mjs"
   },

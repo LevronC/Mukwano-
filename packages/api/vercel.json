@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run deploy:triggers && npm run prisma:generate",
+  "buildCommand": "npm run deploy:triggers && prisma migrate deploy && npm run prisma:generate",
   "outputDirectory": ".",
   "functions": {
     "api/index.ts": {
