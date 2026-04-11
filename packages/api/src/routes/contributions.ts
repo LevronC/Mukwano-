@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
+import { httpRateLimit } from '../http-rate-limit-presets.js'
 import { authGuard } from '../hooks/auth-guard.js'
 import { ContributionService } from '../services/contribution.service.js'
 
@@ -10,6 +11,7 @@ export const contributionsRoute: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', authGuard)
 
   fastify.post('/circles/:id/contributions', {
+    config: { rateLimit: httpRateLimit.financialMutation },
     schema: {
       body: {
         type: 'object',
@@ -41,13 +43,16 @@ export const contributionsRoute: FastifyPluginAsync = async (fastify) => {
     return reply.send(item)
   })
 
-  fastify.patch('/circles/:id/contributions/:cid/verify', async (request, reply) => {
+  fastify.patch('/circles/:id/contributions/:cid/verify', {
+    config: { rateLimit: httpRateLimit.financialMutation }
+  }, async (request, reply) => {
     const params = request.params as { id: string; cid: string }
     const result = await service.verifyContribution(params.id, params.cid, currentUserId(request))
     return reply.send(result)
   })
 
   fastify.patch('/circles/:id/contributions/:cid/reject', {
+    config: { rateLimit: httpRateLimit.financialMutation },
     schema: {
       body: {
         type: 'object',
@@ -64,6 +69,7 @@ export const contributionsRoute: FastifyPluginAsync = async (fastify) => {
   })
 
   fastify.post('/circles/:id/contributions/:cid/proof', {
+    config: { rateLimit: httpRateLimit.financialMutation },
     schema: {
       body: {
         type: 'object',
@@ -84,6 +90,7 @@ export const contributionsRoute: FastifyPluginAsync = async (fastify) => {
   })
 
   fastify.post('/circles/:id/contributions/:cid/proof/confirm', {
+    config: { rateLimit: httpRateLimit.financialMutation },
     schema: {
       body: {
         type: 'object',

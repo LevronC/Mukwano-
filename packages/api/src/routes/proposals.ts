@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
+import { httpRateLimit } from '../http-rate-limit-presets.js'
 import { authGuard } from '../hooks/auth-guard.js'
 import { ProposalService } from '../services/proposal.service.js'
 
@@ -10,6 +11,7 @@ export const proposalsRoute: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', authGuard)
 
   fastify.post('/circles/:id/proposals', {
+    config: { rateLimit: httpRateLimit.financialMutation },
     schema: {
       body: {
         type: 'object',
@@ -42,6 +44,7 @@ export const proposalsRoute: FastifyPluginAsync = async (fastify) => {
   })
 
   fastify.post('/circles/:id/proposals/:pid/vote', {
+    config: { rateLimit: httpRateLimit.financialMutation },
     schema: {
       body: {
         type: 'object',
@@ -59,13 +62,17 @@ export const proposalsRoute: FastifyPluginAsync = async (fastify) => {
     return reply.code(201).send(res)
   })
 
-  fastify.delete('/circles/:id/proposals/:pid', async (request, reply) => {
+  fastify.delete('/circles/:id/proposals/:pid', {
+    config: { rateLimit: httpRateLimit.financialMutation }
+  }, async (request, reply) => {
     const params = request.params as { id: string; pid: string }
     const proposal = await service.cancelProposal(params.id, params.pid, currentUserId(request))
     return reply.send(proposal)
   })
 
-  fastify.post('/circles/:id/proposals/:pid/close', async (request, reply) => {
+  fastify.post('/circles/:id/proposals/:pid/close', {
+    config: { rateLimit: httpRateLimit.financialMutation }
+  }, async (request, reply) => {
     const params = request.params as { id: string; pid: string }
     const proposal = await service.closeProposal(params.id, params.pid, currentUserId(request))
     return reply.send(proposal)

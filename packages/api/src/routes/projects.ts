@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
+import { httpRateLimit } from '../http-rate-limit-presets.js'
 import { authGuard } from '../hooks/auth-guard.js'
 import { ProjectService } from '../services/project.service.js'
 
@@ -10,6 +11,7 @@ export const projectsRoute: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', authGuard)
 
   fastify.post('/circles/:id/projects', {
+    config: { rateLimit: httpRateLimit.financialMutation },
     schema: {
       body: {
         type: 'object',
@@ -38,6 +40,7 @@ export const projectsRoute: FastifyPluginAsync = async (fastify) => {
   })
 
   fastify.patch('/circles/:id/projects/:projId', {
+    config: { rateLimit: httpRateLimit.financialMutation },
     schema: {
       body: {
         type: 'object',
@@ -56,6 +59,7 @@ export const projectsRoute: FastifyPluginAsync = async (fastify) => {
   })
 
   fastify.post('/circles/:id/projects/:projId/updates', {
+    config: { rateLimit: httpRateLimit.financialMutation },
     schema: {
       body: {
         type: 'object',

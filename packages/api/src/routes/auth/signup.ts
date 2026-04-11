@@ -1,10 +1,12 @@
 import type { FastifyPluginAsync } from 'fastify'
+import { httpRateLimit } from '../../http-rate-limit-presets.js'
 import { AuthService } from '../../services/auth.service.js'
 
 export const signupRoute: FastifyPluginAsync = async (fastify) => {
   const authService = new AuthService(fastify)
 
   fastify.post('/signup', {
+    config: { rateLimit: httpRateLimit.signup },
     schema: {
       body: {
         type: 'object',

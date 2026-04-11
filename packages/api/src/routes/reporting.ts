@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
+import { httpRateLimit } from '../http-rate-limit-presets.js'
 import { authGuard } from '../hooks/auth-guard.js'
 import { ReportingService } from '../services/reporting.service.js'
 
@@ -29,13 +30,16 @@ export const reportingRoute: FastifyPluginAsync = async (fastify) => {
     return reply.send(data)
   })
 
-  fastify.patch('/admin/contributions/:id/verify', async (request, reply) => {
+  fastify.patch('/admin/contributions/:id/verify', {
+    config: { rateLimit: httpRateLimit.financialMutation }
+  }, async (request, reply) => {
     const params = request.params as { id: string }
     const data = await service.verifyPendingContribution(currentUserId(request), params.id)
     return reply.send(data)
   })
 
   fastify.patch('/admin/contributions/:id/reject', {
+    config: { rateLimit: httpRateLimit.financialMutation },
     schema: {
       body: {
         type: 'object',
