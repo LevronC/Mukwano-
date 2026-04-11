@@ -2,32 +2,88 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
-import { useAuth } from '@/contexts/AuthContext'
 import { getErrorMessage } from '@/hooks/useApiError'
 
 const TABS = ['overview', 'contributions', 'proposals', 'projects'] as const
 
+type CircleOverview = {
+  name?: string
+  status?: string
+  description?: string
+  membershipRole?: string | null
+} & Record<string, unknown>
+
+type CircleMember = {
+  userId: string
+  role: string
+  user?: {
+    displayName?: string
+    email?: string
+  }
+}
+
 export function CircleDetailPage() {
   const { id = '' } = useParams()
-  const { user } = useAuth()
   const [params, setParams] = useSearchParams()
   const tab = params.get('tab') ?? 'overview'
   const queryClient = useQueryClient()
 
-  const { data: circle } = useQuery({ queryKey: ['circle', id], queryFn: () => api.get<{ name?: string; status?: string; description?: string }>(`/circles/${id}`) })
-  const { data: members } = useQuery({ queryKey: ['members', id], queryFn: () => api.get<Array<{ userId: string; role: string }>>(`/circles/${id}/members`) })
-  const { data: contributions } = useQuery({ queryKey: ['contributions', id], queryFn: () => api.get<Array<{ id: string; amount: string; currency?: string; status: string }>>(`/circles/${id}/contributions`) })
-  const { data: proposals } = useQuery({ queryKey: ['proposals', id], queryFn: () => api.get<Array<{ id: string; title: string; status: string }>>(`/circles/${id}/proposals`) })
-  const { data: projects } = useQuery({ queryKey: ['projects', id], queryFn: () => api.get<Array<{ id: string; title: string; status: string }>>(`/circles/${id}/projects`) })
-  const { data: treasury } = useQuery({ queryKey: ['treasury', id], queryFn: () => api.get<{ balanceLabel?: string; verifiedBalance?: string; currency?: string }>(`/circles/${id}/treasury`) })
+  const { data: circle, error: circleError } = useQuery({
+    queryKey: ['circle', id],
+    queryFn: () => api.get<CircleOverview>(`/circles/${id}`),
+    enabled: !!id
+  })
 
-  const myRole = members?.find((m) => m.userId === user?.id)?.role
-  const isAdmin = myRole === 'creator' || myRole === 'admin'
+  const membershipRole = circle?.membershipRole ?? null
+  const isMember = membershipRole !== null && membershipRole !== 'pending' && membershipRole !== 'rejected'
+  const isPending = membershipRole === 'pending'
+  const isAdmin = membershipRole === 'creator' || membershipRole === 'admin'
+
+  const { data: members } = useQuery({
+    queryKey: ['members', id],
+    queryFn: () => api.get<CircleMember[]>(`/circles/${id}/members`),
+    enabled: !!id
+  })
+
+  const { data: contributions } = useQuery({
+    queryKey: ['contributions', id],
+    queryFn: () => api.get<Array<{ id: string; amount: string; currency?: string; status: string }>>(`/circles/${id}/contributions`),
+    enabled: !!id && isMember
+  })
+
+  const { data: proposals } = useQuery({
+    queryKey: ['proposals', id],
+    queryFn: () => api.get<Array<{ id: string; title: string; status: string }>>(`/circles/${id}/proposals`),
+    enabled: !!id && isMember
+  })
+
+  const { data: projects } = useQuery({
+    queryKey: ['projects', id],
+    queryFn: () => api.get<Array<{ id: string; title: string; status: string }>>(`/circles/${id}/projects`),
+    enabled: !!id && isMember
+  })
+
+  const { data: treasury } = useQuery({
+    queryKey: ['treasury', id],
+    queryFn: () => api.get<{ balanceLabel?: string; verifiedBalance?: string; currency?: string }>(`/circles/${id}/treasury`),
+    enabled: !!id && isMember
+  })
+
   const { data: joinRequests } = useQuery({
     queryKey: ['join-requests', id],
     queryFn: () =>
       api.get<Array<{ userId: string; role: string; user?: { displayName?: string; email?: string } }>>(`/circles/${id}/join-requests`),
     enabled: !!id && !!isAdmin
+  })
+
+  const requestJoin = useMutation({
+    mutationFn: () => api.post(`/circles/${id}/join-request`),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['circle', id] })
+      await queryClient.invalidateQueries({ queryKey: ['my-circle-requests'] })
+      toast.success('Join request sent. Awaiting committee approval.')
+    },
+    onError: (error) => toast.error(getErrorMessage(error))
   })
 
   const verifyContribution = useMutation({
@@ -69,13 +125,126 @@ export function CircleDetailPage() {
     onError: (error) => toast.error(getErrorMessage(error))
   })
 
+  if (circleError) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <span className="material-symbols-outlined text-5xl" style={{ color: 'var(--mk-muted)' }}>error</span>
+        <p className="text-lg font-medium" style={{ color: 'var(--mk-white)' }}>Failed to load circle</p>
+        <p className="text-sm" style={{ color: 'var(--mk-muted)' }}>{getErrorMessage(circleError)}</p>
+        <Link to="/explore" className="mukwano-btn mukwano-btn-primary rounded-xl px-6 py-2.5 text-sm font-semibold">
+          Back to Explore
+        </Link>
+      </div>
+    )
+  }
+
+  // Non-member view: show circle info + join button
+  if (!isMember && !isPending) {
+    return (
+      <div className="space-y-8">
+        <section className="mukwano-hero p-8 md:p-10">
+          <div className="relative z-10 space-y-2">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="chip-demo">Not a member</span>
+            </div>
+            <h1 className="text-3xl font-semibold" style={{ color: '#ffffff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              {circle?.name ?? 'Circle'}
+            </h1>
+            {circle?.description && (
+              <p className="text-sm max-w-xl" style={{ color: '#a0f3d4' }}>{circle.description}</p>
+            )}
+            <p className="text-sm mt-2" style={{ color: 'var(--mk-muted)' }}>
+              {members?.length ?? 0} member{(members?.length ?? 0) === 1 ? '' : 's'}
+            </p>
+            <div className="mt-4">
+              <button
+                className="mukwano-btn mukwano-btn-primary rounded-xl px-6 py-2.5 text-sm font-semibold"
+                onClick={() => requestJoin.mutate()}
+                disabled={requestJoin.isPending}
+              >
+                {requestJoin.isPending ? 'Sending request...' : 'Request to Join'}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-xl font-semibold" style={{ color: 'var(--mk-white)' }}>Members</h2>
+          {(members ?? []).length === 0 ? (
+            <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--mk-navy2)' }}>
+              <p className="font-medium" style={{ color: 'var(--mk-muted)' }}>No members yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {(members ?? []).map((m) => (
+                <div key={m.userId} className="mukwano-card flex items-center justify-between p-4">
+                  <div>
+                    <p className="font-semibold" style={{ color: 'var(--mk-white)' }}>{m.user?.displayName ?? 'Member'}</p>
+                    <p className="text-xs capitalize" style={{ color: 'var(--mk-muted)' }}>{m.role}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    )
+  }
+
+  // Pending member view
+  if (isPending) {
+    return (
+      <div className="space-y-8">
+        <section className="mukwano-hero p-8 md:p-10">
+          <div className="relative z-10 space-y-2">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="rounded-full px-3 py-1 text-[0.625rem] font-bold uppercase tracking-widest label-font" style={{ background: '#ffdcbb', color: '#6b3f00' }}>
+                Pending Approval
+              </span>
+            </div>
+            <h1 className="text-3xl font-semibold" style={{ color: '#ffffff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              {circle?.name ?? 'Circle'}
+            </h1>
+            {circle?.description && (
+              <p className="text-sm max-w-xl" style={{ color: '#a0f3d4' }}>{circle.description}</p>
+            )}
+            <p className="text-sm mt-2" style={{ color: 'var(--mk-muted)' }}>
+              Your request to join this circle is awaiting committee approval.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-xl font-semibold" style={{ color: 'var(--mk-white)' }}>Members</h2>
+          {(members ?? []).length === 0 ? (
+            <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--mk-navy2)' }}>
+              <p className="font-medium" style={{ color: 'var(--mk-muted)' }}>No members yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {(members ?? []).map((m) => (
+                <div key={m.userId} className="mukwano-card flex items-center justify-between p-4">
+                  <div>
+                    <p className="font-semibold" style={{ color: 'var(--mk-white)' }}>{m.user?.displayName ?? 'Member'}</p>
+                    <p className="text-xs capitalize" style={{ color: 'var(--mk-muted)' }}>{m.role}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    )
+  }
+
+  // Full member view (existing UI)
   return (
     <div className="space-y-8">
       {/* Hero */}
       <section className="mukwano-hero p-8 md:p-10">
         <div className="relative z-10 space-y-2">
           <div className="flex items-center gap-2 mb-3">
-            <span className="chip-demo">{myRole ?? 'member'}</span>
+            <span className="chip-demo">{membershipRole ?? 'member'}</span>
           </div>
           <h1 className="text-3xl font-semibold" style={{ color: '#ffffff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             {circle?.name ?? 'Circle'}

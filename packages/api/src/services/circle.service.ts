@@ -81,8 +81,6 @@ export class CircleService {
   }
 
   async getCircleOverview(circleId: string, userId: string) {
-    await this.ensureMember(circleId, userId)
-
     const circle = await this.app.prisma.circle.findUnique({
       where: { id: circleId },
       include: { governanceConfig: true }
@@ -90,7 +88,11 @@ export class CircleService {
 
     if (!circle) throw new NotFoundError('Circle not found')
 
-    return circle
+    const membership = await this.app.prisma.circleMembership.findUnique({
+      where: { circleId_userId: { circleId, userId } }
+    })
+
+    return { ...circle, membershipRole: membership?.role ?? null }
   }
 
   async updateCircle(circleId: string, userId: string, body: Record<string, unknown>) {
@@ -302,10 +304,10 @@ export class CircleService {
     return { message: 'Left circle successfully' }
   }
 
-  async listMembers(circleId: string, userId: string) {
-    await this.ensureMember(circleId, userId)
+  async listMembers(circleId: string, _userId: string) {
+    await this.ensureCircleExists(circleId)
     return this.app.prisma.circleMembership.findMany({
-      where: { circleId },
+      where: { circleId, role: { notIn: ['pending', 'rejected'] } },
       orderBy: { joinedAt: 'asc' },
       include: {
         user: {

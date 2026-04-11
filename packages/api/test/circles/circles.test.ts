@@ -10,6 +10,7 @@ let app: FastifyInstance
 let creatorToken: string
 let memberToken: string
 let outsiderToken: string
+let pendingToken: string
 let memberId: string
 
 // The circle created in setup
@@ -42,11 +43,13 @@ beforeAll(async () => {
   const creator = await signup('creator')
   const member = await signup('member')
   const outsider = await signup('outsider')
+  const pending = await signup('pending')
 
   creatorToken = creator.accessToken
   memberId = member.userId
   memberToken = member.accessToken
   outsiderToken = outsider.accessToken
+  pendingToken = pending.accessToken
 
   // Creator creates the main test circle
   const circleRes = await app.inject({
@@ -70,6 +73,12 @@ beforeAll(async () => {
     method: 'POST',
     url: `/api/v1/circles/${circleId}/join`,
     headers: injectHeaders(memberToken)
+  })
+
+  await app.inject({
+    method: 'POST',
+    url: `/api/v1/circles/${circleId}/join-request`,
+    headers: injectHeaders(pendingToken)
   })
 })
 
@@ -187,17 +196,34 @@ describe('GET /api/v1/circles/:id (CIRCLE-03, GOV-01)', () => {
     expect(body.governanceConfig).toBeTruthy()
     expect(typeof body.governanceConfig.quorumPercent).toBe('number')
     expect(typeof body.governanceConfig.whoCanPropose).toBe('string')
+    expect(body.membershipRole).toBe('member')
   })
 
-  it('blocks non-members from viewing circle detail (CIRCLE-04)', async () => {
+  it('returns circle detail for non-members with membershipRole set to null', async () => {
     const res = await app.inject({
       method: 'GET',
       url: `/api/v1/circles/${circleId}`,
       headers: injectHeaders(outsiderToken)
     })
 
-    expect(res.statusCode).toBe(403)
-    expect(res.json().error.code).toBe('NOT_A_MEMBER')
+    expect(res.statusCode).toBe(200)
+    const body = res.json()
+    expect(body.id).toBe(circleId)
+    expect(body.membershipRole).toBeNull()
+    expect(body.governanceConfig).toBeTruthy()
+  })
+
+  it('returns circle detail for pending members with membershipRole set to pending', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/v1/circles/${circleId}`,
+      headers: injectHeaders(pendingToken)
+    })
+
+    expect(res.statusCode).toBe(200)
+    const body = res.json()
+    expect(body.id).toBe(circleId)
+    expect(body.membershipRole).toBe('pending')
   })
 
   it('returns 404 for non-existent circle', async () => {
@@ -207,7 +233,7 @@ describe('GET /api/v1/circles/:id (CIRCLE-03, GOV-01)', () => {
       headers: injectHeaders(memberToken)
     })
 
-    expect(res.statusCode).toBe(403) // Not a member of a non-existent circle
+    expect(res.statusCode).toBe(404)
   })
 })
 
