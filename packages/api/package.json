@@ -14,7 +14,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:push": "prisma db push",
-    "deploy:triggers": "node scripts/deploy-triggers.mjs"
+    "deploy:triggers": "node scripts/deploy-triggers.mjs",
+    "vercel:migrate": "node scripts/vercel-migrate.mjs"
   },
   "dependencies": {
     "@fastify/cors": "11.2.0",
