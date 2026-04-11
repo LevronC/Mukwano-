@@ -6,20 +6,63 @@ export class EmailService {
   constructor(private readonly app: FastifyInstance) {}
 
   private baseUrl(): string {
-    return this.app.config.APP_URL.replace(/\/+$/, '')
+    return (this.app.config.APP_URL ?? '').replace(/\/+$/, '') || 'http://localhost:5173'
+  }
+
+  private resendApiKey(): string {
+    return (this.app.config.RESEND_API_KEY ?? '').trim()
+  }
+
+  private fromAddress(): string {
+    const raw = (this.app.config.RESEND_FROM ?? '').trim()
+    return raw.length > 0 ? raw : 'Mukwano <onboarding@resend.dev>'
+  }
+
+  private async sendWithResend(
+    logLabel: 'verification' | 'password_reset',
+    payload: { from: string; to: string; subject: string; html: string }
+  ): Promise<void> {
+    const key = this.resendApiKey()
+    if (!key) {
+      this.app.log.info(
+        { to: payload.to, subject: payload.subject },
+        `[email] ${logLabel} skipped (RESEND_API_KEY empty after trim)`
+      )
+      return
+    }
+
+    const resend = new Resend(key)
+    type SendResult = { data?: { id?: string } | null; error?: { message?: string } | null }
+    let result: SendResult
+    try {
+      result = (await resend.emails.send(payload)) as SendResult
+    } catch (e) {
+      this.app.log.error({ err: e, to: payload.to, label: logLabel }, '[email] Resend request threw')
+      const msg = e instanceof Error ? e.message : 'Network error calling Resend'
+      throw new HttpError(502, 'EMAIL_SEND_FAILED', msg, null)
+    }
+
+    if (result.error) {
+      this.app.log.error({ err: result.error, to: payload.to, label: logLabel }, '[email] Resend returned error')
+      const msg =
+        typeof result.error.message === 'string' ? result.error.message : 'Email provider rejected the send'
+      throw new HttpError(502, 'EMAIL_SEND_FAILED', msg, null)
+    }
+
+    if (result.data?.id) {
+      this.app.log.info({ label: logLabel, to: payload.to, resendId: result.data.id }, '[email] sent')
+    }
   }
 
   async sendVerificationEmail(to: string, displayName: string, token: string): Promise<void> {
     const url = `${this.baseUrl()}/verify-email?token=${encodeURIComponent(token)}`
-    const key = this.app.config.RESEND_API_KEY
-    if (!key) {
+    if (!this.resendApiKey()) {
       this.app.log.info({ to, url }, '[email] verification link (RESEND_API_KEY unset — not sent)')
       return
     }
-    const resend = new Resend(key)
-    const { error } = await resend.emails.send({
-      from: this.app.config.RESEND_FROM,
-      to,
+    await this.sendWithResend('verification', {
+      from: this.fromAddress(),
+      to: to.trim(),
       subject: 'Verify your Mukwano email',
       html: this.wrapHtml(
         `Hi ${escapeHtml(displayName)},`,
@@ -28,27 +71,17 @@ export class EmailService {
         <p style="color:#666;font-size:14px">If you did not create an account, you can ignore this message.</p>`
       )
     })
-    if (error) {
-      this.app.log.error({ err: error, to }, 'Resend verification email failed')
-      const msg =
-        typeof (error as { message?: string }).message === 'string'
-          ? (error as { message: string }).message
-          : 'Email provider rejected the send'
-      throw new HttpError(502, 'EMAIL_SEND_FAILED', msg, null)
-    }
   }
 
   async sendPasswordResetEmail(to: string, displayName: string, token: string): Promise<void> {
     const url = `${this.baseUrl()}/reset-password?token=${encodeURIComponent(token)}`
-    const key = this.app.config.RESEND_API_KEY
-    if (!key) {
+    if (!this.resendApiKey()) {
       this.app.log.info({ to, url }, '[email] password reset link (RESEND_API_KEY unset — not sent)')
       return
     }
-    const resend = new Resend(key)
-    const { error } = await resend.emails.send({
-      from: this.app.config.RESEND_FROM,
-      to,
+    await this.sendWithResend('password_reset', {
+      from: this.fromAddress(),
+      to: to.trim(),
       subject: 'Reset your Mukwano password',
       html: this.wrapHtml(
         `Hi ${escapeHtml(displayName)},`,
@@ -57,14 +90,6 @@ export class EmailService {
         <p style="color:#666;font-size:14px">This link expires in one hour. If you did not request a reset, ignore this email.</p>`
       )
     })
-    if (error) {
-      this.app.log.error({ err: error, to }, 'Resend password reset email failed')
-      const msg =
-        typeof (error as { message?: string }).message === 'string'
-          ? (error as { message: string }).message
-          : 'Email provider rejected the send'
-      throw new HttpError(502, 'EMAIL_SEND_FAILED', msg, null)
-    }
   }
 
   private wrapHtml(greeting: string, bodyHtml: string): string {

@@ -24,6 +24,7 @@ describe('GET /api/v1/config (DEMO-01)', () => {
     expect(typeof body.demoMode).toBe('boolean')
     expect(typeof body.currency).toBe('string')
     expect(typeof body.escrowLabel).toBe('string')
+    expect(typeof body.emailConfigured).toBe('boolean')
     expect(body.currency).toBe('USD')
   })
 

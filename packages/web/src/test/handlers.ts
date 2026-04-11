@@ -9,7 +9,9 @@ export const handlers = [
   http.post('/api/v1/auth/refresh', () => ok({ accessToken: 'next-access-token', refreshToken: 'next-refresh-token' })),
   http.get('/api/v1/auth/me', () => ok({ id: 'u1', email: 'creator@example.com', displayName: 'Creator', isGlobalAdmin: true })),
   http.patch('/api/v1/auth/me', () => ok({ id: 'u1', email: 'creator@example.com', displayName: 'Creator Updated' })),
-  http.get('/api/v1/config', () => ok({ demoMode: true, currency: 'USD', escrowLabel: 'Simulated escrow' })),
+  http.get('/api/v1/config', () =>
+    ok({ demoMode: true, currency: 'USD', escrowLabel: 'Simulated escrow', emailConfigured: true })
+  ),
   http.get('/api/v1/circles', () => ok([{ id: 'c1', name: 'Mukwano Circle', goalAmount: 10000, status: 'active' }])),
   http.post('/api/v1/circles', () => ok({ id: 'c1', name: 'Mukwano Circle', goalAmount: 10000 }, 201)),
   http.get('/api/v1/circles/:id', () => ok({ id: 'c1', name: 'Mukwano Circle', status: 'active', goalAmount: 10000 })),

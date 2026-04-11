@@ -9,18 +9,21 @@ export const configRoute: FastifyPluginAsync = async (fastify) => {
           properties: {
             demoMode: { type: 'boolean' },
             currency: { type: 'string' },
-            escrowLabel: { type: 'string' }
+            escrowLabel: { type: 'string' },
+            emailConfigured: { type: 'boolean' }
           }
         }
       }
     }
   }, async (_request, reply) => {
     const demoMode = fastify.config.DEMO_MODE === 'true'
+    const emailConfigured = (fastify.config.RESEND_API_KEY ?? '').trim().length > 0
 
     return reply.send({
       demoMode,
       currency: 'USD',
-      escrowLabel: demoMode ? 'Simulated escrow \u2014 no real funds' : 'Live escrow'
+      escrowLabel: demoMode ? 'Simulated escrow \u2014 no real funds' : 'Live escrow',
+      emailConfigured
     })
   })
 }

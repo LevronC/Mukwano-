@@ -21,7 +21,7 @@ export function AppLayout() {
   const bellRef = useRef<HTMLDivElement>(null)
   const { data: config } = useQuery({
     queryKey: ['config'],
-    queryFn: () => api.get<{ demoMode: boolean; escrowLabel: string }>('/config'),
+    queryFn: () => api.get<{ demoMode: boolean; escrowLabel: string; emailConfigured: boolean }>('/config'),
     staleTime: Infinity
   })
 
@@ -263,6 +263,17 @@ export function AppLayout() {
           style={{ background: 'rgba(240, 165, 0, 0.1)', color: 'var(--mk-gold)' }}
         >
           DEMO MODE &mdash; No real funds are processed
+        </div>
+      )}
+
+      {config && config.emailConfigured === false && (
+        <div
+          className="text-center text-xs py-1.5 px-2"
+          style={{ background: 'rgba(248, 113, 113, 0.12)', color: '#fecaca' }}
+          role="status"
+        >
+          Email delivery is disabled: the API has no RESEND_API_KEY (add it under Environment Variables for the{' '}
+          <strong>mukwano-api</strong> Vercel project, then redeploy). Verification and password-reset messages are not sent.
         </div>
       )}
 
