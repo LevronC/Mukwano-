@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import type { FastifyInstance } from 'fastify'
+import { Prisma } from '@prisma/client'
 import { HttpError } from './errors/http-errors.js'
 import { envPlugin } from './plugins/env.js'
 import { prismaPlugin } from './plugins/prisma.js'
@@ -18,6 +19,47 @@ import { proposalsRoute } from './routes/proposals.js'
 import { projectsRoute } from './routes/projects.js'
 import { reportingRoute } from './routes/reporting.js'
 import { notificationsRoute } from './routes/notifications.js'
+
+function firstMetaField(meta: unknown): string | null {
+  if (!meta || typeof meta !== 'object') return null
+
+  const fieldName = Reflect.get(meta, 'field_name')
+  if (typeof fieldName === 'string' && fieldName.length > 0) return fieldName
+
+  const target = Reflect.get(meta, 'target')
+  if (Array.isArray(target)) {
+    const first = target.find((value) => typeof value === 'string')
+    return typeof first === 'string' ? first : null
+  }
+
+  if (typeof target === 'string' && target.length > 0) return target
+
+  const model = Reflect.get(meta, 'modelName')
+  return typeof model === 'string' && model.length > 0 ? model : null
+}
+
+function mapPrismaError(error: unknown): HttpError | null {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return null
+
+  const field = firstMetaField(error.meta)
+
+  switch (error.code) {
+    case 'P2000':
+      return new HttpError(422, 'VALUE_TOO_LONG', 'Value is too long for this field', field)
+    case 'P2002':
+      return new HttpError(409, 'UNIQUE_CONSTRAINT_VIOLATION', 'A record with this value already exists', field)
+    case 'P2003':
+      return new HttpError(409, 'FOREIGN_KEY_CONSTRAINT_VIOLATION', 'Referenced record does not exist or cannot be modified', field)
+    case 'P2004':
+      return new HttpError(409, 'CONSTRAINT_VIOLATION', 'The request violates a database constraint', field)
+    case 'P2011':
+      return new HttpError(422, 'NULL_CONSTRAINT_VIOLATION', 'A required value is missing', field)
+    case 'P2025':
+      return new HttpError(404, 'NOT_FOUND', 'Requested record was not found', field)
+    default:
+      return null
+  }
+}
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -75,6 +117,18 @@ export async function buildApp(): Promise<FastifyInstance> {
           message: error.message,
           field: error.field ?? null,
           status: error.statusCode
+        }
+      })
+    }
+
+    const prismaError = mapPrismaError(error)
+    if (prismaError) {
+      return reply.code(prismaError.statusCode).send({
+        error: {
+          code: prismaError.code,
+          message: prismaError.message,
+          field: prismaError.field ?? null,
+          status: prismaError.statusCode
         }
       })
     }
