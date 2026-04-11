@@ -6,9 +6,11 @@ type AuthContextValue = {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
-  signup: (payload: { email: string; password: string; displayName: string }) => Promise<void>
+  signup: (payload: { email: string; password: string; displayName: string }) => Promise<AuthResponse>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
+  /** Rotates refresh token and updates access JWT (e.g. after email is verified). */
+  refreshSession: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -41,6 +43,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(me)
   }
 
+  const refreshSession = async () => {
+    const rt = authStorage.getRefresh()
+    if (!rt) return
+    const res = await api.post<AuthResponse>('/auth/refresh', { refreshToken: rt }, { skipAuth: true })
+    authStorage.setTokens(res.accessToken, res.refreshToken)
+    setUser(res.user)
+  }
+
   const login = async (email: string, password: string) => {
     const res = await api.post<AuthResponse>('/auth/login', { email, password }, { skipAuth: true })
     authStorage.setTokens(res.accessToken, res.refreshToken)
@@ -51,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const res = await api.post<AuthResponse>('/auth/signup', payload, { skipAuth: true })
     authStorage.setTokens(res.accessToken, res.refreshToken)
     setUser(res.user)
+    return res
   }
 
   const logout = async () => {
@@ -63,7 +74,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
   }
 
-  const value = useMemo(() => ({ user, loading, login, signup, logout, refreshUser }), [user, loading])
+  const value = useMemo(
+    () => ({ user, loading, login, signup, logout, refreshUser, refreshSession }),
+    [user, loading]
+  )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 

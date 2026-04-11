@@ -11,7 +11,7 @@ type Status = 'loading' | 'success' | 'error' | 'missing'
 export function VerifyEmailPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { refreshUser } = useAuth()
+  const { refreshUser, refreshSession } = useAuth()
   const [status, setStatus] = useState<Status>('loading')
   const [message, setMessage] = useState('')
 
@@ -33,7 +33,17 @@ export function VerifyEmailPage() {
         if (cancelled) return
         setStatus('success')
         setMessage('Your email has been verified.')
-        if (authStorage.getAccess()) {
+        if (authStorage.getRefresh()) {
+          try {
+            await refreshSession()
+          } catch {
+            try {
+              await refreshUser()
+            } catch {
+              /* ignore */
+            }
+          }
+        } else if (authStorage.getAccess()) {
           try {
             await refreshUser()
           } catch {
@@ -54,7 +64,7 @@ export function VerifyEmailPage() {
       cancelled = true
       if (redirectTimer) clearTimeout(redirectTimer)
     }
-  }, [token, navigate, refreshUser])
+  }, [token, navigate, refreshUser, refreshSession])
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6 py-12">

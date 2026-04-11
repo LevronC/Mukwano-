@@ -18,7 +18,7 @@ export function VerifyEmailBanner() {
   })
 
   const resend = useMutation({
-    mutationFn: () => api.post('/auth/resend-verification'),
+    mutationFn: () => api.post('/auth/resend-verification', {}),
     onSuccess: async () => {
       toast.success('Verification email sent')
       await refreshUser()

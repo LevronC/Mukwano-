@@ -44,15 +44,22 @@ export class AuthService {
     })
 
     const verifyToken = crypto.randomBytes(32).toString('hex')
-    await this.app.prisma.emailToken.create({
-      data: {
-        userId: user.id,
-        token: verifyToken,
-        type: EMAIL_TOKEN_VERIFY,
-        expiresAt: new Date(Date.now() + VERIFY_TTL_MS)
-      }
-    })
-    await this.app.emailService.sendVerificationEmail(user.email, user.displayName, verifyToken)
+    try {
+      await this.app.prisma.emailToken.create({
+        data: {
+          userId: user.id,
+          token: verifyToken,
+          type: EMAIL_TOKEN_VERIFY,
+          expiresAt: new Date(Date.now() + VERIFY_TTL_MS)
+        }
+      })
+      await this.app.emailService.sendVerificationEmail(user.email, user.displayName, verifyToken)
+    } catch (e) {
+      await this.app.prisma.emailToken.deleteMany({ where: { userId: user.id } })
+      await this.app.prisma.user.delete({ where: { id: user.id } })
+      throw e
+    }
+
     await this.app.prisma.user.update({
       where: { id: user.id },
       data: { lastVerificationEmailSent: new Date() }
@@ -187,21 +194,27 @@ export class AuthService {
       throw new HttpError(429, 'RATE_LIMIT', 'Please wait before requesting another verification email')
     }
 
-    await this.app.prisma.emailToken.updateMany({
-      where: { userId, type: EMAIL_TOKEN_VERIFY, usedAt: null },
-      data: { usedAt: new Date() }
-    })
-
     const verifyToken = crypto.randomBytes(32).toString('hex')
-    await this.app.prisma.emailToken.create({
+    const newRow = await this.app.prisma.emailToken.create({
       data: {
         userId: user.id,
         token: verifyToken,
         type: EMAIL_TOKEN_VERIFY,
         expiresAt: new Date(Date.now() + VERIFY_TTL_MS)
-      }
+      },
+      select: { id: true }
     })
-    await this.app.emailService.sendVerificationEmail(user.email, user.displayName, verifyToken)
+    try {
+      await this.app.emailService.sendVerificationEmail(user.email, user.displayName, verifyToken)
+    } catch (e) {
+      await this.app.prisma.emailToken.delete({ where: { id: newRow.id } })
+      throw e
+    }
+
+    await this.app.prisma.emailToken.updateMany({
+      where: { userId, type: EMAIL_TOKEN_VERIFY, usedAt: null, id: { not: newRow.id } },
+      data: { usedAt: new Date() }
+    })
     await this.app.prisma.user.update({
       where: { id: user.id },
       data: { lastVerificationEmailSent: new Date() }
@@ -221,15 +234,22 @@ export class AuthService {
     })
 
     const resetToken = crypto.randomBytes(32).toString('hex')
-    await this.app.prisma.emailToken.create({
-      data: {
-        userId: user.id,
-        token: resetToken,
-        type: EMAIL_TOKEN_RESET,
-        expiresAt: new Date(Date.now() + RESET_TTL_MS)
-      }
-    })
-    await this.app.emailService.sendPasswordResetEmail(user.email, user.displayName, resetToken)
+    try {
+      await this.app.prisma.emailToken.create({
+        data: {
+          userId: user.id,
+          token: resetToken,
+          type: EMAIL_TOKEN_RESET,
+          expiresAt: new Date(Date.now() + RESET_TTL_MS)
+        }
+      })
+      await this.app.emailService.sendPasswordResetEmail(user.email, user.displayName, resetToken)
+    } catch (e) {
+      await this.app.prisma.emailToken.deleteMany({
+        where: { userId: user.id, type: EMAIL_TOKEN_RESET, token: resetToken }
+      })
+      throw e
+    }
   }
 
   async resetPassword(rawToken: string, newPassword: string) {

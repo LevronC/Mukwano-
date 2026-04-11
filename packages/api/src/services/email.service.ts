@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import type { FastifyInstance } from 'fastify'
+import { HttpError } from '../errors/http-errors.js'
 
 export class EmailService {
   constructor(private readonly app: FastifyInstance) {}
@@ -29,6 +30,11 @@ export class EmailService {
     })
     if (error) {
       this.app.log.error({ err: error, to }, 'Resend verification email failed')
+      const msg =
+        typeof (error as { message?: string }).message === 'string'
+          ? (error as { message: string }).message
+          : 'Email provider rejected the send'
+      throw new HttpError(502, 'EMAIL_SEND_FAILED', msg, null)
     }
   }
 
@@ -53,6 +59,11 @@ export class EmailService {
     })
     if (error) {
       this.app.log.error({ err: error, to }, 'Resend password reset email failed')
+      const msg =
+        typeof (error as { message?: string }).message === 'string'
+          ? (error as { message: string }).message
+          : 'Email provider rejected the send'
+      throw new HttpError(502, 'EMAIL_SEND_FAILED', msg, null)
     }
   }
 

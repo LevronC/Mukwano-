@@ -110,7 +110,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       })
     }
 
-    if (error instanceof HttpError && error.statusCode < 500) {
+    if (error instanceof HttpError) {
       return reply.code(error.statusCode).send({
         error: {
           code: error.code,
