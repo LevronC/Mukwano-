@@ -187,7 +187,7 @@ export class CircleService {
   }
 
   async joinCircle(circleId: string, userId: string) {
-    await this.ensureCircleExists(circleId)
+    await this.ensureCircleAcceptingMembers(circleId)
 
     const existing = await this.app.prisma.circleMembership.findUnique({
       where: { circleId_userId: { circleId, userId } }
@@ -203,7 +203,7 @@ export class CircleService {
   }
 
   async requestJoinCircle(circleId: string, userId: string) {
-    await this.ensureCircleExists(circleId)
+    await this.ensureCircleAcceptingMembers(circleId)
 
     const existing = await this.app.prisma.circleMembership.findUnique({
       where: { circleId_userId: { circleId, userId } }
@@ -345,6 +345,18 @@ export class CircleService {
   private async ensureCircleExists(circleId: string) {
     const circle = await this.app.prisma.circle.findUnique({ where: { id: circleId }, select: { id: true } })
     if (!circle) throw new NotFoundError('Circle not found')
+  }
+
+  /** Circle exists and is open for joins / join requests. */
+  private async ensureCircleAcceptingMembers(circleId: string) {
+    const circle = await this.app.prisma.circle.findUnique({
+      where: { id: circleId },
+      select: { id: true, status: true }
+    })
+    if (!circle) throw new NotFoundError('Circle not found')
+    if (circle.status !== 'active') {
+      throw new ValidationError('This circle is not accepting new members', 'circleId')
+    }
   }
 
   private async ensureMember(circleId: string, userId: string) {

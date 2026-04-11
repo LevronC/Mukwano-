@@ -77,7 +77,7 @@ export function CircleDetailPage() {
   })
 
   const requestJoin = useMutation({
-    mutationFn: () => api.post(`/circles/${id}/join-request`),
+    mutationFn: () => api.post(`/circles/${id}/join-request`, {}),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['circle', id] })
       await queryClient.invalidateQueries({ queryKey: ['my-circle-requests'] })

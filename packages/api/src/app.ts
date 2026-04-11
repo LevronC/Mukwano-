@@ -121,6 +121,22 @@ export async function buildApp(): Promise<FastifyInstance> {
       })
     }
 
+    const maybeClient = error as { statusCode?: number; code?: string; message?: string }
+    if (
+      typeof maybeClient.statusCode === 'number' &&
+      maybeClient.statusCode >= 400 &&
+      maybeClient.statusCode < 500
+    ) {
+      return reply.code(maybeClient.statusCode).send({
+        error: {
+          code: typeof maybeClient.code === 'string' ? maybeClient.code : 'CLIENT_ERROR',
+          message: maybeClient.message ?? 'Request error',
+          field: null,
+          status: maybeClient.statusCode
+        }
+      })
+    }
+
     const prismaError = mapPrismaError(error)
     if (prismaError) {
       return reply.code(prismaError.statusCode).send({

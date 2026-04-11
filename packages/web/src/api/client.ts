@@ -59,7 +59,10 @@ async function tryRefresh(): Promise<boolean> {
 async function request<T>(path: string, init: ReqInit = {}, retried = false): Promise<T> {
   const token = readStorage(ACCESS_KEY)
   const headers: Record<string, string> = { ...((init.headers as Record<string, string>) || {}) }
-  if (!headers['Content-Type'] && !(init.body instanceof FormData) && init.method !== 'GET') {
+  // Only set JSON content-type when there is a body. Sending application/json with
+  // content-length 0 causes Fastify to reject the request (empty JSON body).
+  const hasBody = init.body !== undefined && init.body !== null && init.body !== ''
+  if (!headers['Content-Type'] && !(init.body instanceof FormData) && init.method !== 'GET' && hasBody) {
     headers['Content-Type'] = 'application/json'
   }
   if (token && !init.skipAuth) headers.Authorization = `Bearer ${token}`
