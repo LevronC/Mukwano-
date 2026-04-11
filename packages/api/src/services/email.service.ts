@@ -2,6 +2,43 @@ import { Resend } from 'resend'
 import type { FastifyInstance } from 'fastify'
 import { HttpError } from '../errors/http-errors.js'
 
+export const DEFAULT_RESEND_FROM = 'Mukwano <onboarding@resend.dev>'
+
+/** Resend accepts `addr@domain` or `Display Name <addr@domain>`. Env values often include stray quotes or omit `< >`. */
+export function normalizeResendFrom(raw: string): string {
+  let s = stripOuterQuotes((raw ?? '').trim())
+  if (!s) return DEFAULT_RESEND_FROM
+
+  const angle = /^(.*?)\s*<([^<>]+@[^<>]+)>\s*$/.exec(s)
+  if (angle) {
+    const name = stripOuterQuotes(angle[1]).trim()
+    const email = angle[2].trim()
+    if (!isPlausibleMailbox(email)) return DEFAULT_RESEND_FROM
+    if (!name) return email
+    return `${name} <${email}>`
+  }
+
+  if (isPlausibleMailbox(s)) return s
+  return DEFAULT_RESEND_FROM
+}
+
+function stripOuterQuotes(s: string): string {
+  let t = s
+  while (t.length >= 2) {
+    const a = t[0]
+    const b = t[t.length - 1]
+    const paired =
+      (a === '"' && b === '"') || (a === "'" && b === "'") || (a === '\u201c' && b === '\u201d')
+    if (!paired) break
+    t = t.slice(1, -1).trim()
+  }
+  return t
+}
+
+function isPlausibleMailbox(s: string): boolean {
+  return /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(s)
+}
+
 export class EmailService {
   constructor(private readonly app: FastifyInstance) {}
 
@@ -14,8 +51,7 @@ export class EmailService {
   }
 
   private fromAddress(): string {
-    const raw = (this.app.config.RESEND_FROM ?? '').trim()
-    return raw.length > 0 ? raw : 'Mukwano <onboarding@resend.dev>'
+    return normalizeResendFrom(this.app.config.RESEND_FROM ?? '')
   }
 
   private async sendWithResend(
