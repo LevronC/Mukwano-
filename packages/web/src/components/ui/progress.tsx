@@ -26,11 +26,11 @@ export function Progress({
         </div>
       )}
       <div
-        className="h-2 w-full rounded-full"
-        style={{ background: 'rgba(190,201,195,0.10)' }}
+        className="h-2.5 w-full rounded-full"
+        style={{ background: 'rgba(190,201,195,0.12)' }}
       >
         <div
-          className="h-2 rounded-full transition-all"
+          className="h-2.5 rounded-full motion-safe:transition-[width] motion-safe:duration-700 motion-safe:ease-out"
           style={{
             width: `${clamped}%`,
             background: 'linear-gradient(90deg, var(--mk-gold), var(--mk-gold2))',
