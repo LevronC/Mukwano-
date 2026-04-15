@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -7,18 +6,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { getErrorMessage } from '@/hooks/useApiError'
 
 const mukwanoLogo = '/assets/mukwano-logo.png'
-
-/** Subtle top accent per card — deterministic from id, no extra data. */
-function exploreCardTopAccent(circleId: string): CSSProperties {
-  let n = 0
-  for (let i = 0; i < circleId.length; i++) {
-    n = (n + circleId.charCodeAt(i) * (i + 1)) % 360
-  }
-  const h2 = (n + 52) % 360
-  return {
-    background: `linear-gradient(90deg, hsla(${n}, 50%, 46%, 0.42) 0%, hsla(${h2}, 46%, 40%, 0.22) 55%, transparent 100%)`,
-  }
-}
 
 export function ExplorePage() {
   const queryClient = useQueryClient()
@@ -52,10 +39,10 @@ export function ExplorePage() {
   })
 
   const pageContent = (
-    <div className="space-y-12 md:space-y-16">
+    <div className="space-y-10">
       {/* Hero — editorial layout */}
-      <section className="grid lg:grid-cols-5 gap-10 lg:gap-14 items-center">
-        <div className="lg:col-span-3 space-y-5 md:space-y-6">
+      <section className="grid lg:grid-cols-5 gap-10 items-center">
+        <div className="lg:col-span-3 space-y-6">
           <div className="flex flex-wrap items-center gap-2">
             <span className="chip-demo">Demo Mode</span>
             <span className="chip-escrow flex items-center gap-1">
@@ -64,29 +51,28 @@ export function ExplorePage() {
             </span>
           </div>
           <h1
-            className="text-[2.5rem] sm:text-[3rem] md:text-[3.25rem] leading-[1.08] font-semibold tracking-tight"
+            className="text-[3rem] leading-[1.1] font-semibold tracking-tight"
             style={{ color: 'var(--mk-white)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
-            Join a movement.
-            <br />
-            <span style={{ color: 'var(--mk-gold)' }}>Build a legacy.</span>
+            Join a movement.<br />Build a legacy.
           </h1>
-          <p className="text-base sm:text-lg max-w-lg leading-relaxed" style={{ color: 'var(--mk-muted)' }}>
+          <p className="text-lg max-w-md" style={{ color: 'var(--mk-muted)' }}>
             Find active circles and contribute to projects in your chosen country and sector.
           </p>
-          <div className="flex flex-wrap items-center gap-3 pt-1">
+          <div className="flex flex-wrap gap-3">
             {user ? (
               <>
                 <Link
                   to="/circles/new"
-                  className="mukwano-btn-primary mukwano-cursor-hover flex items-center gap-2 rounded-xl px-7 py-3.5 font-semibold focus-visible:outline-none"
+                  className="mukwano-btn-primary flex items-center gap-2 rounded-xl px-7 py-3.5 font-semibold"
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>group_add</span>
                   Create a Circle
                 </Link>
                 <Link
                   to="/circles"
-                  className="flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.06] px-7 py-3.5 font-semibold text-[var(--mk-white)] transition-all duration-200 ease-out hover:border-[rgba(240,165,0,0.4)] hover:bg-white/[0.1] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mk-gold2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mk-navy)]"
+                  className="flex items-center gap-2 rounded-xl px-7 py-3.5 font-semibold transition-all hover:bg-white/10"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--mk-white)' }}
                 >
                   Browse all
                 </Link>
@@ -95,14 +81,15 @@ export function ExplorePage() {
               <>
                 <Link
                   to="/signup"
-                  className="mukwano-btn-primary mukwano-cursor-hover flex items-center gap-2 rounded-xl px-7 py-3.5 font-semibold focus-visible:outline-none"
+                  className="mukwano-btn-primary flex items-center gap-2 rounded-xl px-7 py-3.5 font-semibold"
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>group_add</span>
                   Create a Circle
                 </Link>
                 <Link
                   to="/signup"
-                  className="flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.06] px-7 py-3.5 font-semibold text-[var(--mk-white)] transition-all duration-200 ease-out hover:border-[rgba(240,165,0,0.4)] hover:bg-white/[0.1] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mk-gold2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mk-navy)]"
+                  className="flex items-center gap-2 rounded-xl px-7 py-3.5 font-semibold transition-all hover:bg-white/10"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--mk-white)' }}
                 >
                   Browse all
                 </Link>
@@ -112,25 +99,16 @@ export function ExplorePage() {
         </div>
         {/* Brand illustration */}
         <div className="hidden lg:flex lg:col-span-2 items-center justify-center">
-          <div className="relative w-64 h-64 md:w-72 md:h-72">
-            <div
-              className="absolute inset-[-12%] rounded-full opacity-[0.12]"
-              style={{ background: 'var(--mk-gold)', filter: 'blur(56px)' }}
-            />
-            <img
-              src={mukwanoLogo}
-              alt="Mukwano logo"
-              className="relative z-[1] w-full h-full object-contain opacity-95 drop-shadow-[0_20px_48px_rgba(0,0,0,0.45)]"
-            />
+          <div className="relative w-64 h-64">
+            <div className="absolute inset-0 rounded-full opacity-10" style={{ background: 'var(--mk-gold)', filter: 'blur(60px)' }} />
+            <img src={mukwanoLogo} alt="Mukwano logo" className="w-full h-full object-contain" />
           </div>
         </div>
       </section>
 
       {/* Circles grid */}
       <section>
-        <h2 className="mb-8 font-display text-2xl font-semibold tracking-tight sm:text-[1.75rem]" style={{ color: 'var(--mk-white)' }}>
-          Active Communities
-        </h2>
+        <h2 className="mb-6 text-xl font-semibold" style={{ color: 'var(--mk-white)' }}>Active Communities</h2>
         {isLoading ? (
           <div className="rounded-2xl p-12 text-center" style={{ background: 'var(--mk-navy2)' }}>
             <p style={{ color: 'var(--mk-muted)' }}>Loading circles...</p>
@@ -149,90 +127,74 @@ export function ExplorePage() {
             {(circles ?? []).map((circle) => (
               <article
                 key={circle.id}
-                className="mukwano-card group flex flex-col overflow-hidden transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-1 hover:shadow-ambient-lg"
+                className="mukwano-card p-5 flex flex-col gap-3 transition-all hover:-translate-y-0.5 hover:shadow-ambient-lg"
               >
-                <div className="h-1 w-full shrink-0" style={exploreCardTopAccent(circle.id)} aria-hidden />
-                <div className="flex flex-1 flex-col gap-3 p-5 pt-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <span
-                      className="rounded-lg border border-teal-400/25 bg-teal-400/10 px-2.5 py-1 text-[0.625rem] font-semibold uppercase tracking-widest label-font text-teal-100/95"
-                      title="Circle status"
-                    >
-                      {circle.status}
-                    </span>
-                    <span
-                      className="shrink-0 rounded-lg border border-[rgba(240,165,0,0.35)] bg-[rgba(240,165,0,0.1)] px-2.5 py-1 text-[0.625rem] font-bold uppercase tracking-widest text-[var(--mk-gold2)] label-font"
-                      title="Goal currency"
-                    >
-                      {circle.currency}
-                    </span>
-                  </div>
-                  <div className="min-h-0">
-                    <h3 className="text-lg font-semibold leading-snug" style={{ color: 'var(--mk-white)' }}>
-                      {circle.name}
-                    </h3>
-                    <p className="mt-2 text-sm leading-relaxed line-clamp-2" style={{ color: 'var(--mk-muted)' }}>
-                      {circle.description ?? 'Community circle focused on collective impact.'}
+                <div className="flex items-start justify-between">
+                  <span
+                    className="rounded-full px-3 py-1 text-[0.625rem] font-bold uppercase tracking-widest label-font"
+                    style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--mk-muted)' }}
+                  >
+                    {circle.status}
+                  </span>
+                  <span className="chip-escrow">{circle.currency}</span>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold" style={{ color: 'var(--mk-white)' }}>{circle.name}</h2>
+                  <p className="mt-1.5 text-sm line-clamp-2" style={{ color: 'var(--mk-muted)' }}>
+                    {circle.description ?? 'Community circle focused on collective impact.'}
+                  </p>
+                </div>
+                <div className="mt-auto pt-2">
+                  <div className="mb-3">
+                    <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font" style={{ color: 'var(--mk-muted)' }}>Goal</p>
+                    <p className="font-bold" style={{ color: 'var(--mk-white)' }}>
+                      {circle.goalAmount} {circle.currency}
                     </p>
                   </div>
-                  <div className="mt-auto border-t border-white/[0.06] pt-4">
-                    <div className="mb-4">
-                      <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font" style={{ color: 'var(--mk-muted)' }}>
-                        Goal
-                      </p>
-                      <p className="mt-1 text-base font-bold tabular-nums tracking-tight" style={{ color: 'var(--mk-white)' }}>
-                        {circle.goalAmount} {circle.currency}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {user ? (
-                        <Link
-                          to={`/circles/${circle.id}`}
-                          className="mukwano-btn-primary mukwano-cursor-hover flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold focus-visible:outline-none"
-                        >
-                          Open
-                          <span className="material-symbols-outlined transition-transform duration-200 group-hover:translate-x-0.5" style={{ fontSize: '16px' }}>
-                            arrow_forward
-                          </span>
-                        </Link>
-                      ) : (
-                        <Link
-                          to="/signup"
-                          className="mukwano-btn-primary mukwano-cursor-hover flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold focus-visible:outline-none"
-                        >
-                          Sign up
-                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-                            arrow_forward
-                          </span>
-                        </Link>
-                      )}
-                      {user ? (
-                        <button
-                          type="button"
-                          className="rounded-xl border border-white/12 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-[var(--mk-white)] transition-all duration-200 ease-out hover:border-[rgba(240,165,0,0.35)] hover:bg-white/[0.1] enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-white/12 disabled:hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mk-gold2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mk-navy2)]"
-                          onClick={(event) => {
-                            event.preventDefault()
-                            requestJoin.mutate(circle.id)
-                          }}
-                          disabled={requestJoin.isPending || requestsByCircleId.get(circle.id) === 'pending'}
-                        >
-                          {requestsByCircleId.get(circle.id) === 'pending'
-                            ? 'Request Pending'
-                            : requestsByCircleId.get(circle.id) === 'rejected'
-                              ? 'Request Again'
-                              : requestsByCircleId.get(circle.id)
-                                ? `Joined (${requestsByCircleId.get(circle.id)})`
-                                : 'Request to Join'}
-                        </button>
-                      ) : (
-                        <Link
-                          to="/signup"
-                          className="mukwano-btn-primary mukwano-cursor-hover flex items-center justify-center rounded-xl px-4 py-2 text-center text-sm font-semibold focus-visible:outline-none"
-                        >
-                          Sign up to join
-                        </Link>
-                      )}
-                    </div>
+                  <div className="flex flex-wrap gap-2">
+                    {user ? (
+                      <Link
+                        to={`/circles/${circle.id}`}
+                        className="mukwano-btn-primary flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold"
+                      >
+                        Open
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_forward</span>
+                      </Link>
+                    ) : (
+                      <Link
+                        to="/signup"
+                        className="mukwano-btn-primary flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold"
+                      >
+                        Sign up
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_forward</span>
+                      </Link>
+                    )}
+                    {user ? (
+                      <button
+                        className="rounded-xl px-4 py-2 text-sm font-semibold"
+                        style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--mk-white)' }}
+                        onClick={(event) => {
+                          event.preventDefault()
+                          requestJoin.mutate(circle.id)
+                        }}
+                        disabled={requestJoin.isPending || requestsByCircleId.get(circle.id) === 'pending'}
+                      >
+                        {requestsByCircleId.get(circle.id) === 'pending'
+                          ? 'Request Pending'
+                          : requestsByCircleId.get(circle.id) === 'rejected'
+                            ? 'Request Again'
+                            : requestsByCircleId.get(circle.id)
+                              ? `Joined (${requestsByCircleId.get(circle.id)})`
+                              : 'Request to Join'}
+                      </button>
+                    ) : (
+                      <Link
+                        to="/signup"
+                        className="mukwano-btn-primary flex items-center text-center rounded-xl px-4 py-2 text-sm font-semibold"
+                      >
+                        Sign up to join
+                      </Link>
+                    )}
                   </div>
                 </div>
               </article>
@@ -248,8 +210,11 @@ export function ExplorePage() {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--mk-navy, #060d1f)' }}>
       <header
-        className="sticky top-0 z-50 border-b bg-[rgba(6,13,31,0.78)] backdrop-blur-md backdrop-saturate-150"
-        style={{ borderColor: 'rgba(240, 165, 0, 0.12)' }}
+        className="sticky top-0 z-50 border-b"
+        style={{
+          background: 'rgba(6, 13, 31, 0.88)',
+          borderColor: 'rgba(240, 165, 0, 0.12)'
+        }}
       >
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <Link to={user ? '/dashboard' : '/'}>
@@ -290,7 +255,7 @@ export function ExplorePage() {
               </Link>
               <Link
                 to="/signup"
-                className="mukwano-btn-primary mukwano-cursor-hover rounded-xl px-5 py-2 text-sm font-semibold focus-visible:outline-none"
+                className="mukwano-btn-primary rounded-xl px-5 py-2 text-sm font-semibold"
               >
                 Join a Circle
               </Link>
