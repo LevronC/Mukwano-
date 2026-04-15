@@ -10,16 +10,17 @@
  */
 
 import pg from 'pg'
+import { resolveDatabaseUrlForMigrations } from './migrate-database-url.mjs'
 
-const { DATABASE_URL } = process.env
-if (!DATABASE_URL) {
-  console.log('deploy-triggers: DATABASE_URL not set, skipping.')
+const { url: dbUrl } = resolveDatabaseUrlForMigrations()
+if (!dbUrl) {
+  console.log('deploy-triggers: no database URL set, skipping.')
   process.exit(0)
 }
 
-const isLocalDb = /localhost|127\.0\.0\.1/.test(DATABASE_URL)
+const isLocalDb = /localhost|127\.0\.0\.1/.test(dbUrl)
 const client = new pg.Client({
-  connectionString: DATABASE_URL,
+  connectionString: dbUrl,
   ssl: isLocalDb ? undefined : { rejectUnauthorized: true },
   connectionTimeoutMillis: 10000,
 })
