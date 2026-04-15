@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { useAuth } from '@/contexts/AuthContext'
@@ -16,13 +16,12 @@ function exploreCardTopAccent(circleId: string): CSSProperties {
   }
   const h2 = (n + 52) % 360
   return {
-    background: `linear-gradient(90deg, hsla(${n}, 50%, 46%, 0.42) 0%, hsla(${h2}, 46%, 40%, 0.22) 55%, transparent 100%)`,
+    background: `linear-gradient(135deg, hsla(${n}, 55%, 38%, 0.95) 0%, hsla(${h2}, 50%, 32%, 0.75) 45%, hsla(${(n + 140) % 360}, 45%, 28%, 0.55) 100%)`,
   }
 }
 
 export function ExplorePage() {
   const queryClient = useQueryClient()
-  const navigate = useNavigate()
   const { user } = useAuth()
 
   const { data: circles, isLoading, error } = useQuery({
@@ -53,8 +52,9 @@ export function ExplorePage() {
 
   const pageContent = (
     <div className="space-y-12 md:space-y-16">
-      {/* Hero — editorial layout */}
-      <section className="grid lg:grid-cols-5 gap-10 lg:gap-14 items-center">
+      {/* Hero — editorial layout (mukwano-hero = visible panel; unmistakable vs flat page bg) */}
+      <section className="mukwano-hero px-5 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12">
+        <div className="relative z-[1] grid lg:grid-cols-5 gap-10 lg:gap-14 items-center">
         <div className="lg:col-span-3 space-y-5 md:space-y-6">
           <div className="flex flex-wrap items-center gap-2">
             <span className="chip-demo">Demo Mode</span>
@@ -124,6 +124,7 @@ export function ExplorePage() {
             />
           </div>
         </div>
+        </div>
       </section>
 
       {/* Circles grid */}
@@ -151,7 +152,24 @@ export function ExplorePage() {
                 key={circle.id}
                 className="mukwano-card group flex flex-col overflow-hidden transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-1 hover:shadow-ambient-lg"
               >
-                <div className="h-1 w-full shrink-0" style={exploreCardTopAccent(circle.id)} aria-hidden />
+                <div
+                  className="relative h-16 w-full shrink-0 overflow-hidden sm:h-[4.5rem]"
+                  style={exploreCardTopAccent(circle.id)}
+                  aria-hidden
+                >
+                  <div
+                    className="pointer-events-none absolute inset-0 opacity-50"
+                    style={{
+                      background: 'radial-gradient(ellipse 90% 80% at 85% 15%, rgba(255,255,255,0.22), transparent 52%)',
+                    }}
+                  />
+                  <span
+                    className="material-symbols-outlined pointer-events-none absolute bottom-1 right-3 select-none text-[2.75rem] text-white/15"
+                    aria-hidden
+                  >
+                    diversity_3
+                  </span>
+                </div>
                 <div className="flex flex-1 flex-col gap-3 p-5 pt-4">
                   <div className="flex items-start justify-between gap-2">
                     <span
