@@ -7,40 +7,16 @@
 import { spawnSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import {
-  looksLikePooledPostgresUrl,
-  resolveDatabaseUrlForMigrations,
-} from './migrate-database-url.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const apiRoot = join(__dirname, '..')
 const emailMigrationDir = '20260411120000_add_email_verification'
 const emailMigrationSql = join(apiRoot, 'prisma/migrations', emailMigrationDir, 'migration.sql')
 
-const { url: migrateDbUrl, envKey } = resolveDatabaseUrlForMigrations()
-if (!migrateDbUrl) {
-  console.log('[vercel-migrate] No database URL; skipping migrations')
-  process.exit(0)
-}
-
-/** Prisma CLI reads `DATABASE_URL`; poolers break advisory locks — use direct URL here only. */
-const prismaEnv = { ...process.env, DATABASE_URL: migrateDbUrl }
-
-if (envKey && envKey !== 'DATABASE_URL') {
-  console.log(`[vercel-migrate] Using ${envKey} for Prisma (direct Postgres; required for migrate advisory lock).`)
-} else if (envKey === 'DATABASE_URL' && looksLikePooledPostgresUrl(migrateDbUrl)) {
-  console.warn(
-    '[vercel-migrate] DATABASE_URL looks like a pooled connection. `migrate deploy` often times out on pg_advisory_lock.'
-  )
-  console.warn(
-    '[vercel-migrate] Add DATABASE_URL_UNPOOLED (Neon on Vercel), DIRECT_URL (Supabase), or PRISMA_MIGRATE_DATABASE_URL pointing at direct Postgres (port 5432, no pgbouncer).'
-  )
-}
-
 function run(name, args, inherit = false) {
   const r = spawnSync(name, args, {
     cwd: apiRoot,
-    env: prismaEnv,
+    env: process.env,
     encoding: 'utf8',
     stdio: inherit ? 'inherit' : ['ignore', 'pipe', 'pipe']
   })
@@ -54,12 +30,17 @@ function run(name, args, inherit = false) {
   return r
 }
 
+if (!process.env.DATABASE_URL?.trim()) {
+  console.log('[vercel-migrate] DATABASE_URL unset; skipping migrations')
+  process.exit(0)
+}
+
 let deployOut = ''
 let deployErr = ''
 try {
   const r = spawnSync('npx', ['prisma', 'migrate', 'deploy'], {
     cwd: apiRoot,
-    env: prismaEnv,
+    env: process.env,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe']
   })
