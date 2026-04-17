@@ -222,6 +222,10 @@ model Project {
   description String
   budget      Decimal  @db.Decimal(18, 2)
   currency    String   @default("USD")
+  /// Impact category for portfolio analytics (e.g. Healthcare, Education)
+  sector      String?
+  /// ISO 3166-1 alpha-2 country code for geographic allocation
+  countryCode String?  @db.VarChar(2)
   status      String   @default("approved")
   completedAt DateTime?
   createdAt   DateTime @default(now())

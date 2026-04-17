@@ -44,17 +44,33 @@ export const projectsRoute: FastifyPluginAsync = async (fastify) => {
     schema: {
       body: {
         type: 'object',
-        required: ['status'],
+        minProperties: 1,
         properties: {
-          status: { type: 'string', enum: ['approved', 'executing', 'complete', 'cancelled'] }
+          status: { type: 'string', enum: ['approved', 'executing', 'complete', 'cancelled'] },
+          sector: { type: ['string', 'null'], maxLength: 64 },
+          countryCode: { type: ['string', 'null'], minLength: 2, maxLength: 2 }
         },
         additionalProperties: false
       }
     }
   }, async (request, reply) => {
     const params = request.params as { id: string; projId: string }
-    const body = request.body as { status: 'approved'|'executing'|'complete'|'cancelled' }
-    const project = await service.transitionStatus(params.id, params.projId, currentUserId(request), body.status)
+    const body = request.body as {
+      status?: 'approved' | 'executing' | 'complete' | 'cancelled'
+      sector?: string | null
+      countryCode?: string | null
+    }
+    const uid = currentUserId(request)
+    if (body.sector !== undefined || body.countryCode !== undefined) {
+      await service.updateProjectMetadata(params.id, params.projId, uid, {
+        sector: body.sector,
+        countryCode: body.countryCode
+      })
+    }
+    if (body.status !== undefined) {
+      await service.transitionStatus(params.id, params.projId, uid, body.status)
+    }
+    const project = await service.getProject(params.id, params.projId, uid)
     return reply.send(project)
   })
 

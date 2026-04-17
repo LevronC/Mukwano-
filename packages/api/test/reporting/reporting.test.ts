@@ -90,6 +90,12 @@ beforeAll(async () => {
     payload: { proposalId }
   })
   projectId = project.json().id
+  await app.inject({
+    method: 'PATCH',
+    url: `/api/v1/circles/${circleId}/projects/${projectId}`,
+    headers: injectHeaders(adminToken),
+    payload: { sector: 'Education', countryCode: 'UG' }
+  })
   await app.inject({ method: 'PATCH', url: `/api/v1/circles/${circleId}/projects/${projectId}`, headers: injectHeaders(adminToken), payload: { status: 'executing' } })
   await app.inject({ method: 'POST', url: `/api/v1/circles/${circleId}/projects/${projectId}/updates`, headers: injectHeaders(adminToken), payload: { content: 'started', percentComplete: 10 } })
 })
@@ -108,12 +114,27 @@ describe('Phase 6 - portfolio/dashboard/admin', () => {
     expect(res.json().length).toBeGreaterThan(0)
   })
 
-  it('PORT-02: portfolio summary returns totals', async () => {
+  it('PORT-02: portfolio summary returns totals and analytics', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/portfolio/summary', headers: injectHeaders(memberToken) })
     expect(res.statusCode).toBe(200)
-    expect(typeof res.json().totalContributed).toBe('number')
-    expect(typeof res.json().totalVerified).toBe('number')
-    expect(typeof res.json().inProjects).toBe('number')
+    const body = res.json() as {
+      totalContributed: number
+      totalVerified: number
+      inProjects: number
+      bySector: Array<{ sector: string; amount: number; percent: number }>
+      byCountry: Array<{ countryCode: string; label: string; amount: number; percent: number }>
+      timeSeries: Array<{ period: string; amount: number }>
+      activeProjects: Array<{ id: string; title: string }>
+    }
+    expect(typeof body.totalContributed).toBe('number')
+    expect(typeof body.totalVerified).toBe('number')
+    expect(typeof body.inProjects).toBe('number')
+    expect(Array.isArray(body.bySector)).toBe(true)
+    expect(Array.isArray(body.byCountry)).toBe(true)
+    expect(body.bySector.some((s) => s.sector === 'Education')).toBe(true)
+    expect(body.byCountry.some((c) => c.countryCode === 'UG')).toBe(true)
+    expect(Array.isArray(body.timeSeries)).toBe(true)
+    expect(Array.isArray(body.activeProjects)).toBe(true)
   })
 
   it('DASH-01/02: dashboard includes circles, counts and recent activity', async () => {

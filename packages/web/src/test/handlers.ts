@@ -44,7 +44,45 @@ export const handlers = [
   http.post('/api/v1/circles/:id/projects/:projId/updates', () => ok({ id: 'u1', content: 'Ground work started', percentComplete: 20 }, 201)),
   http.get('/api/v1/circles/:id/projects/:projId/updates', () => ok([{ id: 'u1', content: 'Ground work started', percentComplete: 20, createdAt: new Date().toISOString() }])),
   http.get('/api/v1/portfolio', () => ok([{ id: 'co1', circleId: 'c1', circleName: 'Mukwano Circle', amount: 250, status: 'verified' }])),
-  http.get('/api/v1/portfolio/summary', () => ok({ totalContributed: 5000, totalVerified: 3000, totalInProjects: 1000 })),
+  http.get('/api/v1/portfolio/summary', () =>
+    ok({
+      totalContributed: 1240,
+      totalVerified: 1240,
+      inProjects: 800,
+      currency: 'USD',
+      contributionChangePercent: 12.4,
+      attributionNote: 'Verified amounts are allocated across projects in each circle by budget share.',
+      bySector: [
+        { sector: 'Healthcare', amount: 620, percent: 50 },
+        { sector: 'Education', amount: 372, percent: 30 },
+        { sector: 'Agriculture', amount: 248, percent: 20 }
+      ],
+      byCountry: [
+        { countryCode: 'UG', label: 'Uganda', amount: 806, percent: 65 },
+        { countryCode: 'KE', label: 'Kenya', amount: 434, percent: 35 }
+      ],
+      timeSeries: [
+        { period: '2025-05', amount: 0 },
+        { period: '2025-06', amount: 120 },
+        { period: '2025-07', amount: 340 },
+        { period: '2025-08', amount: 280 }
+      ],
+      activeProjects: [
+        {
+          id: 'pr1',
+          circleId: 'c1',
+          title: 'Kitgum Secondary Lab Fund',
+          sector: 'Education',
+          countryCode: 'UG',
+          budget: 7630,
+          amountRaised: 4200,
+          percentComplete: 55,
+          status: 'executing',
+          currency: 'USD'
+        }
+      ]
+    })
+  ),
   http.get('/api/v1/dashboard', () => ok({ circles: [], pendingContributions: 2, unvotedProposals: 1, recentActivity: [] })),
   http.get('/api/v1/admin/contributions/pending', () => ok([{ id: 'co1', amount: 250, circleName: 'Mukwano Circle' }])),
   http.get('/api/v1/admin/members', () => ok([{ id: 'u1', email: 'creator@example.com', displayName: 'Creator', isGlobalAdmin: true }])),

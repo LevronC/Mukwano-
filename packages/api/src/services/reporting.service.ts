@@ -14,6 +14,34 @@ type ActivityItem = {
 
 type DecimalLike = Prisma.Decimal | number | string
 
+const ATTRIBUTION_NOTE =
+  'Verified amounts are allocated across projects in each circle by budget share. Set sector and country on projects for accurate charts.'
+
+const COUNTRY_LABELS: Record<string, string> = {
+  UG: 'Uganda',
+  KE: 'Kenya',
+  TZ: 'Tanzania',
+  RW: 'Rwanda',
+  SS: 'South Sudan',
+  BI: 'Burundi',
+  CD: 'DR Congo',
+  UN: 'Unallocated'
+}
+
+function monthKeyUTC(d: Date): string {
+  const y = d.getUTCFullYear()
+  const m = d.getUTCMonth() + 1
+  return `${y}-${m < 10 ? '0' : ''}${m}`
+}
+
+function addToMap(map: Map<string, number>, key: string, delta: number) {
+  map.set(key, (map.get(key) ?? 0) + delta)
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
 export class ReportingService {
   constructor(private readonly app: FastifyInstance) {}
 
@@ -32,9 +60,8 @@ export class ReportingService {
     const contributions = await this.app.prisma.contribution.findMany({ where: { userId } })
 
     const totalContributed = contributions.reduce((acc: number, c: { amount: DecimalLike }) => acc + Number(c.amount), 0)
-    const totalVerified = contributions
-      .filter((c: { status: string }) => c.status === 'verified')
-      .reduce((acc: number, c: { amount: DecimalLike }) => acc + Number(c.amount), 0)
+    const verifiedRows = contributions.filter((c: { status: string }) => c.status === 'verified')
+    const totalVerified = verifiedRows.reduce((acc: number, c: { amount: DecimalLike }) => acc + Number(c.amount), 0)
 
     const circleIds = [
       ...new Set(
@@ -47,20 +74,135 @@ export class ReportingService {
       )
     ]
 
-    const projects = await this.app.prisma.project.findMany({
-      where: {
-        circleId: { in: circleIds },
-        status: { in: ['executing', 'complete'] }
+    const projectsInCircles = await this.app.prisma.project.findMany({
+      where: { circleId: { in: circleIds }, status: { not: 'cancelled' } },
+      include: {
+        updates: { orderBy: { createdAt: 'desc' }, take: 1, select: { percentComplete: true } }
       }
     })
 
-    const inProjects = projects.reduce((acc: number, p: { budget: DecimalLike }) => acc + Number(p.budget), 0)
+    const inProjects = projectsInCircles
+      .filter((p: { status: string }) => p.status === 'executing' || p.status === 'complete')
+      .reduce((acc: number, p: { budget: DecimalLike }) => acc + Number(p.budget), 0)
+
+    const projectsByCircle = new Map<string, typeof projectsInCircles>()
+    for (const p of projectsInCircles) {
+      const list = projectsByCircle.get(p.circleId) ?? []
+      list.push(p)
+      projectsByCircle.set(p.circleId, list)
+    }
+
+    const sectorTotals = new Map<string, number>()
+    const countryTotals = new Map<string, number>()
+
+    for (const c of verifiedRows) {
+      const amount = Number(c.amount)
+      const circleProjects = projectsByCircle.get(c.circleId) ?? []
+      const totalBudget = circleProjects.reduce((s, p) => s + Number(p.budget), 0)
+
+      if (circleProjects.length === 0 || totalBudget <= 0) {
+        addToMap(sectorTotals, 'Unallocated', amount)
+        addToMap(countryTotals, 'UN', amount)
+        continue
+      }
+
+      for (const p of circleProjects) {
+        const weight = Number(p.budget) / totalBudget
+        const share = amount * weight
+        const sector = (p.sector && String(p.sector).trim()) || 'Other'
+        const cc = (p.countryCode && String(p.countryCode).trim().toUpperCase()) || 'UN'
+        addToMap(sectorTotals, sector, share)
+        addToMap(countryTotals, cc, share)
+      }
+    }
+
+    const sectorSum = [...sectorTotals.values()].reduce((a, b) => a + b, 0)
+    const bySector = [...sectorTotals.entries()]
+      .map(([sector, amount]) => ({
+        sector,
+        amount: round2(amount),
+        percent: sectorSum > 0 ? round2((amount / sectorSum) * 100) : 0
+      }))
+      .sort((a, b) => b.amount - a.amount)
+
+    const countrySum = [...countryTotals.values()].reduce((a, b) => a + b, 0)
+    const byCountry = [...countryTotals.entries()]
+      .map(([countryCode, amount]) => ({
+        countryCode,
+        label: COUNTRY_LABELS[countryCode] ?? countryCode,
+        amount: round2(amount),
+        percent: countrySum > 0 ? round2((amount / countrySum) * 100) : 0
+      }))
+      .sort((a, b) => b.amount - a.amount)
+
+    const monthTotals = new Map<string, number>()
+    const now = new Date()
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1))
+      monthTotals.set(monthKeyUTC(d), 0)
+    }
+    for (const c of verifiedRows) {
+      const raw = c.verifiedAt ?? c.submittedAt
+      const d = raw instanceof Date ? raw : new Date(raw as string)
+      const key = monthKeyUTC(d)
+      if (monthTotals.has(key)) {
+        monthTotals.set(key, (monthTotals.get(key) ?? 0) + Number(c.amount))
+      }
+    }
+    const timeSeries = [...monthTotals.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([period, amount]) => ({ period, amount: round2(amount) }))
+
+    const msDay = 86_400_000
+    const t = Date.now()
+    const sumRange = (start: number, end: number) =>
+      verifiedRows
+        .filter((row) => {
+          const raw = row.verifiedAt ?? row.submittedAt
+          const d = raw instanceof Date ? raw : new Date(raw as string)
+          const x = d.getTime()
+          return x >= start && x < end
+        })
+        .reduce((acc, row) => acc + Number(row.amount), 0)
+
+    const recent = sumRange(t - 30 * msDay, t)
+    const previous = sumRange(t - 60 * msDay, t - 30 * msDay)
+    const contributionChangePercent =
+      previous > 0 ? round2(((recent - previous) / previous) * 100) : recent > 0 ? 100 : null
+
+    const activeProjects = projectsInCircles
+      .filter((p: { status: string }) => p.status === 'executing' || p.status === 'approved')
+      .map((p) => {
+        const budget = Number(p.budget)
+        const pct = p.updates[0]?.percentComplete ?? 0
+        const amountRaised = round2((pct / 100) * budget)
+        return {
+          id: p.id,
+          circleId: p.circleId,
+          title: p.title,
+          sector: p.sector,
+          countryCode: p.countryCode,
+          budget,
+          amountRaised,
+          percentComplete: pct,
+          status: p.status,
+          currency: p.currency
+        }
+      })
+      .sort((a, b) => b.percentComplete - a.percentComplete)
+      .slice(0, 12)
 
     return {
       totalContributed,
       totalVerified,
       inProjects,
-      currency: 'USD'
+      currency: 'USD',
+      attributionNote: ATTRIBUTION_NOTE,
+      contributionChangePercent,
+      bySector,
+      byCountry,
+      timeSeries,
+      activeProjects
     }
   }
 

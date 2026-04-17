@@ -53,6 +53,39 @@ export class ProjectService {
     return project
   }
 
+  async updateProjectMetadata(
+    circleId: string,
+    projectId: string,
+    userId: string,
+    data: { sector?: string | null; countryCode?: string | null }
+  ) {
+    await this.ensureAdmin(circleId, userId)
+
+    const project = await this.app.prisma.project.findFirst({ where: { id: projectId, circleId } })
+    if (!project) throw new NotFoundError('Project not found')
+
+    const patch: { sector?: string | null; countryCode?: string | null } = {}
+    if (data.sector !== undefined) {
+      patch.sector = data.sector?.trim() || null
+    }
+    if (data.countryCode !== undefined) {
+      if (data.countryCode === null || data.countryCode === '') {
+        patch.countryCode = null
+      } else {
+        const cc = data.countryCode.trim().toUpperCase()
+        if (cc.length !== 2) {
+          throw new ValidationError('countryCode must be a 2-letter ISO code')
+        }
+        patch.countryCode = cc
+      }
+    }
+
+    return this.app.prisma.project.update({
+      where: { id: project.id },
+      data: patch
+    })
+  }
+
   async transitionStatus(circleId: string, projectId: string, userId: string, status: 'approved'|'executing'|'complete'|'cancelled') {
     await this.ensureAdmin(circleId, userId)
 
