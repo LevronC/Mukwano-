@@ -68,10 +68,10 @@ export const ScrollExpandMedia = forwardRef<ScrollExpandMediaHandle, ScrollExpan
     const contentParallaxY = useTransform(smoothPointerY, [-1, 1], isMobileState ? [0, 0] : [8, -8])
     const glowParallaxX = useTransform(smoothPointerX, [-1, 1], isMobileState ? [-2, 2] : [-24, 24])
     const glowParallaxY = useTransform(smoothPointerY, [-1, 1], isMobileState ? [-2, 2] : [-18, 18])
-    const secondaryGlowParallaxX = useTransform(glowParallaxX, (v) => -v * 0.8)
-    const secondaryGlowParallaxY = useTransform(glowParallaxY, (v) => -v * 0.8)
-    const lowerGlowParallaxX = useTransform(glowParallaxX, (v) => v * 0.5)
-    const lowerGlowParallaxY = useTransform(glowParallaxY, (v) => v * 0.35)
+    const secondaryGlowParallaxX = useTransform(glowParallaxX, (v: number) => -v * 0.8)
+    const secondaryGlowParallaxY = useTransform(glowParallaxY, (v: number) => -v * 0.8)
+    const lowerGlowParallaxX = useTransform(glowParallaxX, (v: number) => v * 0.5)
+    const lowerGlowParallaxY = useTransform(glowParallaxY, (v: number) => v * 0.35)
 
     const resolvedBrand = brandName ?? (title ? title.split(' ')[0] : '') ?? ''
     const resolvedHeadline = headline ?? (title ? title.split(' ').slice(1).join(' ') : '') ?? ''
