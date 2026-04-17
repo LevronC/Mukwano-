@@ -12,6 +12,10 @@
   --mk-muted2: #4a6090;
   --mk-white: #ffffff;
   --mk-offwhite: #f7f2e8;
+  --mk-chart-teal: #20c997;
+  --mk-chart-orange: #f39c12;
+  --mk-geo-green: #1a4d2e;
+  --mk-geo-glow: #6ee7a8;
 }
 
 @theme {
@@ -281,4 +285,19 @@ body {
 
 .font-display {
   font-family: 'Cormorant Garamond', serif;
+}
+
+/* Landing — motion (match legacy avator-landing) */
+@keyframes mk-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-16px);
+  }
+}
+
+.animate-mk-float {
+  animation: mk-float 6s ease-in-out infinite;
 }
