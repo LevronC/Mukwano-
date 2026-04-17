@@ -3,6 +3,53 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 import type { FastifyPluginAsync } from 'fastify'
 
+/** What to pass to `pg` Pool `ssl` option (false = no TLS). */
+type PgSslOption = false | { rejectUnauthorized: boolean } | undefined
+
+/**
+ * Picks TLS for `pg` without forcing SSL onto servers that do not support it
+ * (typical local/Docker Postgres). Neon and other cloud URLs still use TLS.
+ *
+ * Override: `DATABASE_SSL=true` | `DATABASE_SSL=false`
+ */
+function resolvePgSsl(connectionString: string): PgSslOption {
+  if (!connectionString) return undefined
+
+  const override = process.env.DATABASE_SSL?.toLowerCase()
+  if (override === 'false' || override === '0') return false
+  if (override === 'true' || override === '1') return { rejectUnauthorized: true }
+
+  let sslmode: string | null = null
+  let hostname = ''
+  try {
+    const u = new URL(connectionString)
+    hostname = u.hostname
+    sslmode = u.searchParams.get('sslmode')?.toLowerCase() ?? null
+  } catch {
+    const m = connectionString.match(/[?&]sslmode=([^&]+)/i)
+    sslmode = m ? m[1].toLowerCase() : null
+  }
+
+  if (sslmode === 'disable') return false
+  if (sslmode === 'require' || sslmode === 'verify-full' || sslmode === 'verify-ca') {
+    return { rejectUnauthorized: true }
+  }
+
+  const localDevHosts = new Set([
+    'localhost',
+    '127.0.0.1',
+    '::1',
+    'postgres',
+    'host.docker.internal',
+    'db'
+  ])
+  if (hostname && localDevHosts.has(hostname.toLowerCase())) {
+    return false
+  }
+
+  return { rejectUnauthorized: true }
+}
+
 const prismaPlugin: FastifyPluginAsync = fp(async (server) => {
   // Pass PoolConfig (a plain object) so PrismaPg creates the pool internally
   // using its own pg instance. Importing pg directly causes a dual-package
@@ -10,10 +57,10 @@ const prismaPlugin: FastifyPluginAsync = fp(async (server) => {
   // @prisma/adapter-pg, which makes PrismaPg ignore the passed Pool and fall
   // back to localhost:5432.
   const dbUrl = process.env.DATABASE_URL ?? ''
-  const isLocalDb = /localhost|127\.0\.0\.1/.test(dbUrl)
+  const ssl = resolvePgSsl(dbUrl)
   const adapter = new PrismaPg({
     connectionString: dbUrl,
-    ssl: isLocalDb ? undefined : { rejectUnauthorized: true },
+    ssl,
     connectionTimeoutMillis: 5000,
   })
   const prisma = new PrismaClient({ adapter })

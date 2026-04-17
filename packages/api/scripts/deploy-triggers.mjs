@@ -17,10 +17,39 @@ if (!DATABASE_URL) {
   process.exit(0)
 }
 
-const isLocalDb = /localhost|127\.0\.0\.1/.test(DATABASE_URL)
+/** Match packages/api/src/plugins/prisma.ts — avoid TLS to hosts that do not support it. */
+function resolvePgSsl(connectionString) {
+  const explicit = process.env.DATABASE_SSL?.toLowerCase()
+  if (explicit === 'false' || explicit === '0') return false
+  if (explicit === 'true' || explicit === '1') return { rejectUnauthorized: true }
+
+  let sslmode = null
+  let hostname = ''
+  try {
+    const u = new URL(connectionString)
+    hostname = u.hostname
+    sslmode = u.searchParams.get('sslmode')?.toLowerCase() ?? null
+  } catch {
+    const m = connectionString.match(/[?&]sslmode=([^&]+)/i)
+    sslmode = m ? m[1].toLowerCase() : null
+  }
+
+  if (sslmode === 'disable') return false
+  if (sslmode === 'require' || sslmode === 'verify-full' || sslmode === 'verify-ca') {
+    return { rejectUnauthorized: true }
+  }
+
+  const localDevHosts = new Set(['localhost', '127.0.0.1', '::1', 'postgres', 'host.docker.internal', 'db'])
+  if (hostname && localDevHosts.has(hostname.toLowerCase())) {
+    return false
+  }
+
+  return { rejectUnauthorized: true }
+}
+
 const client = new pg.Client({
   connectionString: DATABASE_URL,
-  ssl: isLocalDb ? undefined : { rejectUnauthorized: true },
+  ssl: resolvePgSsl(DATABASE_URL),
   connectionTimeoutMillis: 10000,
 })
 await client.connect()
