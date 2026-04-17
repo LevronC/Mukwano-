@@ -60,7 +60,7 @@ export function LandingSections({
 
   return (
     <div className="bg-[var(--mk-navy)]">
-      <section id="features" className="relative z-[2] mx-auto max-w-[1280px] px-5 py-16 md:px-[60px] md:py-[120px]">
+      <section id="features" className="relative z-[2] mx-auto max-w-[1280px] px-5 py-14 sm:py-16 md:px-[60px] md:py-[120px]">
         <div className="mb-16 flex flex-col justify-between gap-10 md:mb-[70px] md:flex-row md:items-end">
           <div>
             <span className="mb-[18px] block text-[10px] font-bold tracking-[6px] text-[var(--mk-gold)] uppercase">
@@ -73,7 +73,7 @@ export function LandingSections({
             </h2>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-3 overflow-hidden rounded-[22px] bg-[var(--mk-navy2)] p-3.5 shadow-[0_12px_48px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.04)] md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 overflow-hidden rounded-[22px] bg-[var(--mk-navy2)] p-3 shadow-[0_12px_48px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-3.5 md:grid-cols-2 lg:grid-cols-3">
           <FeatureCard
             n="01"
             title="Investment Circles"
@@ -148,20 +148,20 @@ export function LandingSections({
 
       <section
         id="showcase"
-        className="relative z-[2] overflow-hidden border-y border-[rgba(240,165,0,0.06)] bg-gradient-to-br from-[#050c1a] via-[#0a1530] to-[#050c1a] px-5 py-16 md:px-[60px] md:py-[120px]"
+        className="relative z-[2] overflow-hidden border-y border-[rgba(240,165,0,0.06)] bg-gradient-to-br from-[#050c1a] via-[#0a1530] to-[#050c1a] px-5 py-14 sm:py-16 md:px-[60px] md:py-[120px]"
       >
-        <div className="mx-auto grid max-w-[1200px] items-center gap-16 lg:grid-cols-2 lg:gap-[100px]">
+        <div className="mx-auto grid max-w-[1200px] items-center gap-12 sm:gap-16 lg:grid-cols-2 lg:gap-[100px]">
           <div className="relative order-1 flex items-center justify-center lg:order-1">
-            <div className="absolute top-1/2 left-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[rgba(240,165,0,0.1)]" />
-            <div className="absolute top-1/2 left-1/2 h-[460px] w-[460px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-[rgba(240,165,0,0.05)]" />
+            <div className="absolute top-1/2 left-1/2 h-[260px] w-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[rgba(240,165,0,0.1)] sm:h-[400px] sm:w-[400px]" />
+            <div className="absolute top-1/2 left-1/2 h-[310px] w-[310px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-[rgba(240,165,0,0.05)] sm:h-[460px] sm:w-[460px]" />
             <div className="animate-mk-float relative z-[1] flex justify-center drop-shadow-[0_0_50px_rgba(240,165,0,0.2)]">
-              <div className="rounded-full bg-white/97 p-6 shadow-[0_12px_48px_rgba(0,0,0,0.35)] md:p-8">
+              <div className="rounded-full bg-white/97 p-4 shadow-[0_12px_48px_rgba(0,0,0,0.35)] sm:p-6 md:p-8">
                 <img
                   src="/assets/mukwano-logo.png"
                   alt="Mukwano"
                   width={300}
                   height={300}
-                  className="h-[min(200px,45vw)] w-[min(200px,45vw)] rounded-full object-cover md:h-[220px] md:w-[220px]"
+                  className="h-[140px] w-[140px] rounded-full object-cover sm:h-[min(200px,45vw)] sm:w-[min(200px,45vw)] md:h-[220px] md:w-[220px]"
                 />
               </div>
             </div>
@@ -184,7 +184,7 @@ export function LandingSections({
         </div>
       </section>
 
-      <section id="values" className="relative z-[2] mx-auto max-w-[1100px] px-5 py-16 md:px-[60px] md:py-[120px]">
+      <section id="values" className="relative z-[2] mx-auto max-w-[1100px] px-5 py-14 sm:py-16 md:px-[60px] md:py-[120px]">
         <div className="mb-20 text-center">
           <span className="mb-[18px] block text-[10px] font-bold tracking-[6px] text-[var(--mk-gold)] uppercase">
             Core Principles
@@ -217,7 +217,7 @@ export function LandingSections({
 
       <section
         id="how-it-works"
-        className="relative z-[2] mx-auto max-w-[1320px] overflow-hidden px-5 py-16 text-center md:px-[60px] md:py-[120px]"
+        className="relative z-[2] mx-auto max-w-[1320px] overflow-hidden px-5 py-14 text-center sm:py-16 md:px-[60px] md:py-[120px]"
       >
         <motion.div
           className="mb-20"
@@ -293,7 +293,7 @@ export function LandingSections({
 
       <section
         id="faq"
-        className="relative z-[2] border-y border-[rgba(240,165,0,0.06)] bg-gradient-to-b from-transparent via-[rgba(11,22,48,0.5)] to-transparent px-5 py-16 md:px-[60px] md:py-[120px]"
+        className="relative z-[2] border-y border-[rgba(240,165,0,0.06)] bg-gradient-to-b from-transparent via-[rgba(11,22,48,0.5)] to-transparent px-5 py-14 sm:py-16 md:px-[60px] md:py-[120px]"
       >
         <div className="mx-auto max-w-[760px]">
           <div className="mb-16 text-center">
@@ -360,7 +360,7 @@ export function LandingSections({
 
       <section
         id="cta"
-        className="relative z-[2] overflow-hidden px-5 py-20 text-center md:px-[60px] md:py-40"
+        className="relative z-[2] overflow-hidden px-5 py-16 text-center sm:py-20 md:px-[60px] md:py-40"
       >
         <img
           src="/assets/landing/footer-heritage.png"
@@ -395,7 +395,7 @@ export function LandingSections({
         </div>
       </section>
 
-      <footer className="relative z-[2] border-t border-white/[0.04] bg-[#030810] px-5 pt-14 pb-10 md:px-16 md:pt-[70px] md:pb-11">
+      <footer className="relative z-[2] border-t border-white/[0.04] bg-[#030810] px-5 pt-12 pb-10 md:px-16 md:pt-[70px] md:pb-11">
         <div className="mx-auto mb-12 max-w-[1200px] border-b border-white/5 pb-12">
           <div className="flex items-center gap-3">
             <div className="rounded-[14px] bg-white/97 p-2">
@@ -437,7 +437,7 @@ function FeatureCard({
   icon: ReactNode
 }) {
   return (
-    <div className="group relative min-w-0 overflow-hidden rounded-[14px] border border-[rgba(240,165,0,0.38)] bg-[var(--mk-navy)] px-8 py-12 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition-all hover:border-[rgba(240,165,0,0.52)] hover:bg-[var(--mk-navy3)] md:px-11">
+    <div className="group relative min-w-0 overflow-hidden rounded-[14px] border border-[rgba(240,165,0,0.38)] bg-[var(--mk-navy)] px-6 py-10 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition-all hover:border-[rgba(240,165,0,0.52)] hover:bg-[var(--mk-navy3)] sm:px-8 sm:py-12 md:px-11">
       <div className="font-display mb-4 text-[72px] leading-none font-bold text-[rgba(240,165,0,0.06)] transition-colors group-hover:text-[rgba(240,165,0,0.12)]">
         {n}
       </div>
@@ -463,7 +463,7 @@ function HiwStep({
 }) {
   return (
     <motion.div
-      className="group relative z-[1] px-4 lg:px-2"
+      className="group relative z-[1] px-2 sm:px-4 lg:px-2"
       initial={reduceMotion ? false : { opacity: 0, y: 28, scale: 0.985 }}
       whileInView={reduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, amount: 0.45 }}

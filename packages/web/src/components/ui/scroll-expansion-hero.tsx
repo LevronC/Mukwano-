@@ -210,8 +210,8 @@ export const ScrollExpandMedia = forwardRef<ScrollExpandMediaHandle, ScrollExpan
       }
     }, [isMobileState, pointerX, pointerY])
 
-    const mediaWidth = (isMobileState ? 320 : 420) + scrollProgress * (isMobileState ? 620 : 1080)
-    const mediaHeight = (isMobileState ? 440 : 560) + scrollProgress * (isMobileState ? 260 : 260)
+    const mediaWidth = (isMobileState ? 300 : 420) + scrollProgress * (isMobileState ? 560 : 1080)
+    const mediaHeight = (isMobileState ? 400 : 560) + scrollProgress * (isMobileState ? 240 : 260)
     const textTranslateX = scrollProgress * (isMobileState ? 54 : 42)
     const drift = textTranslateX * 0.5
     const mediaScale = 1.035 - scrollProgress * 0.035
@@ -263,7 +263,7 @@ export const ScrollExpandMedia = forwardRef<ScrollExpandMediaHandle, ScrollExpan
             </div>
 
             <div className="relative z-10 container mx-auto flex flex-col items-center justify-start">
-              <div className="relative flex min-h-[100dvh] w-full flex-col items-center px-4 pt-20">
+              <div className="relative flex min-h-[100dvh] w-full flex-col items-center px-4 pt-16 sm:pt-20">
                 <motion.div
                   className="absolute top-1/2 left-1/2 z-[1] w-full max-w-[95vw] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[34px] border border-white/10 transition-none"
                   style={{
@@ -370,7 +370,7 @@ export const ScrollExpandMedia = forwardRef<ScrollExpandMediaHandle, ScrollExpan
                   )}
                 </motion.div>
 
-                <div className="flex w-full flex-1 flex-col justify-end pb-8 md:pb-14">
+                <div className="flex w-full flex-1 flex-col justify-end pb-6 sm:pb-8 md:pb-14">
                   {heroContent ? (
                     <motion.div
                       className={`pointer-events-auto relative z-[2] mx-auto w-full max-w-[min(100%,1120px)] px-2 ${blendClass}`}
@@ -437,7 +437,7 @@ export const ScrollExpandMedia = forwardRef<ScrollExpandMediaHandle, ScrollExpan
               </div>
 
               <motion.section
-                className={`flex w-full flex-col px-8 md:px-16 lg:py-20 ${showContent ? 'py-10' : 'max-h-0 overflow-hidden py-0'}`}
+                className={`flex w-full flex-col px-5 sm:px-8 md:px-16 lg:py-20 ${showContent ? 'py-8 sm:py-10' : 'max-h-0 overflow-hidden py-0'}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: showContent ? 1 : 0 }}
                 transition={{ duration: 0.7 }}

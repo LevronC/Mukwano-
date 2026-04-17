@@ -97,15 +97,15 @@ export function LandingPage() {
       </div>
 
       <header
-        className={`fixed top-0 right-0 left-0 z-[100] flex items-center justify-between px-6 py-6 transition-opacity duration-700 md:px-16 ${
+        className={`fixed top-0 right-0 left-0 z-[100] flex items-center justify-between px-4 py-4 transition-opacity duration-700 sm:px-6 md:px-16 md:py-6 ${
           navVisible ? 'opacity-100' : 'opacity-0'
         }`}
       >
         <a href="#" className="flex items-center gap-3 no-underline">
           <div className="rounded-xl bg-white/97 p-1.5">
-            <img src="/assets/mukwano-logo.png" alt="Mukwano" width={300} height={300} className="h-8 w-auto object-contain" />
+            <img src="/assets/mukwano-logo.png" alt="Mukwano" width={300} height={300} className="h-7 w-auto object-contain md:h-8" />
           </div>
-          <span className="font-display text-xl font-bold tracking-wide text-[var(--mk-gold)]">Mukwano</span>
+          <span className="font-display hidden text-xl font-bold tracking-wide text-[var(--mk-gold)] sm:block">Mukwano</span>
         </a>
         <ul className="hidden list-none gap-10 md:flex">
           <li>
@@ -145,16 +145,16 @@ export function LandingPage() {
             </a>
           </li>
         </ul>
-        <div className="flex items-center gap-4 md:gap-[18px]">
+        <div className="flex items-center gap-3 md:gap-[18px]">
           <Link
             to="/login"
-            className="text-[11px] font-semibold tracking-[2.5px] text-[var(--mk-muted)] uppercase transition-colors hover:text-[var(--mk-gold)] md:text-[12px]"
+            className="hidden text-[11px] font-semibold tracking-[2.5px] text-[var(--mk-muted)] uppercase transition-colors hover:text-[var(--mk-gold)] sm:block md:text-[12px]"
           >
             Sign in
           </Link>
           <Link
             to="/signup"
-            className="rounded-[30px] border border-[rgba(240,165,0,0.35)] bg-transparent px-5 py-2.5 text-[11px] font-semibold tracking-[2px] text-[var(--mk-gold)] uppercase transition-all hover:bg-[var(--mk-gold)] hover:text-[var(--mk-navy)] hover:shadow-[0_0_30px_rgba(240,165,0,0.3)] md:px-7 md:text-[12px]"
+            className="rounded-[30px] border border-[rgba(240,165,0,0.35)] bg-transparent px-4 py-2 text-[10px] font-semibold tracking-[1.8px] text-[var(--mk-gold)] uppercase transition-all hover:bg-[var(--mk-gold)] hover:text-[var(--mk-navy)] hover:shadow-[0_0_30px_rgba(240,165,0,0.3)] sm:px-5 sm:py-2.5 sm:text-[11px] md:px-7 md:text-[12px]"
           >
             Join a Circle
           </Link>
@@ -185,41 +185,41 @@ export function LandingPage() {
                     alt="Mukwano"
                     width={300}
                     height={300}
-                    className="h-24 w-24 rounded-full object-cover md:h-32 md:w-32"
+                    className="h-20 w-20 rounded-full object-cover sm:h-24 sm:w-24 md:h-32 md:w-32"
                   />
                 </div>
               </div>
 
-              <p className="label-font text-[10px] font-semibold tracking-[0.34em] text-[var(--mk-gold3)] uppercase md:text-[11px]">
+              <p className="label-font text-[9px] font-semibold tracking-[0.32em] text-[var(--mk-gold3)] uppercase sm:text-[10px] md:text-[11px]">
                 Building Together
               </p>
 
-              <h1 className="font-display mt-3 max-w-[10ch] text-[clamp(3.2rem,8.8vw,6.1rem)] leading-[0.9] font-bold tracking-[-0.045em] text-[var(--mk-offwhite)]">
+              <h1 className="font-display mt-3 max-w-[11ch] text-[clamp(2.6rem,11vw,6.1rem)] leading-[0.92] font-bold tracking-[-0.045em] text-[var(--mk-offwhite)]">
                 Where <span className="text-[var(--mk-gold3)] italic">Friendship</span>
                 <br />
                 Builds Wealth
               </h1>
 
-              <p className="mt-4 max-w-[620px] text-[15px] leading-7 text-[rgba(255,255,255,0.9)] md:text-[17px]">
+              <p className="mt-4 max-w-[620px] px-2 text-[14px] leading-7 text-[rgba(255,255,255,0.9)] sm:text-[15px] md:px-0 md:text-[17px]">
                 Mukwano helps trusted communities save together, invest with clarity, and grow wealth through shared
                 circles.
               </p>
 
-              <p className="font-display mt-4 text-[clamp(1.1rem,2.1vw,1.6rem)] font-semibold italic tracking-[0.01em] text-[var(--mk-gold2)]">
+              <p className="font-display mt-4 px-2 text-[clamp(1rem,3.6vw,1.6rem)] font-semibold italic tracking-[0.01em] text-[var(--mk-gold2)]">
                 Trusted circles. Shared growth.
               </p>
 
-              <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-5">
+              <div className="mt-7 flex w-full max-w-[520px] flex-col items-center justify-center gap-3 sm:flex-row sm:gap-5">
                 <Link
                   to="/signup"
-                  className="mukwano-btn-primary inline-flex min-w-[220px] items-center justify-center rounded-[50px] px-11 py-4 text-[13px] tracking-[2px] uppercase"
+                  className="mukwano-btn-primary inline-flex w-full min-w-0 items-center justify-center rounded-[50px] px-8 py-4 text-[13px] tracking-[2px] uppercase sm:min-w-[220px] sm:px-11"
                 >
                   Create a Circle
                 </Link>
                 <a
                   href="#how-it-works"
                   onClick={onInPageNavClick('how-it-works')}
-                  className="inline-flex min-w-[220px] items-center justify-center rounded-[50px] border border-white/18 bg-[rgba(6,13,31,0.34)] px-11 py-4 text-[13px] font-medium tracking-[2px] text-white uppercase backdrop-blur-md transition-all hover:border-[var(--mk-gold)] hover:bg-[rgba(6,13,31,0.52)] hover:text-[var(--mk-gold2)]"
+                  className="inline-flex w-full min-w-0 items-center justify-center rounded-[50px] border border-white/18 bg-[rgba(6,13,31,0.34)] px-8 py-4 text-[13px] font-medium tracking-[2px] text-white uppercase backdrop-blur-md transition-all hover:border-[var(--mk-gold)] hover:bg-[rgba(6,13,31,0.52)] hover:text-[var(--mk-gold2)] sm:min-w-[220px] sm:px-11"
                 >
                   How It Works
                 </a>
@@ -248,8 +248,8 @@ function LandingStaticHero() {
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,9,21,0.58)_0%,rgba(6,13,31,0.42)_28%,rgba(6,13,31,0.72)_100%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,199,64,0.16),transparent_28%),radial-gradient(circle_at_bottom,rgba(7,17,38,0.18),rgba(6,13,31,0.72)_72%)]" />
       <div className="mk-noise absolute inset-0" />
-      <div className="relative z-10 flex min-h-dvh flex-col items-center justify-end px-5 pt-28 pb-12 text-center md:pb-16">
-        <div className="relative mb-10 flex max-h-[min(50vh,480px)] w-full max-w-[420px] items-center justify-center overflow-hidden rounded-[34px] border border-white/10 shadow-[0_30px_80px_rgba(2,8,24,0.42)] md:max-w-[480px]">
+      <div className="relative z-10 flex min-h-dvh flex-col items-center justify-end px-5 pt-24 pb-10 text-center sm:pt-28 sm:pb-12 md:pb-16">
+        <div className="relative mb-8 flex max-h-[min(44vh,420px)] w-full max-w-[320px] items-center justify-center overflow-hidden rounded-[34px] border border-white/10 shadow-[0_30px_80px_rgba(2,8,24,0.42)] sm:mb-10 sm:max-h-[min(50vh,480px)] sm:max-w-[420px] md:max-w-[480px]">
           <div className="pointer-events-none absolute inset-x-[12%] top-0 z-[2] h-px bg-gradient-to-r from-transparent via-[rgba(255,232,192,0.85)] to-transparent" />
           <img
             src={HERO.media}
@@ -271,40 +271,40 @@ function LandingStaticHero() {
                 alt="Mukwano"
                 width={300}
                 height={300}
-                className="h-24 w-24 rounded-full object-cover md:h-32 md:w-32"
+                className="h-20 w-20 rounded-full object-cover sm:h-24 sm:w-24 md:h-32 md:w-32"
               />
             </div>
           </div>
 
-          <p className="label-font text-[10px] font-semibold tracking-[0.34em] text-[var(--mk-gold3)] uppercase md:text-[11px]">
+          <p className="label-font text-[9px] font-semibold tracking-[0.32em] text-[var(--mk-gold3)] uppercase sm:text-[10px] md:text-[11px]">
             Building Together
           </p>
 
-          <h1 className="font-display mt-3 max-w-[10ch] text-[clamp(3.2rem,8.8vw,6.1rem)] leading-[0.9] font-bold tracking-[-0.045em] text-[var(--mk-offwhite)]">
+          <h1 className="font-display mt-3 max-w-[11ch] text-[clamp(2.6rem,11vw,6.1rem)] leading-[0.92] font-bold tracking-[-0.045em] text-[var(--mk-offwhite)]">
             Where <span className="text-[var(--mk-gold3)] italic">Friendship</span>
             <br />
             Builds Wealth
           </h1>
 
-          <p className="mt-4 max-w-[620px] text-[15px] leading-7 text-[rgba(255,255,255,0.9)] md:text-[17px]">
+          <p className="mt-4 max-w-[620px] px-2 text-[14px] leading-7 text-[rgba(255,255,255,0.9)] sm:text-[15px] md:px-0 md:text-[17px]">
             Mukwano helps trusted communities save together, invest with clarity, and grow wealth through shared
             circles.
           </p>
 
-          <p className="font-display mt-4 text-[clamp(1.1rem,2.1vw,1.6rem)] font-semibold italic tracking-[0.01em] text-[var(--mk-gold2)]">
+          <p className="font-display mt-4 px-2 text-[clamp(1rem,3.6vw,1.6rem)] font-semibold italic tracking-[0.01em] text-[var(--mk-gold2)]">
             Trusted circles. Shared growth.
           </p>
         </div>
-        <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+        <div className="mt-7 flex w-full max-w-[520px] flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <Link
             to="/signup"
-            className="mukwano-btn-primary inline-flex min-w-[220px] items-center justify-center rounded-[50px] px-11 py-4 text-[13px] tracking-[2px] uppercase"
+            className="mukwano-btn-primary inline-flex w-full min-w-0 items-center justify-center rounded-[50px] px-8 py-4 text-[13px] tracking-[2px] uppercase sm:min-w-[220px] sm:px-11"
           >
             Create a Circle
           </Link>
           <a
             href="#how-it-works"
-            className="inline-flex min-w-[220px] items-center justify-center rounded-[50px] border border-white/18 bg-[rgba(6,13,31,0.34)] px-11 py-4 text-[13px] font-medium tracking-[2px] text-white uppercase backdrop-blur-md transition-all hover:border-[var(--mk-gold)] hover:bg-[rgba(6,13,31,0.52)] hover:text-[var(--mk-gold)]"
+            className="inline-flex w-full min-w-0 items-center justify-center rounded-[50px] border border-white/18 bg-[rgba(6,13,31,0.34)] px-8 py-4 text-[13px] font-medium tracking-[2px] text-white uppercase backdrop-blur-md transition-all hover:border-[var(--mk-gold)] hover:bg-[rgba(6,13,31,0.52)] hover:text-[var(--mk-gold)] sm:min-w-[220px] sm:px-11"
           >
             How It Works
           </a>
