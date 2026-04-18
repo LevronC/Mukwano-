@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react
 import { Link } from 'react-router-dom'
 import { ScrollExpandMedia, type ScrollExpandMediaHandle } from '@/components/ui/scroll-expansion-hero'
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
+import { useSimpleLandingHero } from '@/hooks/useSimpleLandingHero'
 import { LegalModals } from '@/components/landing/LegalModals'
 import { LandingSections } from '@/components/landing/LandingSections'
 
@@ -17,12 +18,17 @@ export function LandingPage() {
   const [termsOpen, setTermsOpen] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const reducedMotion = usePrefersReducedMotion()
+  const simpleLandingHero = useSimpleLandingHero()
+  const staticHero = reducedMotion || simpleLandingHero
 
   const scrollToSection = useCallback((id: string) => {
-    heroScrollRef.current?.expandToContent()
-    window.setTimeout(() => {
-      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 120)
+    const go = () => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (heroScrollRef.current) {
+      heroScrollRef.current.expandToContent()
+      window.setTimeout(go, 120)
+    } else {
+      go()
+    }
   }, [])
 
   const onInPageNavClick = useCallback(
@@ -163,7 +169,7 @@ export function LandingPage() {
 
       <div className="pointer-events-none absolute top-0 right-0 left-0 z-[99] h-px bg-gradient-to-r from-transparent via-[rgba(240,165,0,0.15)] to-transparent md:left-16 md:right-16" />
 
-      {reducedMotion ? (
+      {staticHero ? (
         <>
           <LandingStaticHero />
           {sections}
