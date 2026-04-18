@@ -18,6 +18,7 @@ type CircleListRow = {
   goalAmount?: string | null
   currency?: string | null
   coverImageUrl?: string | null
+  verifiedRaisedAmount?: string | null
 }
 
 export function CirclesListPage() {

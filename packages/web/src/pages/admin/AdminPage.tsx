@@ -71,6 +71,8 @@ export function AdminPage() {
       qc.invalidateQueries({ queryKey: ['admin-pending'] })
       qc.invalidateQueries({ queryKey: ['admin-ledger'] })
       qc.invalidateQueries({ queryKey: ['admin-activity'] })
+      qc.invalidateQueries({ queryKey: ['circles'] })
+      qc.invalidateQueries({ queryKey: ['circles-explore'] })
       toast.success('Contribution verified')
     },
     onError: (error) => toast.error(getErrorMessage(error))
@@ -82,6 +84,8 @@ export function AdminPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-pending'] })
       qc.invalidateQueries({ queryKey: ['admin-activity'] })
+      qc.invalidateQueries({ queryKey: ['circles'] })
+      qc.invalidateQueries({ queryKey: ['circles-explore'] })
       toast.success('Contribution rejected')
     },
     onError: (error) => toast.error(getErrorMessage(error))

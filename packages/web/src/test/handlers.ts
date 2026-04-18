@@ -12,7 +12,9 @@ export const handlers = [
   http.get('/api/v1/config', () =>
     ok({ demoMode: true, currency: 'USD', escrowLabel: 'Simulated escrow', emailConfigured: true })
   ),
-  http.get('/api/v1/circles', () => ok([{ id: 'c1', name: 'Mukwano Circle', goalAmount: 10000, status: 'active' }])),
+  http.get('/api/v1/circles', () =>
+    ok([{ id: 'c1', name: 'Mukwano Circle', goalAmount: 10000, status: 'active', verifiedRaisedAmount: '0' }])
+  ),
   http.post('/api/v1/circles', () => ok({ id: 'c1', name: 'Mukwano Circle', goalAmount: 10000 }, 201)),
   http.get('/api/v1/circles/:id', () => ok({ id: 'c1', name: 'Mukwano Circle', status: 'active', goalAmount: 10000 })),
   http.patch('/api/v1/circles/:id', () => ok({ id: 'c1', name: 'Mukwano Circle Updated' })),

@@ -96,7 +96,7 @@ export class CircleService {
   }
 
   async listCircles() {
-    return this.app.prisma.circle.findMany({
+    const circles = await this.app.prisma.circle.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -111,6 +111,20 @@ export class CircleService {
         updatedAt: true
       }
     })
+
+    const verifiedSums = await this.app.prisma.contribution.groupBy({
+      by: ['circleId'],
+      where: { status: 'verified' },
+      _sum: { amount: true }
+    })
+    const raisedByCircle = new Map(
+      verifiedSums.map((row) => [row.circleId, row._sum.amount?.toString() ?? '0'])
+    )
+
+    return circles.map((c) => ({
+      ...c,
+      verifiedRaisedAmount: raisedByCircle.get(c.id) ?? '0'
+    }))
   }
 
   async getCircleOverview(circleId: string, userId: string) {

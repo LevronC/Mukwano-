@@ -96,6 +96,8 @@ export function CircleDetailPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['contributions', id] })
       await queryClient.invalidateQueries({ queryKey: ['treasury', id] })
+      await queryClient.invalidateQueries({ queryKey: ['circles'] })
+      await queryClient.invalidateQueries({ queryKey: ['circles-explore'] })
       toast.success('Contribution verified')
     },
     onError: (error) => toast.error(getErrorMessage(error))
@@ -106,6 +108,8 @@ export function CircleDetailPage() {
       api.patch(`/circles/${id}/contributions/${contributionId}/reject`, { reason: 'Rejected by admin' }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['contributions', id] })
+      await queryClient.invalidateQueries({ queryKey: ['circles'] })
+      await queryClient.invalidateQueries({ queryKey: ['circles-explore'] })
       toast.success('Contribution rejected')
     },
     onError: (error) => toast.error(getErrorMessage(error))

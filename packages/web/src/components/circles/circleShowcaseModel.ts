@@ -10,6 +10,8 @@ export type ExploreCircleRow = {
   status: string
   currency: string
   coverImageUrl?: string | null
+  /** Sum of verified contribution amounts (same currency as circle goal). */
+  verifiedRaisedAmount?: string | null
 }
 
 export type EnrichedCircle = ExploreCircleRow & {
@@ -81,12 +83,14 @@ export function enrichCircleForShowcase(c: {
   status: string
   currency?: string | null
   coverImageUrl?: string | null
+  verifiedRaisedAmount?: string | null
 }): EnrichedCircle {
   const goalAmount = String(c.goalAmount ?? '0')
   const currency = c.currency ?? 'USD'
   const inferred = inferSector(c.name, c.description)
   const stored = typeof c.coverImageUrl === 'string' ? c.coverImageUrl.trim() : ''
   const imageSrc = stored.length > 0 ? stored : pickImage(c.id)
+  const raised = parseGoal(c.verifiedRaisedAmount ?? '0')
   return {
     id: c.id,
     name: c.name,
@@ -98,6 +102,6 @@ export function enrichCircleForShowcase(c: {
     inferred,
     imageSrc,
     goal: parseGoal(goalAmount),
-    raised: 0,
+    raised,
   }
 }

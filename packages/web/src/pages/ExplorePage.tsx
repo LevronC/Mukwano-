@@ -17,7 +17,16 @@ export function ExplorePage() {
     queryKey: ['circles-explore'],
     queryFn: () =>
       api.get<
-        Array<{ id: string; name: string; description?: string | null; goalAmount: string; status: string; currency: string }>
+        Array<{
+          id: string
+          name: string
+          description?: string | null
+          goalAmount: string
+          status: string
+          currency: string
+          coverImageUrl?: string | null
+          verifiedRaisedAmount?: string | null
+        }>
       >('/circles')
   })
 
