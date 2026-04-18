@@ -66,6 +66,7 @@ model Circle {
   id               String             @id @default(uuid()) @db.Uuid
   name             String
   description      String?
+  coverImageUrl    String?
   goalAmount       Decimal            @db.Decimal(18, 2)
   currency         String             @default("USD")
   status           String             @default("active")

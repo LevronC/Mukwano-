@@ -17,6 +17,7 @@ export const circlesRoute: FastifyPluginAsync = async (fastify) => {
         properties: {
           name: { type: 'string', minLength: 1, maxLength: 120 },
           description: { type: 'string', maxLength: 2000 },
+          coverImageUrl: { anyOf: [{ type: 'string', maxLength: 2000000 }, { type: 'null' }] },
           goalAmount: { type: 'number', exclusiveMinimum: 0 },
           governance: {
             type: 'object',
@@ -65,6 +66,7 @@ export const circlesRoute: FastifyPluginAsync = async (fastify) => {
         properties: {
           name: { type: 'string', minLength: 1, maxLength: 120 },
           description: { anyOf: [{ type: 'string', maxLength: 2000 }, { type: 'null' }] },
+          coverImageUrl: { anyOf: [{ type: 'string', maxLength: 2000000 }, { type: 'null' }] },
           goalAmount: { type: 'number', exclusiveMinimum: 0 }
         },
         additionalProperties: false

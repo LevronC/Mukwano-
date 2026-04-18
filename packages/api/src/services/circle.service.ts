@@ -3,6 +3,34 @@ import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '.
 
 type MembershipRole = 'member' | 'contributor' | 'creator' | 'admin'
 
+const MAX_COVER_DATA_URL_CHARS = 1_800_000
+
+/** Accepts https URL, app-relative path (/assets/...), or data:image/* (base64) for uploads. */
+export function normalizeCoverImageUrl(raw: unknown): string | undefined {
+  if (raw == null || raw === '') return undefined
+  if (typeof raw !== 'string') throw new ValidationError('Cover image must be a string', 'coverImageUrl')
+  const s = raw.trim()
+  if (s.length === 0) return undefined
+  if (s.length > 2_000_000) throw new ValidationError('Cover image too large', 'coverImageUrl')
+  if (s.startsWith('data:image/')) {
+    if (s.length > MAX_COVER_DATA_URL_CHARS) throw new ValidationError('Cover image too large', 'coverImageUrl')
+    return s
+  }
+  if (s.startsWith('/')) {
+    if (s.length > 512) throw new ValidationError('coverImageUrl path too long', 'coverImageUrl')
+    if (!/^\/[\w\-./%]+$/.test(s)) throw new ValidationError('Invalid cover image path', 'coverImageUrl')
+    return s
+  }
+  try {
+    const u = new URL(s)
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('protocol')
+    if (u.href.length > 2048) throw new Error('long')
+    return u.href
+  } catch {
+    throw new ValidationError('Invalid cover image URL', 'coverImageUrl')
+  }
+}
+
 const ADMIN_ROLES: MembershipRole[] = ['creator', 'admin']
 
 export class CircleService {
@@ -11,6 +39,7 @@ export class CircleService {
   async createCircle(userId: string, input: {
     name: string
     description?: string
+    coverImageUrl?: string | null
     goalAmount: number
     governance?: {
       minContribution?: number
@@ -26,11 +55,14 @@ export class CircleService {
       throw new ValidationError('Goal amount must be greater than 0', 'goalAmount')
     }
 
+    const coverImageUrl = normalizeCoverImageUrl(input.coverImageUrl)
+
     const result = await this.app.prisma.$transaction(async (tx) => {
       const circle = await tx.circle.create({
         data: {
           name: input.name,
           description: input.description,
+          coverImageUrl: coverImageUrl ?? null,
           goalAmount: input.goalAmount,
           createdBy: userId
         }
@@ -70,6 +102,7 @@ export class CircleService {
         id: true,
         name: true,
         description: true,
+        coverImageUrl: true,
         goalAmount: true,
         currency: true,
         status: true,
@@ -98,7 +131,7 @@ export class CircleService {
   async updateCircle(circleId: string, userId: string, body: Record<string, unknown>) {
     await this.ensureAdmin(circleId, userId)
 
-    const data: { name?: string; description?: string | null; goalAmount?: number } = {}
+    const data: { name?: string; description?: string | null; goalAmount?: number; coverImageUrl?: string | null } = {}
 
     if (typeof body.name === 'string') data.name = body.name
     if (typeof body.description === 'string') data.description = body.description
@@ -106,6 +139,12 @@ export class CircleService {
     if (typeof body.goalAmount === 'number') {
       if (body.goalAmount <= 0) throw new ValidationError('Goal amount must be greater than 0', 'goalAmount')
       data.goalAmount = body.goalAmount
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'coverImageUrl')) {
+      if (body.coverImageUrl === null) data.coverImageUrl = null
+      else if (typeof body.coverImageUrl === 'string') {
+        data.coverImageUrl = normalizeCoverImageUrl(body.coverImageUrl) ?? null
+      }
     }
 
     if (Object.keys(data).length === 0) {

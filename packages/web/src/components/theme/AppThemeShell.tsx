@@ -9,18 +9,19 @@ export function AppThemeShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
   const isSplash = pathname === '/'
   const reducedMotion = usePrefersReducedMotion()
-  const showEffects = !isSplash && !reducedMotion
+  const showAmbient = !reducedMotion
+  const showCursor = !reducedMotion && !isSplash
 
   useEffect(() => {
     const root = document.documentElement
-    if (showEffects) root.classList.add('mk-theme-cursor')
+    if (showCursor) root.classList.add('mk-theme-cursor')
     else root.classList.remove('mk-theme-cursor')
     return () => root.classList.remove('mk-theme-cursor')
-  }, [showEffects])
+  }, [showCursor])
 
   return (
     <div className="relative min-h-dvh">
-      {showEffects && <WebGLBackground />}
+      {showAmbient && <WebGLBackground />}
       <div
         className="mk-noise pointer-events-none fixed inset-0 z-[1]"
         aria-hidden
@@ -29,7 +30,7 @@ export function AppThemeShell({ children }: { children: ReactNode }) {
         className="mk-radial-overlay pointer-events-none fixed inset-0 z-[1]"
         aria-hidden
       />
-      {showEffects && <CustomCursor />}
+      {showCursor && <CustomCursor />}
       <div className="relative z-[2] min-h-dvh">{children}</div>
     </div>
   )

@@ -1,3 +1,5 @@
+import { CIRCLE_COVER_PRESETS } from '@/components/circles/circleCoverPresets'
+
 export type SectorId = 'all' | 'healthcare' | 'education' | 'agriculture' | 'energy' | 'technology' | 'other'
 
 export type ExploreCircleRow = {
@@ -7,6 +9,7 @@ export type ExploreCircleRow = {
   goalAmount: string
   status: string
   currency: string
+  coverImageUrl?: string | null
 }
 
 export type EnrichedCircle = ExploreCircleRow & {
@@ -16,12 +19,12 @@ export type EnrichedCircle = ExploreCircleRow & {
   raised: number
 }
 
+/** Preset covers first, then legacy fallbacks for hash-based assignment. */
 export const IMAGE_POOL = [
+  ...CIRCLE_COVER_PRESETS,
   'https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80',
   '/assets/landing/hero-expand-ghana.png',
   'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80',
   '/assets/landing/showcase-urban.png',
 ]
 
@@ -77,10 +80,13 @@ export function enrichCircleForShowcase(c: {
   goalAmount?: string | null
   status: string
   currency?: string | null
+  coverImageUrl?: string | null
 }): EnrichedCircle {
   const goalAmount = String(c.goalAmount ?? '0')
   const currency = c.currency ?? 'USD'
   const inferred = inferSector(c.name, c.description)
+  const stored = typeof c.coverImageUrl === 'string' ? c.coverImageUrl.trim() : ''
+  const imageSrc = stored.length > 0 ? stored : pickImage(c.id)
   return {
     id: c.id,
     name: c.name,
@@ -88,8 +94,9 @@ export function enrichCircleForShowcase(c: {
     goalAmount,
     status: c.status,
     currency,
+    coverImageUrl: c.coverImageUrl ?? null,
     inferred,
-    imageSrc: pickImage(c.id),
+    imageSrc,
     goal: parseGoal(goalAmount),
     raised: 0,
   }

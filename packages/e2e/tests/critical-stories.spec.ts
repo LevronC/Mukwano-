@@ -67,6 +67,6 @@ test.describe('Critical user stories (plan §2)', () => {
     // 6 — Explore (catalog + join-request UX surface)
     await page.goto('/explore')
     await expect(page.getByRole('heading', { name: /Join a movement/i })).toBeVisible()
-    await expect(page.getByRole('heading', { name: /Active Communities/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Featured circles/i })).toBeVisible()
   })
 })

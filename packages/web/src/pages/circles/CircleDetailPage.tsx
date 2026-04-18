@@ -11,6 +11,7 @@ type CircleOverview = {
   status?: string
   description?: string
   membershipRole?: string | null
+  coverImageUrl?: string | null
 } & Record<string, unknown>
 
 type CircleMember = {
@@ -35,6 +36,10 @@ export function CircleDetailPage() {
   })
 
   const membershipRole = circle?.membershipRole ?? null
+  const coverSrc =
+    circle && typeof circle.coverImageUrl === 'string' && circle.coverImageUrl.trim().length > 0
+      ? circle.coverImageUrl.trim()
+      : null
   const isMember = membershipRole !== null && membershipRole !== 'pending' && membershipRole !== 'rejected'
   const isPending = membershipRole === 'pending'
   const isAdmin = membershipRole === 'creator' || membershipRole === 'admin'
@@ -142,6 +147,11 @@ export function CircleDetailPage() {
   if (!isMember && !isPending) {
     return (
       <div className="space-y-8">
+        {coverSrc ? (
+          <div className="overflow-hidden rounded-2xl border border-[rgba(240,165,0,0.12)]">
+            <img src={coverSrc} alt="" className="h-44 w-full object-cover md:h-52" />
+          </div>
+        ) : null}
         <section className="mukwano-hero p-8 md:p-10">
           <div className="relative z-10 space-y-2">
             <div className="flex items-center gap-2 mb-3">
@@ -195,6 +205,11 @@ export function CircleDetailPage() {
   if (isPending) {
     return (
       <div className="space-y-8">
+        {coverSrc ? (
+          <div className="overflow-hidden rounded-2xl border border-[rgba(240,165,0,0.12)]">
+            <img src={coverSrc} alt="" className="h-44 w-full object-cover md:h-52" />
+          </div>
+        ) : null}
         <section className="mukwano-hero p-8 md:p-10">
           <div className="relative z-10 space-y-2">
             <div className="flex items-center gap-2 mb-3">
@@ -240,6 +255,11 @@ export function CircleDetailPage() {
   // Full member view (existing UI)
   return (
     <div className="space-y-8">
+      {coverSrc ? (
+        <div className="overflow-hidden rounded-2xl border border-[rgba(240,165,0,0.12)]">
+          <img src={coverSrc} alt="" className="h-44 w-full object-cover md:h-52" />
+        </div>
+      ) : null}
       {/* Hero */}
       <section className="mukwano-hero p-8 md:p-10">
         <div className="relative z-10 space-y-2">
