@@ -3,6 +3,9 @@
  * already has tables but no `_prisma_migrations` history (common for pre-Migrate
  * databases). We apply the idempotent email-verification SQL, then mark that
  * migration applied so future `migrate deploy` runs work normally.
+ *
+ * Also: `migrate deploy` must use a direct (non-pooler) Postgres URL. PgBouncer/
+ * Neon pooler connections cannot hold `pg_advisory_lock` (P1002 / timeout).
  */
 import { spawnSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
@@ -13,10 +16,51 @@ const apiRoot = join(__dirname, '..')
 const emailMigrationDir = '20260411120000_add_email_verification'
 const emailMigrationSql = join(apiRoot, 'prisma/migrations', emailMigrationDir, 'migration.sql')
 
+/**
+ * Prefer explicit direct URLs (Vercel/Neon/Prisma). Poolers break advisory locks.
+ * @see https://www.prisma.io/docs/orm/prisma-migrate/workflows/troubleshooting#migration-engine-times-out-on-postgresql
+ */
+function resolveMigrateDatabaseUrl() {
+  const keys = [
+    'PRISMA_MIGRATE_DATABASE_URL',
+    'DATABASE_URL_UNPOOLED',
+    'DIRECT_URL',
+    'POSTGRES_URL_NON_POOLING'
+  ]
+  for (const k of keys) {
+    const v = process.env[k]?.trim()
+    if (v) {
+      console.log(`[vercel-migrate] Using ${k} for Prisma CLI (session / advisory locks)`)
+      return v
+    }
+  }
+
+  const pooled = process.env.DATABASE_URL?.trim() ?? ''
+  if (!pooled) return ''
+
+  // Neon: pooler host contains `-pooler`; direct host drops that segment.
+  try {
+    const u = new URL(pooled)
+    if (u.hostname.includes('-pooler')) {
+      const direct = new URL(pooled)
+      direct.hostname = u.hostname.replace(/-pooler/g, '')
+      console.log('[vercel-migrate] Derived direct Neon URL from DATABASE_URL (drop -pooler in host)')
+      return direct.toString()
+    }
+  } catch {
+    /* ignore */
+  }
+
+  return pooled
+}
+
+const migrateDatabaseUrl = resolveMigrateDatabaseUrl()
+const prismaMigrateEnv = { ...process.env, DATABASE_URL: migrateDatabaseUrl }
+
 function run(name, args, inherit = false) {
   const r = spawnSync(name, args, {
     cwd: apiRoot,
-    env: process.env,
+    env: prismaMigrateEnv,
     encoding: 'utf8',
     stdio: inherit ? 'inherit' : ['ignore', 'pipe', 'pipe']
   })
@@ -40,7 +84,7 @@ let deployErr = ''
 try {
   const r = spawnSync('npx', ['prisma', 'migrate', 'deploy'], {
     cwd: apiRoot,
-    env: process.env,
+    env: prismaMigrateEnv,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe']
   })
