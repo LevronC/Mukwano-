@@ -265,6 +265,7 @@ export function LandingSections({
               desc="Set up a new investment circle with your friends and define your goals and contribution rules."
               delay={0}
               reduceMotion={reduceMotion}
+              imageSrc="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=640&q=80"
             />
             <HiwStep
               n="02"
@@ -272,6 +273,7 @@ export function LandingSections({
               desc="Add trusted members to your circle and assign roles and permissions through the governance layer."
               delay={0.12}
               reduceMotion={reduceMotion}
+              imageSrc="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=640&q=80"
             />
             <HiwStep
               n="03"
@@ -279,6 +281,7 @@ export function LandingSections({
               desc="Members contribute regularly via mobile money or bank transfer. Every shilling is tracked in the transparent ledger."
               delay={0.24}
               reduceMotion={reduceMotion}
+              imageSrc="https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=640&q=80"
             />
             <HiwStep
               n="04"
@@ -286,6 +289,7 @@ export function LandingSections({
               desc="Monitor contributions in real-time and make collective investment decisions through transparent, on-chain voting."
               delay={0.36}
               reduceMotion={reduceMotion}
+              imageSrc="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=640&q=80"
             />
           </div>
         </motion.div>
@@ -454,12 +458,14 @@ function HiwStep({
   desc,
   delay,
   reduceMotion,
+  imageSrc,
 }: {
   n: string
   title: string
   desc: string
   delay: number
   reduceMotion: boolean
+  imageSrc?: string
 }) {
   return (
     <motion.div
@@ -470,6 +476,18 @@ function HiwStep({
       transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1], delay }}
     >
       <div className="relative mx-auto flex w-full max-w-[260px] flex-col items-center pt-2 text-center">
+        {imageSrc ? (
+          <div className="relative mb-6 w-full overflow-hidden rounded-2xl border border-[rgba(240,165,0,0.15)] shadow-[0_8px_28px_rgba(0,0,0,0.35)]">
+            <img
+              src={imageSrc}
+              alt=""
+              className="aspect-[4/3] w-full object-cover"
+              loading="lazy"
+              decoding="async"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(6,13,31,0.45)] to-transparent" />
+          </div>
+        ) : null}
         {!reduceMotion && (
           <motion.div
             className="pointer-events-none absolute top-[6px] z-[1] h-[88px] w-[88px] rounded-full bg-[radial-gradient(circle,rgba(255,199,64,0.18)_0%,rgba(255,199,64,0.05)_42%,transparent_72%)] blur-md"

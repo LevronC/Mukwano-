@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
+import { ExploreImpactFeatured } from '@/components/explore/ExploreImpactFeatured'
 import { useAuth } from '@/contexts/AuthContext'
 import { getErrorMessage } from '@/hooks/useApiError'
 
@@ -106,102 +107,15 @@ export function ExplorePage() {
         </div>
       </section>
 
-      {/* Circles grid */}
-      <section>
-        <h2 className="mb-6 text-xl font-semibold" style={{ color: 'var(--mk-white)' }}>Active Communities</h2>
-        {isLoading ? (
-          <div className="rounded-2xl p-12 text-center" style={{ background: 'var(--mk-navy2)' }}>
-            <p style={{ color: 'var(--mk-muted)' }}>Loading circles...</p>
-          </div>
-        ) : error ? (
-          <div className="rounded-2xl p-12 text-center" style={{ background: '#ffe9e7' }}>
-            <p className="font-medium" style={{ color: '#7a1f1f' }}>{getErrorMessage(error)}</p>
-          </div>
-        ) : (circles ?? []).length === 0 ? (
-          <div className="rounded-2xl p-12 text-center" style={{ background: 'var(--mk-navy2)' }}>
-            <span className="material-symbols-outlined text-4xl mb-3 block" style={{ color: '#bec9c3' }}>group_work</span>
-            <p className="font-medium" style={{ color: 'var(--mk-muted)' }}>No circles yet — be the first to create one.</p>
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {(circles ?? []).map((circle) => (
-              <article
-                key={circle.id}
-                className="mukwano-card p-5 flex flex-col gap-3 transition-all hover:-translate-y-0.5 hover:shadow-ambient-lg"
-              >
-                <div className="flex items-start justify-between">
-                  <span
-                    className="rounded-full px-3 py-1 text-[0.625rem] font-bold uppercase tracking-widest label-font"
-                    style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--mk-muted)' }}
-                  >
-                    {circle.status}
-                  </span>
-                  <span className="chip-escrow">{circle.currency}</span>
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold" style={{ color: 'var(--mk-white)' }}>{circle.name}</h2>
-                  <p className="mt-1.5 text-sm line-clamp-2" style={{ color: 'var(--mk-muted)' }}>
-                    {circle.description ?? 'Community circle focused on collective impact.'}
-                  </p>
-                </div>
-                <div className="mt-auto pt-2">
-                  <div className="mb-3">
-                    <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font" style={{ color: 'var(--mk-muted)' }}>Goal</p>
-                    <p className="font-bold" style={{ color: 'var(--mk-white)' }}>
-                      {circle.goalAmount} {circle.currency}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {user ? (
-                      <Link
-                        to={`/circles/${circle.id}`}
-                        className="mukwano-btn-primary flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold"
-                      >
-                        Open
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_forward</span>
-                      </Link>
-                    ) : (
-                      <Link
-                        to="/signup"
-                        className="mukwano-btn-primary flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold"
-                      >
-                        Sign up
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_forward</span>
-                      </Link>
-                    )}
-                    {user ? (
-                      <button
-                        className="rounded-xl px-4 py-2 text-sm font-semibold"
-                        style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--mk-white)' }}
-                        onClick={(event) => {
-                          event.preventDefault()
-                          requestJoin.mutate(circle.id)
-                        }}
-                        disabled={requestJoin.isPending || requestsByCircleId.get(circle.id) === 'pending'}
-                      >
-                        {requestsByCircleId.get(circle.id) === 'pending'
-                          ? 'Request Pending'
-                          : requestsByCircleId.get(circle.id) === 'rejected'
-                            ? 'Request Again'
-                            : requestsByCircleId.get(circle.id)
-                              ? `Joined (${requestsByCircleId.get(circle.id)})`
-                              : 'Request to Join'}
-                      </button>
-                    ) : (
-                      <Link
-                        to="/signup"
-                        className="mukwano-btn-primary flex items-center text-center rounded-xl px-4 py-2 text-sm font-semibold"
-                      >
-                        Sign up to join
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+      <ExploreImpactFeatured
+        circles={circles ?? []}
+        isLoading={isLoading}
+        error={error}
+        user={user ? { id: user.id } : null}
+        requestsByCircleId={requestsByCircleId}
+        onRequestJoin={(circleId) => requestJoin.mutate(circleId)}
+        requestJoinPending={requestJoin.isPending}
+      />
     </div>
   )
 
