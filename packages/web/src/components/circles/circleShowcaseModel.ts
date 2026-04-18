@@ -1,0 +1,96 @@
+export type SectorId = 'all' | 'healthcare' | 'education' | 'agriculture' | 'energy' | 'technology' | 'other'
+
+export type ExploreCircleRow = {
+  id: string
+  name: string
+  description?: string | null
+  goalAmount: string
+  status: string
+  currency: string
+}
+
+export type EnrichedCircle = ExploreCircleRow & {
+  inferred: Exclude<SectorId, 'all'>
+  imageSrc: string
+  goal: number
+  raised: number
+}
+
+export const IMAGE_POOL = [
+  'https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80',
+  '/assets/landing/hero-expand-ghana.png',
+  'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80',
+  '/assets/landing/showcase-urban.png',
+]
+
+const SECTOR_KEYWORDS: Record<Exclude<SectorId, 'all' | 'other'>, RegExp> = {
+  healthcare: /health|clinic|medical|hospital|care|maternal|vacc/i,
+  education: /school|edu|learn|scholar|stem|library|student/i,
+  agriculture: /farm|crop|irrigation|agri|harvest|co-?op/i,
+  energy: /solar|energy|power|grid|renewable|panel/i,
+  technology: /tech|digital|software|fintech|data|lab|code/i,
+}
+
+export function inferSector(name: string, description: string | null | undefined): Exclude<SectorId, 'all'> {
+  const text = `${name} ${description ?? ''}`
+  for (const [id, re] of Object.entries(SECTOR_KEYWORDS) as [keyof typeof SECTOR_KEYWORDS, RegExp][]) {
+    if (re.test(text)) return id
+  }
+  return 'other'
+}
+
+export function sectorLabel(s: Exclude<SectorId, 'all'>): string {
+  const map: Record<Exclude<SectorId, 'all'>, string> = {
+    healthcare: 'Healthcare',
+    education: 'Education',
+    agriculture: 'Agriculture',
+    energy: 'Energy',
+    technology: 'Technology',
+    other: 'Community',
+  }
+  return map[s]
+}
+
+export function pickImage(id: string): string {
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (h + id.charCodeAt(i) * (i + 1)) % 997
+  return IMAGE_POOL[Math.abs(h) % IMAGE_POOL.length]
+}
+
+export function parseGoal(goalAmount: string | undefined | null): number {
+  const n = Number.parseFloat(String(goalAmount ?? '0').replace(/,/g, ''))
+  return Number.isFinite(n) ? n : 0
+}
+
+export function progressPct(raised: number, goal: number): number {
+  if (goal <= 0) return 0
+  return Math.min(100, Math.round((raised / goal) * 100))
+}
+
+/** Normalize API circle rows into the showcase card model (same image + sector + progress logic as Explore). */
+export function enrichCircleForShowcase(c: {
+  id: string
+  name: string
+  description?: string | null
+  goalAmount?: string | null
+  status: string
+  currency?: string | null
+}): EnrichedCircle {
+  const goalAmount = String(c.goalAmount ?? '0')
+  const currency = c.currency ?? 'USD'
+  const inferred = inferSector(c.name, c.description)
+  return {
+    id: c.id,
+    name: c.name,
+    description: c.description,
+    goalAmount,
+    status: c.status,
+    currency,
+    inferred,
+    imageSrc: pickImage(c.id),
+    goal: parseGoal(goalAmount),
+    raised: 0,
+  }
+}
