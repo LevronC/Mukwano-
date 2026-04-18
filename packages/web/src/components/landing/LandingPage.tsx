@@ -255,7 +255,7 @@ function LandingStaticHero() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,199,64,0.16),transparent_28%),radial-gradient(circle_at_bottom,rgba(7,17,38,0.18),rgba(6,13,31,0.72)_72%)]" />
       <div className="mk-noise absolute inset-0" />
       <div className="relative z-10 flex min-h-dvh flex-col items-center justify-end px-5 pt-24 pb-10 text-center sm:pt-28 sm:pb-12 md:pb-16">
-        <div className="relative mb-8 flex max-h-[min(44vh,420px)] w-full max-w-[320px] items-center justify-center overflow-hidden rounded-[34px] border border-white/10 shadow-[0_30px_80px_rgba(2,8,24,0.42)] sm:mb-10 sm:max-h-[min(50vh,480px)] sm:max-w-[420px] md:max-w-[480px]">
+        <div className="relative mb-8 hidden max-h-[min(44vh,420px)] w-full max-w-[320px] items-center justify-center overflow-hidden rounded-[34px] border border-white/10 shadow-[0_30px_80px_rgba(2,8,24,0.42)] sm:mb-10 sm:max-h-[min(50vh,480px)] sm:max-w-[420px] md:max-w-[480px] md:flex">
           <div className="pointer-events-none absolute inset-x-[12%] top-0 z-[2] h-px bg-gradient-to-r from-transparent via-[rgba(255,232,192,0.85)] to-transparent" />
           <img
             src={HERO.media}
