@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { Menu, X } from 'lucide-react'
 import { ScrollExpandMedia, type ScrollExpandMediaHandle } from '@/components/ui/scroll-expansion-hero'
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import { useSimpleLandingHero } from '@/hooks/useSimpleLandingHero'
@@ -17,6 +18,7 @@ export function LandingPage() {
   const [navVisible, setNavVisible] = useState(false)
   const [termsOpen, setTermsOpen] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const reducedMotion = usePrefersReducedMotion()
   const simpleLandingHero = useSimpleLandingHero()
   const staticHero = reducedMotion || simpleLandingHero
@@ -39,6 +41,15 @@ export function LandingPage() {
     [scrollToSection]
   )
 
+  const onMobileInPageNavClick = useCallback(
+    (id: string) => (e: MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault()
+      setMobileMenuOpen(false)
+      scrollToSection(id)
+    },
+    [scrollToSection]
+  )
+
   useEffect(() => {
     const t1 = setTimeout(() => setIntroGone(true), 2600)
     const t2 = setTimeout(() => setNavVisible(true), 3200)
@@ -49,18 +60,19 @@ export function LandingPage() {
   }, [])
 
   useEffect(() => {
-    if (termsOpen || privacyOpen) document.body.style.overflow = 'hidden'
+    if (termsOpen || privacyOpen || mobileMenuOpen) document.body.style.overflow = 'hidden'
     else document.body.style.overflow = ''
     return () => {
       document.body.style.overflow = ''
     }
-  }, [termsOpen, privacyOpen])
+  }, [termsOpen, privacyOpen, mobileMenuOpen])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setTermsOpen(false)
         setPrivacyOpen(false)
+        setMobileMenuOpen(false)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -151,7 +163,7 @@ export function LandingPage() {
             </a>
           </li>
         </ul>
-        <div className="flex items-center gap-3 md:gap-[18px]">
+        <div className="flex items-center gap-2 md:gap-[18px]">
           <Link
             to="/login"
             className="hidden text-[11px] font-semibold tracking-[2.5px] text-[var(--mk-muted)] uppercase transition-colors hover:text-[var(--mk-gold)] sm:block md:text-[12px]"
@@ -164,8 +176,96 @@ export function LandingPage() {
           >
             Join a Circle
           </Link>
+          <button
+            type="button"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[rgba(240,165,0,0.35)] text-[var(--mk-gold)] transition-colors hover:border-[var(--mk-gold)] hover:bg-[rgba(240,165,0,0.08)] md:hidden"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="landing-mobile-nav"
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            onClick={() => setMobileMenuOpen((open) => !open)}
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" strokeWidth={2} /> : <Menu className="h-5 w-5" strokeWidth={2} />}
+          </button>
         </div>
       </header>
+
+      {mobileMenuOpen ? (
+        <>
+          <div
+            className="fixed inset-0 z-[200] bg-[rgba(4,9,21,0.72)] backdrop-blur-sm md:hidden"
+            aria-hidden="true"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <nav
+            id="landing-mobile-nav"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Site"
+            className="fixed top-0 right-0 z-[201] flex h-dvh max-h-dvh w-[min(100vw-3rem,320px)] flex-col border-l border-[rgba(240,165,0,0.18)] bg-[var(--mk-navy)] shadow-[-24px_0_48px_rgba(0,0,0,0.35)] md:hidden"
+          >
+            <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.08)] px-4 py-4">
+              <span className="label-font text-[10px] font-semibold tracking-[0.28em] text-[var(--mk-muted)] uppercase">
+                Menu
+              </span>
+              <button
+                type="button"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[rgba(240,165,0,0.3)] text-[var(--mk-gold)] transition-colors hover:bg-[rgba(240,165,0,0.1)]"
+                aria-label="Close menu"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <X className="h-5 w-5" strokeWidth={2} />
+              </button>
+            </div>
+            <ul className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
+              <li>
+                <a
+                  href="#features"
+                  onClick={onMobileInPageNavClick('features')}
+                  className="block rounded-xl px-4 py-3.5 text-[13px] font-semibold tracking-[2px] text-[var(--mk-offwhite)] uppercase transition-colors hover:bg-white/6 hover:text-[var(--mk-gold)]"
+                >
+                  Features
+                </a>
+              </li>
+              <li>
+                <Link
+                  to="/login"
+                  className="block rounded-xl px-4 py-3.5 text-[13px] font-semibold tracking-[2px] text-[var(--mk-offwhite)] uppercase transition-colors hover:bg-white/6 hover:text-[var(--mk-gold)]"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Sign in
+                </Link>
+              </li>
+              <li>
+                <a
+                  href="#how-it-works"
+                  onClick={onMobileInPageNavClick('how-it-works')}
+                  className="block rounded-xl px-4 py-3.5 text-[13px] font-semibold tracking-[2px] text-[var(--mk-offwhite)] uppercase transition-colors hover:bg-white/6 hover:text-[var(--mk-gold)]"
+                >
+                  How It Works
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#values"
+                  onClick={onMobileInPageNavClick('values')}
+                  className="block rounded-xl px-4 py-3.5 text-[13px] font-semibold tracking-[2px] text-[var(--mk-offwhite)] uppercase transition-colors hover:bg-white/6 hover:text-[var(--mk-gold)]"
+                >
+                  Values
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#faq"
+                  onClick={onMobileInPageNavClick('faq')}
+                  className="block rounded-xl px-4 py-3.5 text-[13px] font-semibold tracking-[2px] text-[var(--mk-offwhite)] uppercase transition-colors hover:bg-white/6 hover:text-[var(--mk-gold)]"
+                >
+                  FAQ
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </>
+      ) : null}
 
       <div className="pointer-events-none absolute top-0 right-0 left-0 z-[99] h-px bg-gradient-to-r from-transparent via-[rgba(240,165,0,0.15)] to-transparent md:left-16 md:right-16" />
 
