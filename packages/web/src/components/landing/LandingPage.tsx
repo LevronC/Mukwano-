@@ -349,8 +349,8 @@ export function LandingPage() {
 
 function LandingStaticHero() {
   return (
-    <section className="relative min-h-dvh">
-      <img src={HERO.bg} alt="" className="absolute inset-0 h-full w-full object-cover" width={1920} height={1080} />
+    <section className="relative min-h-dvh overflow-hidden">
+      <img src={HERO.bg} alt="" className="mk-dam-motion absolute inset-0 h-full w-full object-cover" width={1920} height={1080} />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,9,21,0.58)_0%,rgba(6,13,31,0.42)_28%,rgba(6,13,31,0.72)_100%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,199,64,0.16),transparent_28%),radial-gradient(circle_at_bottom,rgba(7,17,38,0.18),rgba(6,13,31,0.72)_72%)]" />
       <div className="mk-noise absolute inset-0" />

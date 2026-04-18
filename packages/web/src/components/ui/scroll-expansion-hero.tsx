@@ -227,13 +227,13 @@ export const ScrollExpandMedia = forwardRef<ScrollExpandMediaHandle, ScrollExpan
       <div ref={sectionRef} className="overflow-x-hidden transition-colors duration-700 ease-in-out">
         <section className="relative flex min-h-[100dvh] flex-col items-center justify-start">
           <div className="relative flex min-h-[100dvh] w-full flex-col items-center">
-            <div className="absolute inset-0 z-0 h-full" style={{ opacity: 0.96 - scrollProgress * 0.66 }}>
+            <div className="absolute inset-0 z-0 h-full overflow-hidden" style={{ opacity: 0.96 - scrollProgress * 0.66 }}>
               <img
                 src={bgImageSrc}
                 alt=""
                 width={1920}
                 height={1080}
-                className="h-screen w-screen object-cover object-center"
+                className="mk-dam-motion h-screen w-screen object-cover object-center"
                 decoding="async"
               />
               <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,9,21,0.58)_0%,rgba(6,13,31,0.42)_28%,rgba(6,13,31,0.72)_100%)]" />
