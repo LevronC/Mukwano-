@@ -4,10 +4,14 @@
  * databases). We apply the idempotent email-verification SQL, then mark that
  * migration applied so future `migrate deploy` runs work normally.
  *
- * Also: `migrate deploy` must use a direct (non-pooler) Postgres URL. PgBouncer/
- * Neon pooler connections cannot hold `pg_advisory_lock` (P1002 / timeout).
+ * Also:
+ * - `migrate deploy` should use a direct (non-pooler) Postgres URL for sessions.
+ * - Neon / some hosts still hit P1002 (advisory lock timeout) even with a direct
+ *   URL. Prisma supports `PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1` for migrate
+ *   when only one deploy runs migrations at a time (see Prisma docs).
+ * - Strip `pgbouncer` query params and extend `connect_timeout` for cold starts.
  */
-import { spawnSync } from 'node:child_process'
+import { execSync, spawnSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -18,7 +22,6 @@ const emailMigrationSql = join(apiRoot, 'prisma/migrations', emailMigrationDir, 
 
 /**
  * Prefer explicit direct URLs (Vercel/Neon/Prisma). Poolers break advisory locks.
- * @see https://www.prisma.io/docs/orm/prisma-migrate/workflows/troubleshooting#migration-engine-times-out-on-postgresql
  */
 function resolveMigrateDatabaseUrl() {
   const keys = [
@@ -54,8 +57,48 @@ function resolveMigrateDatabaseUrl() {
   return pooled
 }
 
-const migrateDatabaseUrl = resolveMigrateDatabaseUrl()
+/** Remove pooler-related params; give Neon time to wake on first connect. */
+function sanitizeMigrateUrl(raw) {
+  if (!raw) return raw
+  try {
+    const u = new URL(raw)
+    for (const k of ['pgbouncer', 'pooler']) {
+      u.searchParams.delete(k)
+    }
+    if (!u.searchParams.has('connect_timeout')) {
+      u.searchParams.set('connect_timeout', '60')
+    }
+    return u.toString()
+  } catch {
+    return raw
+  }
+}
+
+function sleepSync(seconds) {
+  try {
+    execSync(`sleep ${seconds}`, { stdio: 'ignore' })
+  } catch {
+    /* ignore */
+  }
+}
+
+const migrateDatabaseUrl = sanitizeMigrateUrl(resolveMigrateDatabaseUrl())
+
+/** Inherit env; force DATABASE_URL for Prisma CLI. */
 const prismaMigrateEnv = { ...process.env, DATABASE_URL: migrateDatabaseUrl }
+
+/**
+ * Default ON for this script only: avoids P1002 advisory lock timeouts on Neon.
+ * Set `PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=0` in Vercel to re-enable locking.
+ * Do not run two production migrate deploys concurrently either way.
+ */
+const lockExplicit = process.env.PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK
+if (lockExplicit !== '0' && lockExplicit !== 'false') {
+  prismaMigrateEnv.PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK = '1'
+  console.log(
+    '[vercel-migrate] PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 for Prisma CLI (avoids P1002 advisory lock timeout on Neon; run one migrate at a time)'
+  )
+}
 
 function run(name, args, inherit = false) {
   const r = spawnSync(name, args, {
@@ -74,6 +117,15 @@ function run(name, args, inherit = false) {
   return r
 }
 
+function migrateDeployOnce() {
+  return spawnSync('npx', ['prisma', 'migrate', 'deploy'], {
+    cwd: apiRoot,
+    env: prismaMigrateEnv,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe']
+  })
+}
+
 if (!process.env.DATABASE_URL?.trim()) {
   console.log('[vercel-migrate] DATABASE_URL unset; skipping migrations')
   process.exit(0)
@@ -82,21 +134,27 @@ if (!process.env.DATABASE_URL?.trim()) {
 let deployOut = ''
 let deployErr = ''
 try {
-  const r = spawnSync('npx', ['prisma', 'migrate', 'deploy'], {
-    cwd: apiRoot,
-    env: prismaMigrateEnv,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe']
-  })
-  if (r.status === 0) {
-    process.stdout.write(r.stdout || '')
-    process.stderr.write(r.stderr || '')
-    process.exit(0)
+  const maxAttempts = 3
+  let last = null
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    if (attempt > 1) {
+      console.log(`[vercel-migrate] retry migrate deploy (${attempt}/${maxAttempts}) after 20s…`)
+      sleepSync(20)
+    }
+    last = migrateDeployOnce()
+    if (last.status === 0) {
+      process.stdout.write(last.stdout || '')
+      process.stderr.write(last.stderr || '')
+      process.exit(0)
+    }
+    deployOut = last.stdout || ''
+    deployErr = last.stderr || ''
+    process.stdout.write(deployOut)
+    process.stderr.write(deployErr)
+    const combined = `${deployOut}\n${deployErr}`
+    const isRetryable = combined.includes('P1002') || combined.includes('advisory lock')
+    if (!isRetryable || attempt === maxAttempts) break
   }
-  deployOut = r.stdout || ''
-  deployErr = r.stderr || ''
-  process.stdout.write(deployOut)
-  process.stderr.write(deployErr)
 } catch (e) {
   console.error(e)
   process.exit(1)
