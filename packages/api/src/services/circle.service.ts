@@ -1,9 +1,14 @@
 import type { FastifyInstance } from 'fastify'
+import {
+  ONBOARDING_COUNTRY_NAMES,
+  ONBOARDING_SECTOR_LABELS
+} from '../constants/circle-choices.js'
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/http-errors.js'
 
 type MembershipRole = 'member' | 'contributor' | 'creator' | 'admin'
 
-const MAX_COVER_DATA_URL_CHARS = 1_800_000
+/** ~5 MiB file as base64 data URL (~6.9M chars) + headroom */
+const MAX_COVER_DATA_URL_CHARS = 8_000_000
 
 /** Accepts https URL, app-relative path (/assets/...), or data:image/* (base64) for uploads. */
 export function normalizeCoverImageUrl(raw: unknown): string | undefined {
@@ -11,7 +16,7 @@ export function normalizeCoverImageUrl(raw: unknown): string | undefined {
   if (typeof raw !== 'string') throw new ValidationError('Cover image must be a string', 'coverImageUrl')
   const s = raw.trim()
   if (s.length === 0) return undefined
-  if (s.length > 2_000_000) throw new ValidationError('Cover image too large', 'coverImageUrl')
+  if (s.length > 8_200_000) throw new ValidationError('Cover image too large', 'coverImageUrl')
   if (s.startsWith('data:image/')) {
     if (s.length > MAX_COVER_DATA_URL_CHARS) throw new ValidationError('Cover image too large', 'coverImageUrl')
     return s
@@ -33,12 +38,36 @@ export function normalizeCoverImageUrl(raw: unknown): string | undefined {
 
 const ADMIN_ROLES: MembershipRole[] = ['creator', 'admin']
 
+function validateCountryName(raw: unknown): string | undefined {
+  if (raw == null || raw === '') return undefined
+  if (typeof raw !== 'string') throw new ValidationError('Country must be a string', 'country')
+  const name = raw.trim()
+  if (name.length === 0) return undefined
+  if (!ONBOARDING_COUNTRY_NAMES.includes(name as (typeof ONBOARDING_COUNTRY_NAMES)[number])) {
+    throw new ValidationError('Invalid country', 'country')
+  }
+  return name
+}
+
+function validateSectorLabel(raw: unknown): string | undefined {
+  if (raw == null || raw === '') return undefined
+  if (typeof raw !== 'string') throw new ValidationError('Sector must be a string', 'sector')
+  const label = raw.trim()
+  if (label.length === 0) return undefined
+  if (!ONBOARDING_SECTOR_LABELS.includes(label as (typeof ONBOARDING_SECTOR_LABELS)[number])) {
+    throw new ValidationError('Invalid sector', 'sector')
+  }
+  return label
+}
+
 export class CircleService {
   constructor(private readonly app: FastifyInstance) {}
 
   async createCircle(userId: string, input: {
     name: string
     description?: string
+    country?: string
+    sector?: string
     coverImageUrl?: string | null
     goalAmount: number
     governance?: {
@@ -56,12 +85,16 @@ export class CircleService {
     }
 
     const coverImageUrl = normalizeCoverImageUrl(input.coverImageUrl)
+    const country = validateCountryName(input.country)
+    const sector = validateSectorLabel(input.sector)
 
     const result = await this.app.prisma.$transaction(async (tx) => {
       const circle = await tx.circle.create({
         data: {
           name: input.name,
           description: input.description,
+          country: country ?? null,
+          sector: sector ?? null,
           coverImageUrl: coverImageUrl ?? null,
           goalAmount: input.goalAmount,
           createdBy: userId
@@ -102,6 +135,8 @@ export class CircleService {
         id: true,
         name: true,
         description: true,
+        country: true,
+        sector: true,
         coverImageUrl: true,
         goalAmount: true,
         currency: true,
@@ -357,8 +392,8 @@ export class CircleService {
     return { message: 'Left circle successfully' }
   }
 
-  async listMembers(circleId: string, _userId: string) {
-    await this.ensureCircleExists(circleId)
+  async listMembers(circleId: string, userId: string) {
+    await this.ensureMember(circleId, userId)
     return this.app.prisma.circleMembership.findMany({
       where: { circleId, role: { notIn: ['pending', 'rejected'] } },
       orderBy: { joinedAt: 'asc' },

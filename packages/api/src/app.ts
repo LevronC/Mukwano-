@@ -67,7 +67,8 @@ export async function buildApp(): Promise<FastifyInstance> {
       level: process.env.NODE_ENV === 'test' ? 'silent' : 'info'
     },
     genReqId: () => crypto.randomUUID(),
-    bodyLimit: 4 * 1024 * 1024  // 4 MB — accommodates base64 profile image uploads
+    // ~5 MiB cover images as JSON data URLs need >7 MiB; round up for headroom.
+    bodyLimit: 10 * 1024 * 1024
   })
 
   await app.register(envPlugin)

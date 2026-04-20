@@ -1,11 +1,16 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { config as loadEnv } from 'dotenv'
 import { defineConfig, devices } from '@playwright/test'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoPackages = path.resolve(__dirname, '..')
 const apiDir = path.join(repoPackages, 'api')
 const webDir = path.join(repoPackages, 'web')
+
+// Merge packages/api/.env into this process so the spawned API inherits DATABASE_URL / secrets
+// (avoids "SASL: ... client password must be a string" when the shell has no DB env).
+loadEnv({ path: path.join(apiDir, '.env') })
 
 const defaultJwt = process.env.JWT_SECRET ?? 'local-dev-jwt-secret-min-32-chars!!!!'
 const defaultRefresh =
@@ -43,7 +48,10 @@ export default defineConfig({
           }
         },
         {
-          command: 'npx vite preview --host localhost --port 5173 --strictPort',
+          // Dev server (not `vite preview`): production builds embed VITE_API_BASE_URL from
+          // `.env.production` (e.g. Vercel), so preview would call the remote API and hit CORS.
+          // Dev uses relative `/api/v1` + Vite proxy → local API on :4000.
+          command: 'npm run dev',
           cwd: webDir,
           url: 'http://localhost:5173/',
           timeout: 120_000,

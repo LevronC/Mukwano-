@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { getErrorMessage } from '@/hooks/useApiError'
+import { flagEmojiForCountryName } from '@/lib/onboarding-display'
 
 const TABS = ['overview', 'contributions', 'proposals', 'projects'] as const
 
@@ -10,6 +11,8 @@ type CircleOverview = {
   name?: string
   status?: string
   description?: string
+  country?: string | null
+  sector?: string | null
   membershipRole?: string | null
   coverImageUrl?: string | null
 } & Record<string, unknown>
@@ -21,6 +24,31 @@ type CircleMember = {
     displayName?: string
     email?: string
   }
+}
+
+function CircleMetaChips({ country, sector }: { country?: string | null; sector?: string | null }) {
+  if (!country && !sector) return null
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {country ? (
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(240,165,0,0.25)] px-3 py-1 text-xs font-medium"
+          style={{ color: 'var(--mk-offwhite)' }}
+        >
+          <span aria-hidden>{flagEmojiForCountryName(country)}</span>
+          {country}
+        </span>
+      ) : null}
+      {sector ? (
+        <span
+          className="inline-flex items-center rounded-full border border-[rgba(240,165,0,0.25)] px-3 py-1 text-xs font-medium"
+          style={{ color: 'var(--mk-offwhite)' }}
+        >
+          {sector}
+        </span>
+      ) : null}
+    </div>
+  )
 }
 
 export function CircleDetailPage() {
@@ -167,6 +195,7 @@ export function CircleDetailPage() {
             {circle?.description && (
               <p className="text-sm max-w-xl" style={{ color: '#a0f3d4' }}>{circle.description}</p>
             )}
+            <CircleMetaChips country={circle?.country} sector={circle?.sector} />
             <p className="text-sm mt-2" style={{ color: 'var(--mk-muted)' }}>
               {members?.length ?? 0} member{(members?.length ?? 0) === 1 ? '' : 's'}
             </p>
@@ -227,6 +256,7 @@ export function CircleDetailPage() {
             {circle?.description && (
               <p className="text-sm max-w-xl" style={{ color: '#a0f3d4' }}>{circle.description}</p>
             )}
+            <CircleMetaChips country={circle?.country} sector={circle?.sector} />
             <p className="text-sm mt-2" style={{ color: 'var(--mk-muted)' }}>
               Your request to join this circle is awaiting committee approval.
             </p>
@@ -281,6 +311,7 @@ export function CircleDetailPage() {
           {circle?.description && (
             <p className="text-sm max-w-xl" style={{ color: '#a0f3d4' }}>{circle.description}</p>
           )}
+          <CircleMetaChips country={circle?.country} sector={circle?.sector} />
         </div>
       </section>
 

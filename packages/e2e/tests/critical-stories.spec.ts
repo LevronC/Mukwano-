@@ -60,7 +60,7 @@ test.describe('Critical user stories (plan §2)', () => {
     await page.goto('/circles/new')
     await page.getByLabel('Circle Name').fill(circleName)
     await page.getByLabel('Description').fill('Plan §2 governance flow')
-    await page.getByRole('button', { name: 'Create Circle' }).click()
+    await page.getByRole('button', { name: /create circle/i }).click()
     await expect(page).toHaveURL(/\/circles\/[0-9a-f-]{36}$/i, { timeout: 20_000 })
     await expect(page.getByRole('heading', { level: 1, name: circleName })).toBeVisible({ timeout: 15_000 })
 

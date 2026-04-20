@@ -14,6 +14,8 @@ type CircleListRow = {
   id: string
   name: string
   description?: string | null
+  country?: string | null
+  sector?: string | null
   status: string
   goalAmount?: string | null
   currency?: string | null

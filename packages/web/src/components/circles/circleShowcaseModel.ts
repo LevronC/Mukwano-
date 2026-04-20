@@ -6,6 +6,9 @@ export type ExploreCircleRow = {
   id: string
   name: string
   description?: string | null
+  /** When set (from create flow), drives sector filters instead of inferring from name/description. */
+  sector?: string | null
+  country?: string | null
   goalAmount: string
   status: string
   currency: string
@@ -46,6 +49,21 @@ export function inferSector(name: string, description: string | null | undefined
   return 'other'
 }
 
+/** Maps onboarding sector labels to explore filter ids (see `ONBOARDING_SECTORS` on the web). */
+export function onboardingSectorLabelToFilterId(
+  label: string
+): Exclude<SectorId, 'all'> | null {
+  const map: Record<string, Exclude<SectorId, 'all'>> = {
+    Healthcare: 'healthcare',
+    Education: 'education',
+    Agriculture: 'agriculture',
+    Technology: 'technology',
+    'Clean Energy': 'energy',
+    Infrastructure: 'other'
+  }
+  return map[label] ?? null
+}
+
 export function sectorLabel(s: Exclude<SectorId, 'all'>): string {
   const map: Record<Exclude<SectorId, 'all'>, string> = {
     healthcare: 'Healthcare',
@@ -79,6 +97,7 @@ export function enrichCircleForShowcase(c: {
   id: string
   name: string
   description?: string | null
+  sector?: string | null
   goalAmount?: string | null
   status: string
   currency?: string | null
@@ -87,7 +106,9 @@ export function enrichCircleForShowcase(c: {
 }): EnrichedCircle {
   const goalAmount = String(c.goalAmount ?? '0')
   const currency = c.currency ?? 'USD'
-  const inferred = inferSector(c.name, c.description)
+  const inferredFromText = inferSector(c.name, c.description)
+  const fromStored = c.sector ? onboardingSectorLabelToFilterId(c.sector) : null
+  const inferred = (fromStored ?? inferredFromText) as Exclude<SectorId, 'all'>
   const stored = typeof c.coverImageUrl === 'string' ? c.coverImageUrl.trim() : ''
   const imageSrc = stored.length > 0 ? stored : pickImage(c.id)
   const raised = parseGoal(c.verifiedRaisedAmount ?? '0')

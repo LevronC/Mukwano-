@@ -16,8 +16,13 @@ npm run test:critical
 
 ## Prerequisites
 
-- Database reachable with the same `DATABASE_URL` / JWT secrets as `packages/api` (see `packages/api/.env` or docker-compose).
-- API and web **built**: `npm run build` in `packages/api` and `packages/web`.
+- **`packages/api/.env`** with a valid `DATABASE_URL`, `JWT_SECRET`, and `REFRESH_TOKEN_SECRET` (same as when you run the API locally). Playwright loads this file before starting `node dist/server.js`.
+- **PostgreSQL URL shape:** if you see  
+  `SASL: SCRAM-SERVER-FIRST-MESSAGE: client password must be a string`,  
+  your URL almost always needs an explicit password in the URI, e.g.  
+  `postgresql://USER:PASSWORD@localhost:5432/DBNAME`  
+  (even for local dev, use the real password — not `postgresql://user@host/...` with no `:` segment, which can break SCRAM).
+- API **built** (`npm run build:api` from repo root). Web is started with `vite` dev by Playwright (see above).
 
 ## One-time browser install
 
@@ -37,14 +42,15 @@ On Linux CI, use `npx playwright install chromium --with-deps` (see `.github/wor
 
 ## Run locally
 
-**From repo root** (after `npm run build:all`):
+**From repo root** — build the **API** (`packages/api/dist/server.js` is what Playwright starts). The web app is served by Vite dev; you do **not** need `npm run build` in `packages/web` for these tests.
 
 ```bash
+npm run build:api   # or npm run build:all if you prefer
 npm run test:e2e              # all Playwright tests
 npm run test:e2e:critical     # only critical-stories.spec.ts
 ```
 
-Playwright starts `node packages/api/dist/server.js` and `vite preview` on **`http://localhost:5173`** unless servers are already up (`reuseExistingServer` when `CI` is unset).
+Playwright starts `node packages/api/dist/server.js` and **`npm run dev`** (Vite dev server) on **`http://localhost:5173`** unless servers are already up (`reuseExistingServer` when `CI` is unset). We use the dev server instead of `vite preview` so the app keeps **relative** `/api/v1` requests (proxied to `:4000`). A production `npm run build` bakes `VITE_API_BASE_URL` from `.env.production` (e.g. Vercel) into the bundle, which would make preview hit the remote API and fail with CORS locally.
 
 **Global setup** registers a throwaway user via `POST /api/v1/auth/signup` and writes `packages/e2e/.e2e-credentials.json` (gitignored).
 

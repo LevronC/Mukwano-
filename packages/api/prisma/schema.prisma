@@ -66,6 +66,10 @@ model Circle {
   id               String             @id @default(uuid()) @db.Uuid
   name             String
   description      String?
+  /** Human-readable country name (same values as user onboarding). */
+  country          String?
+  /** Sector label (same values as `ONBOARDING_SECTORS` on the web). */
+  sector           String?
   coverImageUrl    String?
   goalAmount       Decimal            @db.Decimal(18, 2)
   currency         String             @default("USD")

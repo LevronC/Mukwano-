@@ -172,13 +172,13 @@ describe('GET /api/v1/circles (CIRCLE-02)', () => {
     expect(found).toBeTruthy()
   })
 
-  it('returns 401 for unauthenticated requests', async () => {
+  it('returns 200 for unauthenticated requests (public route)', async () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/v1/circles'
     })
 
-    expect(res.statusCode).toBe(401)
+    expect(res.statusCode).toBe(200)
   })
 })
 

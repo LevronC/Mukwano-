@@ -21,6 +21,8 @@ export function ExplorePage() {
           id: string
           name: string
           description?: string | null
+          country?: string | null
+          sector?: string | null
           goalAmount: string
           status: string
           currency: string

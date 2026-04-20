@@ -8,6 +8,7 @@ export default defineConfig({
     hookTimeout: 30000,
     passWithNoTests: true,
     pool: 'forks',
-    maxWorkers: 1
+    maxWorkers: 1,
+    setupFiles: ['./test/setup.ts']
   }
 })

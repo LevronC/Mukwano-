@@ -175,10 +175,9 @@ describe('S-10 — double vote', () => {
 })
 
 describe('S-01 — unauthenticated access', () => {
-  it('returns 401 UNAUTHORIZED for GET /api/v1/circles without JWT', async () => {
+  it('returns 200 for GET /api/v1/circles without JWT (public route)', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/circles' })
-    expect(res.statusCode).toBe(401)
-    expect(res.json().error.code).toBe('UNAUTHORIZED')
+    expect(res.statusCode).toBe(200)
   })
 })
 
@@ -241,7 +240,7 @@ describe('S-02 — expired JWT', () => {
     })
     const res = await app.inject({
       method: 'GET',
-      url: '/api/v1/circles',
+      url: `/api/v1/circles/${circleId}`,
       headers: injectHeaders(token)
     })
     expect(res.statusCode).toBe(401)

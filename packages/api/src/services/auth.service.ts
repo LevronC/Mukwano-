@@ -60,11 +60,6 @@ export class AuthService {
       throw e
     }
 
-    await this.app.prisma.user.update({
-      where: { id: user.id },
-      data: { lastVerificationEmailSent: new Date() }
-    })
-
     const userWithSent = await this.app.prisma.user.findUniqueOrThrow({ where: { id: user.id } })
     return this.issueTokenPair(userWithSent)
   }

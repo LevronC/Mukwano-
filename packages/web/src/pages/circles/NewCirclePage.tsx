@@ -6,8 +6,9 @@ import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { CIRCLE_COVER_PRESETS } from '@/components/circles/circleCoverPresets'
 import { getErrorMessage } from '@/hooks/useApiError'
+import { flagEmojiForCountryName, ONBOARDING_COUNTRIES, ONBOARDING_SECTORS } from '@/lib/onboarding-display'
 
-const MAX_UPLOAD_BYTES = 1_200_000
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
 export function NewCirclePage() {
   const navigate = useNavigate()
@@ -15,21 +16,31 @@ export function NewCirclePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [country, setCountry] = useState<string>(ONBOARDING_COUNTRIES[0].name)
+  const [countrySearch, setCountrySearch] = useState('')
+  const [sector, setSector] = useState<string>(ONBOARDING_SECTORS[0].label)
   const [goalAmount, setGoalAmount] = useState(100)
   /** Selected preset path, pasted URL, or data URL from file upload */
   const [coverImageUrl, setCoverImageUrl] = useState<string | undefined>(CIRCLE_COVER_PRESETS[0])
   const [imageUrlInput, setImageUrlInput] = useState('')
+
+  const filteredCountries = ONBOARDING_COUNTRIES.filter(({ name: n }) =>
+    n.toLowerCase().includes(countrySearch.toLowerCase())
+  )
 
   const createCircle = useMutation({
     mutationFn: () =>
       api.post<{ id: string }>('/circles', {
         name,
         description: description || undefined,
+        country,
+        sector,
         goalAmount,
         coverImageUrl: coverImageUrl ?? null,
       }),
     onSuccess: async (circle) => {
       await queryClient.invalidateQueries({ queryKey: ['circles'] })
+      await queryClient.invalidateQueries({ queryKey: ['circles-explore'] })
       navigate(`/circles/${circle.id}`)
     },
     onError: (error) => toast.error(getErrorMessage(error)),
@@ -56,7 +67,7 @@ export function NewCirclePage() {
       return
     }
     if (file.size > MAX_UPLOAD_BYTES) {
-      toast.error('Image must be about 1.2MB or smaller.')
+      toast.error('Image must be 5 MB or smaller. Try compressing the file or use a URL.')
       return
     }
     const reader = new FileReader()
@@ -99,7 +110,7 @@ export function NewCirclePage() {
             Cover image
           </p>
           <p className="text-xs leading-relaxed" style={{ color: 'var(--mk-muted2)' }}>
-            Choose a preset, paste an image URL, or upload a photo (stored with the circle).
+            Choose a preset, paste an image URL, or upload a photo (stored with the circle). Uploads up to 5 MB.
           </p>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
             {CIRCLE_COVER_PRESETS.map((src) => {
@@ -215,6 +226,91 @@ export function NewCirclePage() {
             onChange={(e) => setDescription(e.target.value)}
           />
         </div>
+
+        <div className="space-y-2">
+          <p className="ml-1 text-[0.8125rem] font-medium label-font" style={{ color: 'var(--mk-muted)' }}>
+            Country
+          </p>
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--mk-muted2)' }}>
+            Where this circle creates impact (same regions as profile onboarding).
+          </p>
+          <div
+            className="flex w-full items-center gap-3 rounded-[0.75rem] border border-[rgba(240,165,0,0.2)] bg-[rgba(255,255,255,0.06)] px-4 py-2.5 transition-[box-shadow,border-color] focus-within:border-[rgba(240,165,0,0.35)]"
+          >
+            <span className="material-symbols-outlined shrink-0 select-none" style={{ fontSize: '20px', color: 'var(--mk-muted)' }} aria-hidden>
+              search
+            </span>
+            <input
+              id="new-circle-country-search"
+              type="search"
+              value={countrySearch}
+              onChange={(e) => setCountrySearch(e.target.value)}
+              placeholder="Search country…"
+              autoComplete="off"
+              aria-label="Search countries"
+              className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm outline-none placeholder:text-[rgba(122,149,196,0.65)]"
+              style={{ color: 'var(--mk-white)', fontFamily: "'Outfit', sans-serif" }}
+            />
+          </div>
+          <div className="grid max-h-40 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
+            {filteredCountries.map(({ name: n }) => {
+              const selected = country === n
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setCountry(n)}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-colors"
+                  style={
+                    selected
+                      ? {
+                          background: 'rgba(240,165,0,0.12)',
+                          outline: '2px solid var(--mk-gold)',
+                          color: 'var(--mk-gold)',
+                          fontWeight: 600
+                        }
+                      : {
+                          background: 'rgba(255,255,255,0.05)',
+                          outline: '1px solid rgba(240,165,0,0.12)',
+                          color: 'var(--mk-white)'
+                        }
+                  }
+                >
+                  <span className="text-xl leading-none" aria-hidden>
+                    {flagEmojiForCountryName(n)}
+                  </span>
+                  <span className="truncate">{n}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="new-circle-sector" className="ml-1 text-[0.8125rem] font-medium label-font" style={{ color: 'var(--mk-muted)' }}>
+            Sector
+          </label>
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--mk-muted2)' }}>
+            Primary focus area (same sectors as onboarding and explore filters).
+          </p>
+          <select
+            id="new-circle-sector"
+            className="mukwano-input w-full cursor-pointer appearance-none bg-[length:1.25rem] bg-[right_0.75rem_center] bg-no-repeat pr-10"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%23a0f3d4'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E")`
+            }}
+            value={sector}
+            onChange={(e) => setSector(e.target.value)}
+            required
+          >
+            {ONBOARDING_SECTORS.map(({ label }) => (
+              <option key={label} value={label}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="space-y-1.5">
           <label
             htmlFor="new-circle-goal"
