@@ -295,9 +295,10 @@ export function NewCirclePage() {
           </p>
           <select
             id="new-circle-sector"
-            className="mukwano-input w-full cursor-pointer appearance-none bg-[length:1.25rem] bg-[right_0.75rem_center] bg-no-repeat pr-10"
+            className="mukwano-input w-full cursor-pointer appearance-none bg-no-repeat bg-[length:1.25rem] bg-[position:right_0.75rem_center] pr-10"
             style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%23a0f3d4'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E")`
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%23a0f3d4'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat'
             }}
             value={sector}
             onChange={(e) => setSector(e.target.value)}
