@@ -2,7 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
+import { ExploreCommunityNews } from '@/components/explore/ExploreCommunityNews'
 import { ExploreImpactFeatured } from '@/components/explore/ExploreImpactFeatured'
+import { ExploreTrendingAfrica } from '@/components/explore/ExploreTrendingAfrica'
 import { useAuth } from '@/contexts/AuthContext'
 import { getErrorMessage } from '@/hooks/useApiError'
 
@@ -117,6 +119,10 @@ export function ExplorePage() {
           </div>
         </div>
       </section>
+
+      <ExploreCommunityNews />
+
+      <ExploreTrendingAfrica />
 
       <ExploreImpactFeatured
         circles={circles ?? []}
