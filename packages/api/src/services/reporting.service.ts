@@ -85,16 +85,32 @@ export class ReportingService {
       }
     })
 
-    const inProjects = projectsInCircles
-      .filter((p: { status: string }) => p.status === 'executing' || p.status === 'complete')
-      .reduce((acc: number, p: { budget: DecimalLike }) => acc + Number(p.budget), 0)
-
     const projectsByCircle = new Map<string, typeof projectsInCircles>()
     for (const p of projectsInCircles) {
       const list = projectsByCircle.get(p.circleId) ?? []
       list.push(p)
       projectsByCircle.set(p.circleId, list)
     }
+
+    // "In Projects" should reflect the user's own verified funds currently allocated to
+    // executing/complete projects, not total project budgets in joined circles.
+    const inProjects = round2(
+      verifiedRows.reduce((acc, c) => {
+        const amount = Number(c.amount)
+        const circleProjects = projectsByCircle.get(c.circleId) ?? []
+        if (circleProjects.length === 0) return acc
+
+        const totalBudget = circleProjects.reduce((s, p) => s + Number(p.budget), 0)
+        if (totalBudget <= 0) return acc
+
+        const fundedBudget = circleProjects
+          .filter((p: { status: string }) => p.status === 'executing' || p.status === 'complete')
+          .reduce((s, p) => s + Number(p.budget), 0)
+
+        if (fundedBudget <= 0) return acc
+        return acc + amount * (fundedBudget / totalBudget)
+      }, 0)
+    )
 
     const sectorTotals = new Map<string, number>()
     const countryTotals = new Map<string, number>()
