@@ -29,6 +29,13 @@ const CATEGORY_BADGE: Record<TrendingCategory, string> = {
 
 const rowFocusRing =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(240,165,0,0.45)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mk-navy)]'
+const FALLBACK_IMAGE = '/news-fallback.svg'
+
+function applyImageFallback(img: HTMLImageElement) {
+  if (img.dataset.fallbackApplied === 'true') return
+  img.dataset.fallbackApplied = 'true'
+  img.src = FALLBACK_IMAGE
+}
 
 function TrendingRow({ item }: { item: TrendingItem }) {
   return (
@@ -45,6 +52,7 @@ function TrendingRow({ item }: { item: TrendingItem }) {
           alt=""
           loading="lazy"
           decoding="async"
+          onError={(event) => applyImageFallback(event.currentTarget)}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
       </div>

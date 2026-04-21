@@ -10,6 +10,13 @@ const TYPE_LABEL: Record<CommunityNewsType, string> = {
 
 const cardFocusRing =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(240,165,0,0.45)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mk-navy)]'
+const FALLBACK_IMAGE = '/news-fallback.svg'
+
+function applyImageFallback(img: HTMLImageElement) {
+  if (img.dataset.fallbackApplied === 'true') return
+  img.dataset.fallbackApplied = 'true'
+  img.src = FALLBACK_IMAGE
+}
 
 function formatTime(iso: string) {
   try {
@@ -45,6 +52,7 @@ function CardImage({ src, loading }: { src: string; loading?: 'lazy' | 'eager' }
       alt=""
       loading={loading ?? 'lazy'}
       decoding="async"
+      onError={(event) => applyImageFallback(event.currentTarget)}
       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
     />
   )
@@ -83,6 +91,7 @@ function SideCard({ item }: { item: CommunityNewsItem }) {
           alt=""
           loading="lazy"
           decoding="async"
+          onError={(event) => applyImageFallback(event.currentTarget)}
           className="h-full w-full object-cover transition-transform group-hover:scale-105"
         />
       </div>
@@ -111,6 +120,7 @@ function CompactCard({ item }: { item: CommunityNewsItem }) {
           alt=""
           loading="lazy"
           decoding="async"
+          onError={(event) => applyImageFallback(event.currentTarget)}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
         />
       </div>
