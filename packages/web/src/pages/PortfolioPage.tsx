@@ -37,6 +37,31 @@ export type PortfolioSummary = {
     status: string
     currency?: string
   }>
+  impact?: {
+    score: number
+    components: {
+      contributions: number
+      projects: number
+      voting: number
+      engagement: number
+    }
+    inputs: {
+      approvedContributions: number
+      totalContributions: number
+      projectsFundedOrCreated: number
+      proposalsPassed: number
+      votesCast: number
+      totalAvailableVotes: number
+      circlesJoined: number
+      activeDays: number
+    }
+    weights: {
+      contributions: number
+      projects: number
+      voting: number
+      engagement: number
+    }
+  }
 }
 
 const SECTOR_COLORS = ['var(--mk-chart-teal)', 'var(--mk-chart-orange)', '#94a3b8', '#7dd3fc', '#c084fc', '#f472b6']
@@ -111,6 +136,7 @@ export function PortfolioPage() {
   const pieData = bySector.map((s) => ({ name: s.sector, value: s.amount, percent: s.percent }))
   const totalContributed = Number(summary?.totalContributed ?? 0)
   const changePct = summary?.contributionChangePercent
+  const impact = summary?.impact
 
   if (loading) {
     return (
@@ -175,7 +201,7 @@ export function PortfolioPage() {
         </div>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl p-6" style={{ background: 'var(--mk-navy2)' }}>
           <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font" style={{ color: 'var(--mk-muted)' }}>Verified</p>
           <p className="mt-2 text-3xl font-bold tabular-nums" style={{ color: 'var(--mk-white)' }}>
@@ -191,6 +217,64 @@ export function PortfolioPage() {
         <div className="rounded-2xl p-6" style={{ background: 'var(--mk-navy2)' }}>
           <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font" style={{ color: 'var(--mk-muted)' }}>Currency</p>
           <p className="mt-2 text-3xl font-bold" style={{ color: 'var(--mk-white)' }}>{summary?.currency ?? 'USD'}</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 p-6" style={{ background: 'var(--mk-geo-green)' }}>
+          <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font" style={{ color: 'rgba(224,247,236,0.9)' }}>
+            Impact Score
+          </p>
+          <div className="mt-2 flex items-end justify-between gap-3">
+            <p className="text-4xl font-extrabold tabular-nums" style={{ color: 'var(--mk-offwhite)' }}>
+              {Math.round(impact?.score ?? 0)}
+              <span className="ml-1 text-lg font-semibold opacity-80">/100</span>
+            </p>
+            <span
+              className="rounded-lg px-2 py-1 text-xs font-bold"
+              style={{ background: 'rgba(224,247,236,0.18)', color: 'var(--mk-geo-glow)' }}
+            >
+              C/P/V/E
+            </span>
+          </div>
+          <div className="mt-4 space-y-2 text-xs" style={{ color: 'rgba(224,247,236,0.9)' }}>
+            <p>
+              C {impact?.weights.contributions ?? 0.4} x {(impact?.components.contributions ?? 0).toFixed(1)} | P {impact?.weights.projects ?? 0.3} x {(impact?.components.projects ?? 0).toFixed(1)}
+            </p>
+            <p>
+              V {impact?.weights.voting ?? 0.2} x {(impact?.components.voting ?? 0).toFixed(1)} | E {impact?.weights.engagement ?? 0.1} x {(impact?.components.engagement ?? 0).toFixed(1)}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl p-5" style={{ background: 'var(--mk-navy2)' }}>
+        <h2 className="text-base font-semibold" style={{ color: 'var(--mk-white)' }}>How your impact score is calculated</h2>
+        <p className="mt-2 text-sm" style={{ color: 'var(--mk-muted)' }}>
+          Impact Score = 0.4C + 0.3P + 0.2V + 0.1E (capped at 100). It rewards verified contributions, funded outcomes, governance participation, and consistent engagement.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+          <div className="rounded-xl p-3" style={{ background: 'var(--mk-navy3)' }}>
+            <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--mk-muted)' }}>Contributions (C)</p>
+            <p className="mt-1" style={{ color: 'var(--mk-white)' }}>
+              {impact?.inputs.approvedContributions ?? 0} approved, {impact?.inputs.totalContributions ?? 0} total
+            </p>
+          </div>
+          <div className="rounded-xl p-3" style={{ background: 'var(--mk-navy3)' }}>
+            <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--mk-muted)' }}>Projects (P)</p>
+            <p className="mt-1" style={{ color: 'var(--mk-white)' }}>
+              {impact?.inputs.projectsFundedOrCreated ?? 0} funded/created, {impact?.inputs.proposalsPassed ?? 0} proposals passed
+            </p>
+          </div>
+          <div className="rounded-xl p-3" style={{ background: 'var(--mk-navy3)' }}>
+            <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--mk-muted)' }}>Voting (V)</p>
+            <p className="mt-1" style={{ color: 'var(--mk-white)' }}>
+              {impact?.inputs.votesCast ?? 0} / {impact?.inputs.totalAvailableVotes ?? 0} votes cast
+            </p>
+          </div>
+          <div className="rounded-xl p-3" style={{ background: 'var(--mk-navy3)' }}>
+            <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--mk-muted)' }}>Engagement (E)</p>
+            <p className="mt-1" style={{ color: 'var(--mk-white)' }}>
+              {impact?.inputs.circlesJoined ?? 0} circles, {impact?.inputs.activeDays ?? 0} active days
+            </p>
+          </div>
         </div>
       </section>
 

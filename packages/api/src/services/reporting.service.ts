@@ -42,6 +42,10 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100
 }
 
+function startOfDayUTC(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
+
 export class ReportingService {
   constructor(private readonly app: FastifyInstance) {}
 
@@ -192,6 +196,78 @@ export class ReportingService {
       .sort((a, b) => b.percentComplete - a.percentComplete)
       .slice(0, 12)
 
+    const [proposalsInCircles, userVotes, userCreatedProjects, userCreatedProposals, memberships, userProjectUpdates] =
+      await Promise.all([
+        this.app.prisma.proposal.findMany({
+          where: {
+            circleId: { in: circleIds },
+            status: { in: ['open', 'closed_passed', 'closed_failed'] }
+          },
+          select: { id: true }
+        }),
+        this.app.prisma.vote.findMany({
+          where: { userId, proposal: { circleId: { in: circleIds } } },
+          select: { castAt: true }
+        }),
+        this.app.prisma.project.findMany({
+          where: { createdBy: userId, status: { in: ['approved', 'executing', 'complete'] } },
+          select: { id: true, createdAt: true }
+        }),
+        this.app.prisma.proposal.findMany({
+          where: { createdBy: userId, status: 'closed_passed' },
+          select: { id: true, createdAt: true }
+        }),
+        this.app.prisma.circleMembership.findMany({
+          where: { userId },
+          select: { circleId: true }
+        }),
+        this.app.prisma.projectUpdate.findMany({
+          where: { postedBy: userId },
+          select: { createdAt: true }
+        })
+      ])
+
+    const approvedContributions = verifiedRows.length
+    const totalContributions = contributions.length
+    const projectsFundedOrCreated = userCreatedProjects.length
+    const proposalsPassed = userCreatedProposals.length
+    const votesCast = userVotes.length
+    const totalAvailableVotes = proposalsInCircles.length
+    const circlesJoined = memberships.length
+
+    const activityDayKeys = new Set<string>()
+    for (const c of contributions) {
+      const raw = c.submittedAt
+      const d = raw instanceof Date ? raw : new Date(raw as string)
+      activityDayKeys.add(startOfDayUTC(d))
+    }
+    for (const vote of userVotes) {
+      const d = vote.castAt instanceof Date ? vote.castAt : new Date(vote.castAt as string)
+      activityDayKeys.add(startOfDayUTC(d))
+    }
+    for (const p of userCreatedProjects) {
+      const d = p.createdAt instanceof Date ? p.createdAt : new Date(p.createdAt as string)
+      activityDayKeys.add(startOfDayUTC(d))
+    }
+    for (const p of userCreatedProposals) {
+      const d = p.createdAt instanceof Date ? p.createdAt : new Date(p.createdAt as string)
+      activityDayKeys.add(startOfDayUTC(d))
+    }
+    for (const u of userProjectUpdates) {
+      const d = u.createdAt instanceof Date ? u.createdAt : new Date(u.createdAt as string)
+      activityDayKeys.add(startOfDayUTC(d))
+    }
+    const activeDays = activityDayKeys.size
+
+    // Weighted model:
+    // ImpactScore = 0.4C + 0.3P + 0.2V + 0.1E
+    const cScore = approvedContributions * 5 + totalContributions * 1
+    const pScore = projectsFundedOrCreated * 10 + proposalsPassed * 6
+    const vScore = totalAvailableVotes > 0 ? (votesCast / totalAvailableVotes) * 100 : 0
+    const eScore = circlesJoined * 2 + activeDays * 0.5
+    const impactRaw = 0.4 * cScore + 0.3 * pScore + 0.2 * vScore + 0.1 * eScore
+    const impactScore = Math.min(100, round2(impactRaw))
+
     return {
       totalContributed,
       totalVerified,
@@ -202,7 +278,32 @@ export class ReportingService {
       bySector,
       byCountry,
       timeSeries,
-      activeProjects
+      activeProjects,
+      impact: {
+        score: impactScore,
+        components: {
+          contributions: round2(cScore),
+          projects: round2(pScore),
+          voting: round2(vScore),
+          engagement: round2(eScore)
+        },
+        inputs: {
+          approvedContributions,
+          totalContributions,
+          projectsFundedOrCreated,
+          proposalsPassed,
+          votesCast,
+          totalAvailableVotes,
+          circlesJoined,
+          activeDays
+        },
+        weights: {
+          contributions: 0.4,
+          projects: 0.3,
+          voting: 0.2,
+          engagement: 0.1
+        }
+      }
     }
   }
 
