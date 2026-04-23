@@ -3,11 +3,13 @@ import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
+import { useAuth } from '@/contexts/AuthContext'
 import { getErrorMessage } from '@/hooks/useApiError'
 import { flagEmojiForCountryName, RESIDENCE_COUNTRIES } from '@/lib/onboarding-display'
 
 export function OnboardingCountryPage() {
   const navigate = useNavigate()
+  const { refreshUser } = useAuth()
   const [residenceCountry, setResidenceCountry] = useState('United States')
   const [search, setSearch] = useState('')
   const filtered = RESIDENCE_COUNTRIES.filter(({ name }) =>
@@ -15,7 +17,10 @@ export function OnboardingCountryPage() {
   )
   const save = useMutation({
     mutationFn: () => api.patch('/auth/me', { residenceCountry }),
-    onSuccess: () => navigate('/onboarding/complete'),
+    onSuccess: async () => {
+      await refreshUser()
+      navigate('/onboarding/complete')
+    },
     onError: (error) => toast.error(getErrorMessage(error))
   })
 

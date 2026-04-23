@@ -3,15 +3,20 @@ import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
+import { useAuth } from '@/contexts/AuthContext'
 import { getErrorMessage } from '@/hooks/useApiError'
 import { ONBOARDING_SECTORS } from '@/lib/onboarding-display'
 
 export function OnboardingSectorPage() {
   const navigate = useNavigate()
+  const { refreshUser } = useAuth()
   const [sector, setSector] = useState('Education')
   const save = useMutation({
     mutationFn: () => api.patch('/auth/me', { sector }),
-    onSuccess: () => navigate('/onboarding/country'),
+    onSuccess: async () => {
+      await refreshUser()
+      navigate('/onboarding/country')
+    },
     onError: (error) => toast.error(getErrorMessage(error))
   })
 
