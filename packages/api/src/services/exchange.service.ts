@@ -1,8 +1,14 @@
 import type { FastifyInstance } from 'fastify'
 import { currencyForCountryName } from '../constants/currency-by-country.js'
 
-const FRANKFURTER = 'https://api.frankfurter.app'
+/**
+ * Public currency data on jsDelivr (fawazahmed0/currency-api). Frankfurter ECB
+ * data omits most African ISO codes (e.g. UGX), so we use this source for
+ * diaspora ↔ Africa pairs.
+ */
+const CURRENCY_API = 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api'
 const CACHE_TTL_MS = process.env.NODE_ENV === 'test' ? 0 : 60 * 60 * 1000
+const FETCH_TIMEOUT_MS = 12_000
 
 type CacheEntry<T> = { expires: number; value: T }
 const latestCache = new Map<string, CacheEntry<{ rate: number; date: string }>>()
@@ -44,27 +50,65 @@ function cacheSet<T>(map: Map<string, CacheEntry<T>>, key: string, value: T) {
   map.set(key, { expires: Date.now() + CACHE_TTL_MS, value })
 }
 
+async function fetchJson(url: string): Promise<unknown> {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS)
+  try {
+    const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl.signal })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`)
+    }
+    return res.json()
+  } finally {
+    clearTimeout(t)
+  }
+}
+
+/** 1 `from` = rate × `to` */
 async function fetchLatestRate(from: string, to: string): Promise<{ rate: number; date: string }> {
   if (from === to) return { rate: 1, date: new Date().toISOString().slice(0, 10) }
   const key = `${from}:${to}`
   const hit = cacheGet(latestCache, key)
   if (hit) return hit
 
-  const url = `${FRANKFURTER}/latest?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
-  const res = await fetch(url, { headers: { Accept: 'application/json' } })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Frankfurter latest ${res.status}: ${text.slice(0, 200)}`)
-  }
-  const body = (await res.json()) as { date?: string; rates?: Record<string, number> }
-  const rate = body.rates?.[to]
+  const fromL = from.toLowerCase()
+  const toL = to.toLowerCase()
+  const url = `${CURRENCY_API}@latest/v1/currencies/${fromL}.json`
+  const body = (await fetchJson(url)) as { date?: string; [k: string]: unknown }
+  const bucket = body[fromL] as Record<string, number> | undefined
+  let rate = bucket?.[toL]
+  let date = typeof body.date === 'string' ? body.date : new Date().toISOString().slice(0, 10)
+
   if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0) {
-    throw new Error('Frankfurter latest: missing or invalid rate')
+    const invUrl = `${CURRENCY_API}@latest/v1/currencies/${toL}.json`
+    const invBody = (await fetchJson(invUrl)) as { date?: string; [k: string]: unknown }
+    const invBucket = invBody[toL] as Record<string, number> | undefined
+    const inv = invBucket?.[fromL]
+    if (typeof inv !== 'number' || !Number.isFinite(inv) || inv <= 0) {
+      throw new Error('currency-api: missing or invalid rate for pair')
+    }
+    rate = 1 / inv
+    if (typeof invBody.date === 'string') date = invBody.date
   }
-  const date = typeof body.date === 'string' ? body.date : new Date().toISOString().slice(0, 10)
+
   const out = { rate, date }
   cacheSet(latestCache, key, out)
   return out
+}
+
+function sampleDates(endUtc: Date, spanDays: number, count: number): string[] {
+  const end = new Date(endUtc)
+  end.setUTCHours(0, 0, 0, 0)
+  const dates: string[] = []
+  const n = Math.max(2, Math.min(count, 16))
+  for (let i = 0; i < n; i++) {
+    const d = new Date(end)
+    const back = Math.round((i / (n - 1)) * spanDays)
+    d.setUTCDate(d.getUTCDate() - back)
+    dates.push(d.toISOString().slice(0, 10))
+  }
+  return [...new Set(dates)].sort()
 }
 
 async function fetchTimeSeries(
@@ -79,29 +123,38 @@ async function fetchTimeSeries(
   const safeDays = Math.min(Math.max(Math.trunc(days), 7), 365)
   const end = new Date()
   end.setUTCHours(0, 0, 0, 0)
-  const start = new Date(end)
-  start.setUTCDate(start.getUTCDate() - safeDays)
-  const startStr = start.toISOString().slice(0, 10)
+  const startStr = new Date(end.getTime() - safeDays * 86_400_000).toISOString().slice(0, 10)
   const endStr = end.toISOString().slice(0, 10)
   const key = `${from}:${to}:${startStr}:${endStr}`
   const hit = cacheGet(seriesCache, key)
   if (hit) return hit
 
-  const url = `${FRANKFURTER}/${startStr}..${endStr}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
-  const res = await fetch(url, { headers: { Accept: 'application/json' } })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Frankfurter series ${res.status}: ${text.slice(0, 200)}`)
-  }
-  const body = (await res.json()) as { rates?: Record<string, Record<string, number>> }
-  const rates = body.rates ?? {}
+  const fromL = from.toLowerCase()
+  const toL = to.toLowerCase()
+  const dateStrs = sampleDates(end, safeDays, 12)
   const series: Array<{ date: string; rate: number }> = []
-  for (const date of Object.keys(rates).sort()) {
-    const r = rates[date]?.[to]
-    if (typeof r === 'number' && Number.isFinite(r) && r > 0) {
-      series.push({ date, rate: r })
+
+  for (const dateStr of dateStrs) {
+    try {
+      const url = `${CURRENCY_API}@${dateStr}/v1/currencies/${fromL}.json`
+      const body = (await fetchJson(url)) as { date?: string; [k: string]: unknown }
+      const bucket = body[fromL] as Record<string, number> | undefined
+      let r = bucket?.[toL]
+      if (typeof r !== 'number' || !Number.isFinite(r) || r <= 0) {
+        const invUrl = `${CURRENCY_API}@${dateStr}/v1/currencies/${toL}.json`
+        const invBody = (await fetchJson(invUrl)) as { [k: string]: unknown }
+        const invBucket = invBody[toL] as Record<string, number> | undefined
+        const inv = invBucket?.[fromL]
+        if (typeof inv !== 'number' || !Number.isFinite(inv) || inv <= 0) continue
+        r = 1 / inv
+      }
+      series.push({ date: typeof body.date === 'string' ? body.date : dateStr, rate: r })
+    } catch {
+      /* skip missing snapshot for this calendar day */
     }
   }
+
+  series.sort((a, b) => a.date.localeCompare(b.date))
   cacheSet(seriesCache, key, series)
   return series
 }
@@ -163,7 +216,15 @@ export class ExchangeService {
 
     try {
       const { rate, date } = await fetchLatestRate(residenceCurrency, focusCurrency)
-      const series = await fetchTimeSeries(residenceCurrency, focusCurrency, 90)
+      let series: Array<{ date: string; rate: number }> = []
+      try {
+        series = await fetchTimeSeries(residenceCurrency, focusCurrency, 90)
+      } catch (seriesErr) {
+        this.app.log.warn(
+          { err: seriesErr, userId, residenceCurrency, focusCurrency },
+          'exchange timeseries failed; returning latest only'
+        )
+      }
       return {
         status: 'ok',
         residenceCountryName,

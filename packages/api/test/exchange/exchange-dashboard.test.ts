@@ -61,23 +61,17 @@ describe('GET /api/v1/exchange/dashboard', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const u = String(input)
-        if (u.includes('latest')) {
-          return new Response(JSON.stringify({ amount: 1, base: 'USD', date: '2025-01-15', rates: { UGX: 3800 } }), {
+        if (u.includes('currency-api') && u.includes('@latest') && u.includes('usd.json')) {
+          return new Response(JSON.stringify({ date: '2025-01-15', usd: { ugx: 3800 } }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
           })
         }
-        if (u.includes('..')) {
-          return new Response(
-            JSON.stringify({
-              amount: 1,
-              base: 'USD',
-              start_date: '2025-01-01',
-              end_date: '2025-01-15',
-              rates: { '2025-01-02': { UGX: 3600 }, '2025-01-10': { UGX: 3800 } }
-            }),
-            { status: 200, headers: { 'Content-Type': 'application/json' } }
-          )
+        if (u.includes('currency-api') && u.includes('/v1/currencies/usd.json')) {
+          return new Response(JSON.stringify({ date: '2025-01-10', usd: { ugx: 3600 } }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          })
         }
         return new Response('not found', { status: 404 })
       })

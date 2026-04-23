@@ -188,7 +188,7 @@ export function DashboardCurrencyConverter() {
               <span style={{ color: LIME }}>{rate.toLocaleString('en-US', { maximumFractionDigits: 4 })}</span> {focusCur}
               {data.asOf ? (
                 <span className="block mt-1 text-xs font-normal" style={{ color: 'var(--mk-muted)' }}>
-                  ECB reference as of {data.asOf}
+                  Snapshot as of {data.asOf}
                 </span>
               ) : null}
             </p>
@@ -263,7 +263,7 @@ export function DashboardCurrencyConverter() {
             </div>
 
             <p className="text-center text-[0.6875rem] leading-relaxed label-font" style={{ color: 'var(--mk-muted)' }}>
-              Indicative mid-market rates (ECB via Frankfurter). Not a bank quote; Mukwano does not move money across borders.
+              Indicative mid-market rates (public currency data). Not a bank quote; Mukwano does not move money across borders.
             </p>
 
             <Link
