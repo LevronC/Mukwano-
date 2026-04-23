@@ -37,6 +37,8 @@ describe('POST /api/v1/auth/signup (AUTH-01)', () => {
     expect(body.user.isGlobalAdmin).toBe(false)
     expect(body.user.id).toBeTruthy()
     expect(body.user.emailVerified).toBe(false)
+    expect(body.user.residenceCountry).toBeNull()
+    expect(body.user.sector).toBeNull()
   })
 
   it('rejects duplicate email with 409', async () => {

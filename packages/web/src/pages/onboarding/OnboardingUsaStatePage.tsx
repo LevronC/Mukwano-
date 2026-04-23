@@ -1,31 +1,40 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { getErrorMessage } from '@/hooks/useApiError'
-import { flagEmojiForCountryName, RESIDENCE_COUNTRIES } from '@/lib/onboarding-display'
+import { US_STATE_NAMES, isoCodeToFlagEmoji } from '@/lib/onboarding-display'
 
-export function OnboardingCountryPage() {
+export function OnboardingUsaStatePage() {
   const navigate = useNavigate()
-  const { refreshUser } = useAuth()
-  const [residenceCountry, setResidenceCountry] = useState('United States')
+  const { refreshUser, user, loading } = useAuth()
+  const [residenceRegion, setResidenceRegion] = useState('California')
   const [search, setSearch] = useState('')
-  const filtered = RESIDENCE_COUNTRIES.filter(({ name }) =>
-    name.toLowerCase().includes(search.toLowerCase())
-  )
+
+  if (loading) {
+    return <div className="p-4 text-[var(--mk-muted)]">Loading...</div>
+  }
+  if (user && user.residenceCountry && user.residenceCountry !== 'United States') {
+    return <Navigate to="/onboarding/country" replace />
+  }
+
+  const filtered = US_STATE_NAMES.filter((name) => name.toLowerCase().includes(search.toLowerCase()))
+
   const save = useMutation({
-    mutationFn: () =>
-      api.patch('/auth/me', {
-        residenceCountry,
-        // Clear region; U.S. users set state on the next step
-        residenceRegion: null
-      }),
-    onSuccess: async () => {
+    mutationFn: async () => {
+      await api.patch('/auth/me', { residenceRegion })
+      const params = new URLSearchParams({
+        residenceCountry: 'United States',
+        residenceRegion
+      })
+      return api.get<{ count: number }>(`/auth/me/residence-peer-count?${params.toString()}`)
+    },
+    onSuccess: async (peerData) => {
       await refreshUser()
-      if (residenceCountry === 'United States') {
-        navigate('/onboarding/usa-state')
+      if (peerData.count <= 1) {
+        navigate('/onboarding/explore-circles')
         return
       }
       navigate('/onboarding/complete')
@@ -36,26 +45,30 @@ export function OnboardingCountryPage() {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'transparent' }}>
       <div className="mx-auto w-full max-w-2xl flex-1 px-6 pt-16 pb-36">
-        {/* Progress */}
         <div className="mb-3 flex gap-2">
           <div className="h-1 flex-1 rounded-full" style={{ background: 'var(--mk-gold)' }} />
           <div className="h-1 flex-1 rounded-full" style={{ background: 'var(--mk-gold)' }} />
         </div>
-        <p className="mb-10 text-[0.6875rem] font-bold uppercase tracking-widest label-font" style={{ color: 'var(--mk-gold)' }}>
-          Step 2 of 2
+        <p className="mb-4 flex items-center gap-2 text-[0.6875rem] font-bold uppercase tracking-widest label-font" style={{ color: 'var(--mk-gold)' }}>
+          <span className="text-base leading-none" aria-hidden>
+            {isoCodeToFlagEmoji('US')}
+          </span>
+          United States
         </p>
 
-        <h1 className="mb-2 text-3xl font-semibold" style={{ color: 'var(--mk-white)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-          Which country do you currently live in?
+        <h1
+          className="mb-2 text-3xl font-semibold"
+          style={{ color: 'var(--mk-white)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        >
+          Which state or territory do you live in?
         </h1>
         <p className="mb-8 text-base" style={{ color: 'var(--mk-muted)' }}>
-          Pick your residence country so we can localize your circle discovery.
+          We use this to connect you to nearby circles. You can change it anytime in your profile.
         </p>
 
-        {/* Search — flex row so icon never overlaps text/caret (absolute+pl-* fought .mukwano-input padding) */}
         <div className="mb-6">
-          <label htmlFor="country-search" className="sr-only">
-            Search countries
+          <label htmlFor="state-search" className="sr-only">
+            Search state
           </label>
           <div
             className="flex w-full items-center gap-3 rounded-[0.75rem] border border-[rgba(240,165,0,0.2)] bg-[rgba(255,255,255,0.08)] px-4 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-[box-shadow,border-color] focus-within:border-[rgba(240,165,0,0.45)] focus-within:shadow-[0_0_0_2px_rgba(240,165,0,0.35)]"
@@ -68,11 +81,11 @@ export function OnboardingCountryPage() {
               search
             </span>
             <input
-              id="country-search"
+              id="state-search"
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search country…"
+              placeholder="Search state…"
               autoComplete="off"
               className="min-w-0 flex-1 border-0 bg-transparent p-0 text-base outline-none placeholder:text-[rgba(122,149,196,0.65)]"
               style={{ color: 'var(--mk-white)', fontFamily: "'Outfit', sans-serif" }}
@@ -80,43 +93,37 @@ export function OnboardingCountryPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {filtered.map(({ name }) => {
-            const flag = flagEmojiForCountryName(name)
-            const selected = residenceCountry === name
+        <div className="grid max-h-[50vh] grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+          {filtered.map((name) => {
+            const selected = residenceRegion === name
             return (
               <button
                 key={name}
                 type="button"
-                onClick={() => setResidenceCountry(name)}
-                className="flex items-center gap-3 rounded-xl p-4 text-left transition-all active:scale-[0.98]"
+                onClick={() => setResidenceRegion(name)}
+                className="rounded-xl px-4 py-3 text-left text-sm font-medium transition-all active:scale-[0.98]"
                 style={
                   selected
                     ? {
                         background: 'rgba(240,165,0,0.12)',
                         outline: '2px solid var(--mk-gold)',
-                        color: 'var(--mk-gold)',
-                        fontWeight: 600
+                        color: 'var(--mk-gold)'
                       }
                     : {
                         background: 'var(--mk-navy2)',
                         outline: '2px solid rgba(240,165,0,0.15)',
                         color: 'var(--mk-white)',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.25)'
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
                       }
                 }
               >
-                <span className="text-3xl leading-none select-none" aria-hidden title={name}>
-                  {flag}
-                </span>
-                <p className="font-medium text-sm leading-snug">{name}</p>
+                {name}
               </button>
             )
           })}
         </div>
       </div>
 
-      {/* Sticky footer */}
       <div
         className="fixed bottom-0 left-0 w-full px-6 py-5 glass-nav"
         style={{ background: 'rgba(6,13,31,0.92)', borderTop: '1px solid rgba(240,165,0,0.12)' }}
@@ -125,7 +132,7 @@ export function OnboardingCountryPage() {
           <button
             className="rounded-xl px-5 py-3 font-medium text-sm transition-colors hover:bg-white/10"
             style={{ color: 'var(--mk-muted)' }}
-            onClick={() => navigate('/onboarding/sector')}
+            onClick={() => navigate('/onboarding/country')}
           >
             ← Back
           </button>
@@ -134,7 +141,7 @@ export function OnboardingCountryPage() {
             onClick={() => save.mutate()}
             disabled={save.isPending}
           >
-            {save.isPending ? 'Saving…' : "Let's go →"}
+            {save.isPending ? 'Saving…' : 'Continue →'}
           </button>
         </div>
       </div>

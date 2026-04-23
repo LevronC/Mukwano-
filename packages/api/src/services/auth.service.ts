@@ -12,8 +12,6 @@ const VERIFY_TTL_MS = 24 * 60 * 60 * 1000
 const RESET_TTL_MS = 60 * 60 * 1000
 const RESEND_COOLDOWN_MS = 60 * 1000
 
-type TokenUser = Pick<User, 'id' | 'email' | 'displayName' | 'isGlobalAdmin' | 'emailVerified'>
-
 export class AuthService {
   constructor(private readonly app: FastifyInstance) {}
 
@@ -140,6 +138,7 @@ export class AuthService {
         displayName: true,
         country: true,
         residenceCountry: true,
+        residenceRegion: true,
         sector: true,
         avatarUrl: true,
         isGlobalAdmin: true,
@@ -282,11 +281,34 @@ export class AuthService {
     })
   }
 
+  async countPeersAtResidence(residenceCountry: string, residenceRegion: string | null) {
+    if (residenceCountry === 'United States') {
+      if (!residenceRegion) return { count: 0 }
+      const count = await this.app.prisma.user.count({
+        where: { residenceCountry: 'United States', residenceRegion }
+      })
+      return { count }
+    }
+    const count = await this.app.prisma.user.count({
+      where: { residenceCountry, residenceRegion: null }
+    })
+    return { count }
+  }
+
   async updateMe(userId: string, body: Record<string, unknown>) {
     const allowed = {
       displayName: typeof body.displayName === 'string' ? body.displayName : undefined,
-      country: typeof body.country === 'string' ? body.country : undefined,
+      country: (() => {
+        if (!('country' in body)) return undefined
+        if (body.country === null) return null
+        return typeof body.country === 'string' ? body.country : undefined
+      })(),
       residenceCountry: typeof body.residenceCountry === 'string' ? body.residenceCountry : undefined,
+      residenceRegion: (() => {
+        if (!('residenceRegion' in body)) return undefined
+        if (body.residenceRegion === null) return null
+        return typeof body.residenceRegion === 'string' ? body.residenceRegion : undefined
+      })(),
       sector: typeof body.sector === 'string' ? body.sector : undefined,
       avatarUrl: typeof body.avatarUrl === 'string' ? body.avatarUrl : undefined
     }
@@ -301,6 +323,7 @@ export class AuthService {
         displayName: true,
         country: true,
         residenceCountry: true,
+        residenceRegion: true,
         sector: true,
         avatarUrl: true,
         isGlobalAdmin: true,
@@ -336,18 +359,32 @@ export class AuthService {
     await this.app.prisma.user.delete({ where: { id: userId } })
   }
 
-  private async issueTokenPair(user: User | TokenUser, existingFamily?: string) {
+  private toPublicUser(user: User) {
+    return {
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      isGlobalAdmin: user.isGlobalAdmin,
+      emailVerified: user.emailVerified,
+      country: user.country,
+      residenceCountry: user.residenceCountry,
+      residenceRegion: user.residenceRegion,
+      sector: user.sector,
+      avatarUrl: user.avatarUrl,
+      createdAt: user.createdAt
+    }
+  }
+
+  private async issueTokenPair(user: User, existingFamily?: string) {
     const family = existingFamily ?? uuidv4()
     const jti = uuidv4()
-
-    const emailVerified = 'emailVerified' in user ? user.emailVerified : false
 
     const accessToken = await this.namespacedJwt.access.sign({
       sub: user.id,
       id: user.id,
       email: user.email,
       isGlobalAdmin: user.isGlobalAdmin,
-      emailVerified
+      emailVerified: user.emailVerified
     })
 
     const refreshToken = await this.namespacedJwt.refresh.sign({
@@ -369,13 +406,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        displayName: user.displayName,
-        isGlobalAdmin: user.isGlobalAdmin,
-        emailVerified
-      }
+      user: this.toPublicUser(user)
     }
   }
 }

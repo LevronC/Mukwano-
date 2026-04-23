@@ -39,6 +39,8 @@ test.describe('Critical user stories (plan §2)', () => {
     }
     await page.getByRole('button', { name: 'Next: Choose country' }).click()
     await expect(page.getByText('Step 2 of 2')).toBeVisible()
+    // Non-US avoids the U.S. state + optional “explore circles” onboarding substeps
+    await page.getByRole('button', { name: 'Uganda' }).click()
     await page.getByRole('button', { name: /Let's go/i }).click()
     await expect(page.getByRole('heading', { name: /all set/i })).toBeVisible({ timeout: 15_000 })
     await page.getByRole('link', { name: 'Go to dashboard' }).click()

@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { AuthService } from '../../services/auth.service.js'
 import { authGuard } from '../../hooks/auth-guard.js'
+import { ValidationError } from '../../errors/http-errors.js'
 
 export const meRoute: FastifyPluginAsync = async (fastify) => {
   const authService = new AuthService(fastify)
@@ -11,6 +12,18 @@ export const meRoute: FastifyPluginAsync = async (fastify) => {
     return reply.send(user)
   })
 
+  fastify.get('/me/residence-peer-count', { preHandler: authGuard }, async (request) => {
+    const { residenceCountry, residenceRegion: rawRegion } = request.query as {
+      residenceCountry?: string
+      residenceRegion?: string
+    }
+    if (!residenceCountry || residenceCountry.length > 100) {
+      throw new ValidationError('residenceCountry is required', 'residenceCountry')
+    }
+    const residenceRegion = rawRegion && rawRegion.length > 0 ? rawRegion : null
+    return authService.countPeersAtResidence(residenceCountry, residenceRegion)
+  })
+
   fastify.patch('/me', {
     preHandler: authGuard,
     schema: {
@@ -18,8 +31,9 @@ export const meRoute: FastifyPluginAsync = async (fastify) => {
         type: 'object',
         properties: {
           displayName: { type: 'string', minLength: 1, maxLength: 100 },
-          country: { type: 'string', maxLength: 100 },
+          country: { anyOf: [{ type: 'string', maxLength: 100 }, { type: 'null' }] },
           residenceCountry: { type: 'string', maxLength: 100 },
+          residenceRegion: { anyOf: [{ type: 'string', maxLength: 100 }, { type: 'null' }] },
           sector: { type: 'string', maxLength: 100 },
           avatarUrl: { type: 'string', maxLength: 200000 }
         },

@@ -15,6 +15,8 @@ export type User = {
   emailVerified?: boolean
   country?: string | null
   residenceCountry?: string | null
+  /** U.S. state / D.C. when `residenceCountry` is United States. */
+  residenceRegion?: string | null
   sector?: string | null
   avatarUrl?: string | null
   createdAt?: string

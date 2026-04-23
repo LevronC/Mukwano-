@@ -54,20 +54,38 @@ describe('GET /api/v1/auth/me (AUTH-05)', () => {
 })
 
 describe('PATCH /api/v1/auth/me (AUTH-05)', () => {
-  it('updates displayName, country, residenceCountry, and sector', async () => {
+  it('updates displayName, country, residenceCountry, residenceRegion, and sector', async () => {
     const res = await app.inject({
       method: 'PATCH',
       url: '/api/v1/auth/me',
       headers: injectHeaders(accessToken),
-      payload: { displayName: 'Updated Name', country: 'UG', residenceCountry: 'United States', sector: 'Tech' }
+      payload: {
+        displayName: 'Updated Name',
+        country: 'Uganda',
+        residenceCountry: 'United States',
+        residenceRegion: 'California',
+        sector: 'Tech'
+      }
     })
 
     expect(res.statusCode).toBe(200)
     const body = res.json()
     expect(body.displayName).toBe('Updated Name')
-    expect(body.country).toBe('UG')
+    expect(body.country).toBe('Uganda')
     expect(body.residenceCountry).toBe('United States')
+    expect(body.residenceRegion).toBe('California')
     expect(body.sector).toBe('Tech')
+  })
+
+  it('returns peer count for a residence (AUTH-05)', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/me/residence-peer-count?residenceCountry=United%20States&residenceRegion=California',
+      headers: injectHeaders(accessToken)
+    })
+    expect(res.statusCode).toBe(200)
+    const body = res.json() as { count: number }
+    expect(typeof body.count).toBe('number')
   })
 
   it('ignores email and passwordHash (mass assignment protection)', async () => {

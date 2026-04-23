@@ -6,13 +6,16 @@ import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { getErrorMessage } from '@/hooks/useApiError'
 import { useAuth } from '@/contexts/AuthContext'
-import { flagEmojiForCountryName } from '@/lib/onboarding-display'
+import { flagEmojiForCountryName, ONBOARDING_COUNTRIES, ONBOARDING_SECTORS, RESIDENCE_COUNTRIES, US_STATE_NAMES } from '@/lib/onboarding-display'
 
 type MeData = {
   id: string
   email: string
   displayName: string
+  /** African market interest (optional; different from where you live). */
   country?: string | null
+  residenceCountry?: string | null
+  residenceRegion?: string | null
   sector?: string | null
   avatarUrl?: string | null
   isGlobalAdmin?: boolean
@@ -33,13 +36,14 @@ function relativeDate(iso: string) {
 
 function completeness(data: MeData | undefined) {
   if (!data) return 0
-  const fields = [data.displayName, data.email, data.country, data.sector, data.avatarUrl]
+  const fields = [data.displayName, data.email, data.residenceCountry, data.sector, data.avatarUrl]
   return Math.round((fields.filter(Boolean).length / fields.length) * 100)
 }
 
 function nextMissingField(data: MeData | undefined): string | null {
   if (!data) return null
-  if (!data.country) return 'Add your country'
+  if (!data.residenceCountry) return 'Add your country (residence)'
+  if (data.residenceCountry === 'United States' && !data.residenceRegion) return 'Add your U.S. state'
   if (!data.sector) return 'Add your sector'
   if (!data.avatarUrl) return 'Upload a profile picture'
   return null
@@ -78,6 +82,9 @@ export function ProfilePage() {
   const initialized = useRef(false)
 
   const [displayName, setDisplayName] = useState('')
+  const [residenceCountry, setResidenceCountry] = useState('')
+  const [residenceRegion, setResidenceRegion] = useState('')
+  const [africaFocus, setAfricaFocus] = useState('')
   const [sector, setSector] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [avatarError, setAvatarError] = useState(false)
@@ -104,6 +111,9 @@ export function ProfilePage() {
   useEffect(() => {
     if (!data || initialized.current) return
     setDisplayName(data.displayName ?? '')
+    setResidenceCountry(data.residenceCountry ?? '')
+    setResidenceRegion(data.residenceRegion ?? '')
+    setAfricaFocus(data.country ?? '')
     setSector(data.sector ?? '')
     setAvatarUrl(data.avatarUrl ?? '')
     setAvatarError(false)
@@ -112,10 +122,21 @@ export function ProfilePage() {
 
   const save = useMutation({
     mutationFn: () => {
-      const body: Record<string, string> = {}
+      const body: Record<string, string | null> = {}
       if (displayName.trim()) body.displayName = displayName.trim()
-      const serverSector = data?.sector ?? ''
-      if (sector !== serverSector) body.sector = sector
+      if (sector !== (data?.sector ?? '')) body.sector = sector
+
+      if (residenceCountry !== (data?.residenceCountry ?? '')) {
+        body.residenceCountry = residenceCountry
+        body.residenceRegion = residenceCountry === 'United States' ? (residenceRegion || null) : null
+      } else if (residenceCountry === 'United States' && residenceRegion !== (data?.residenceRegion ?? '')) {
+        body.residenceRegion = residenceRegion || null
+      } else if (residenceCountry !== 'United States' && (data?.residenceRegion != null && data.residenceRegion !== '')) {
+        body.residenceRegion = null
+      }
+
+      if (africaFocus !== (data?.country ?? '')) body.country = africaFocus || null
+
       if (Object.keys(body).length === 0) return Promise.resolve(null)
       return api.patch<MeData>('/auth/me', body)
     },
@@ -240,13 +261,27 @@ export function ProfilePage() {
             value: data?.email
           },
           {
-            label: 'Country',
-            value: data?.country ? (
-              <span className="inline-flex items-center gap-2">
-                <span className="text-lg leading-none" aria-hidden>{flagEmojiForCountryName(data.country)}</span>
-                {data.country}
+            label: 'Country (residence)',
+            value: data?.residenceCountry ? (
+              <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span className="text-lg leading-none" aria-hidden>{flagEmojiForCountryName(data.residenceCountry)}</span>
+                {data.residenceCountry}
+                {data.residenceCountry === 'United States' && data.residenceRegion
+                  ? ` — ${data.residenceRegion}`
+                  : null}
               </span>
             ) : '–'
+          },
+          {
+            label: 'Africa investment focus',
+            value: data?.country
+              ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="text-lg leading-none" aria-hidden>{flagEmojiForCountryName(data.country)}</span>
+                  {data.country}
+                </span>
+                )
+              : '–'
           },
           {
             label: 'Sector',
@@ -292,6 +327,63 @@ export function ProfilePage() {
           </div>
 
           <div className="space-y-1.5">
+            <label className="text-[0.8125rem] font-medium ml-1 label-font" style={{ color: 'var(--mk-muted)' }} htmlFor="residence-select">
+              Country (where you live)
+            </label>
+            <select
+              id="residence-select"
+              className="mukwano-input w-full"
+              value={residenceCountry}
+              onChange={(e) => {
+                const v = e.target.value
+                setResidenceCountry(v)
+                if (v !== 'United States') setResidenceRegion('')
+              }}
+            >
+              <option value="">Select country</option>
+              {RESIDENCE_COUNTRIES.map((c) => (
+                <option key={c.name} value={c.name}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {residenceCountry === 'United States' && (
+            <div className="space-y-1.5">
+              <label className="text-[0.8125rem] font-medium ml-1 label-font" style={{ color: 'var(--mk-muted)' }} htmlFor="us-state">
+                State / D.C.
+              </label>
+              <select
+                id="us-state"
+                className="mukwano-input w-full"
+                value={residenceRegion}
+                onChange={(e) => setResidenceRegion(e.target.value)}
+              >
+                <option value="">Select state</option>
+                {US_STATE_NAMES.map((name) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="text-[0.8125rem] font-medium ml-1 label-font" style={{ color: 'var(--mk-muted)' }} htmlFor="africa-select">
+              Africa investment interest (optional)
+            </label>
+            <select
+              id="africa-select"
+              className="mukwano-input w-full"
+              value={africaFocus}
+              onChange={(e) => setAfricaFocus(e.target.value)}
+            >
+              <option value="">Not set</option>
+              {ONBOARDING_COUNTRIES.map((c) => (
+                <option key={c.name} value={c.name}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
             <label
               className="text-[0.8125rem] font-medium ml-1 label-font"
               style={{ color: 'var(--mk-muted)' }}
@@ -299,13 +391,17 @@ export function ProfilePage() {
             >
               Sector
             </label>
-            <input
+            <select
               id="sector-input"
-              className="mukwano-input"
-              placeholder="e.g. Technology, Agriculture, Education"
+              className="mukwano-input w-full"
               value={sector}
               onChange={(e) => setSector(e.target.value)}
-            />
+            >
+              <option value="">Select sector</option>
+              {ONBOARDING_SECTORS.map((s) => (
+                <option key={s.label} value={s.label}>{s.label}</option>
+              ))}
+            </select>
           </div>
 
           {/* ── Avatar upload ── */}

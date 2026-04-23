@@ -32,11 +32,11 @@ export function OnboardingCompletePage() {
           </Link>
         </div>
         <Link
-          to="/onboarding/sector"
+          to="/profile"
           className="block text-center text-sm font-medium pt-2"
           style={{ color: 'var(--mk-muted)' }}
         >
-          Change preferences
+          Update country or sector in profile
         </Link>
       </div>
     </div>

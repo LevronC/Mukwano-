@@ -1,4 +1,4 @@
-import { Navigate, Outlet, createBrowserRouter } from 'react-router-dom'
+import { Navigate, Outlet, createBrowserRouter, useLocation } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { RootLayout } from '@/components/theme/RootLayout'
 import { useAuth } from '@/contexts/AuthContext'
@@ -24,6 +24,9 @@ import { ProfilePage } from '@/pages/ProfilePage'
 import { OnboardingSectorPage } from '@/pages/onboarding/OnboardingSectorPage'
 import { OnboardingCountryPage } from '@/pages/onboarding/OnboardingCountryPage'
 import { OnboardingCompletePage } from '@/pages/onboarding/OnboardingCompletePage'
+import { OnboardingUsaStatePage } from '@/pages/onboarding/OnboardingUsaStatePage'
+import { OnboardingExploreSoloPage } from '@/pages/onboarding/OnboardingExploreSoloPage'
+import { isOnboardingComplete } from '@/lib/onboarding-gate'
 import { TermsPage } from '@/pages/legal/TermsPage'
 import { PrivacyPage } from '@/pages/legal/PrivacyPage'
 
@@ -41,9 +44,29 @@ function VerifiedLayout() {
   return <Outlet />
 }
 
+function OnboardingOnlyLayout() {
+  const { user, loading } = useAuth()
+  const { pathname } = useLocation()
+  const onWelcome = pathname === '/onboarding/complete' || pathname.endsWith('/onboarding/complete')
+  const onSoloExplore =
+    pathname === '/onboarding/explore-circles' || pathname.endsWith('/onboarding/explore-circles')
+  /** Welcome screen + optional U.S. “explore other circles” step — all other onboarding steps hide once setup is done */
+  const inPostSetupOnboarding = onWelcome || onSoloExplore
+
+  if (loading) return <div className="p-4 text-[var(--mk-muted)]">Loading...</div>
+
+  if (isOnboardingComplete(user) && !inPostSetupOnboarding) {
+    return <Navigate replace to="/dashboard" />
+  }
+  if (!isOnboardingComplete(user) && onWelcome) {
+    return <Navigate replace to="/onboarding/sector" />
+  }
+  return <Outlet />
+}
+
 function OnboardingRequiredLayout() {
   const { user } = useAuth()
-  if (!user?.sector || !user?.residenceCountry) return <Navigate replace to="/onboarding/sector" />
+  if (!isOnboardingComplete(user)) return <Navigate replace to="/onboarding/sector" />
   return <Outlet />
 }
 
@@ -67,9 +90,16 @@ export const router = createBrowserRouter([
           {
             element: <VerifiedLayout />,
             children: [
-              { path: 'onboarding/sector', element: <OnboardingSectorPage /> },
-              { path: 'onboarding/country', element: <OnboardingCountryPage /> },
-              { path: 'onboarding/complete', element: <OnboardingCompletePage /> },
+              {
+                element: <OnboardingOnlyLayout />,
+                children: [
+                  { path: 'onboarding/sector', element: <OnboardingSectorPage /> },
+                  { path: 'onboarding/country', element: <OnboardingCountryPage /> },
+                  { path: 'onboarding/usa-state', element: <OnboardingUsaStatePage /> },
+                  { path: 'onboarding/explore-circles', element: <OnboardingExploreSoloPage /> },
+                  { path: 'onboarding/complete', element: <OnboardingCompletePage /> }
+                ]
+              },
               {
                 element: <OnboardingRequiredLayout />,
                 children: [
