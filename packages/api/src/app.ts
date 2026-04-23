@@ -18,6 +18,7 @@ import { contributionsRoute } from './routes/contributions.js'
 import { proposalsRoute } from './routes/proposals.js'
 import { projectsRoute } from './routes/projects.js'
 import { reportingRoute } from './routes/reporting.js'
+import { supportFlagsRoute } from './routes/support-flags.js'
 import { notificationsRoute } from './routes/notifications.js'
 
 function firstMetaField(meta: unknown): string | null {
@@ -168,6 +169,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(proposalsRoute, { prefix: '/api/v1' })
   await app.register(projectsRoute, { prefix: '/api/v1' })
   await app.register(reportingRoute, { prefix: '/api/v1' })
+  await app.register(supportFlagsRoute, { prefix: '/api/v1' })
   await app.register(notificationsRoute, { prefix: '/api/v1' })
 
   return app

@@ -12,6 +12,8 @@ export type User = {
   email: string
   displayName: string
   isGlobalAdmin: boolean
+  /** USER | GLOBAL_ADMIN — circle CREATOR/ADMIN live on memberships. */
+  platformRole?: string
   emailVerified?: boolean
   country?: string | null
   residenceCountry?: string | null

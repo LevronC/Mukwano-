@@ -6,7 +6,9 @@ const DOMAIN = '@reporting.example'
 
 let app: FastifyInstance
 let adminToken: string
+let adminUserId: string
 let globalOnlyAdminToken: string
+let globalOnlyAdminUserId: string
 let memberToken: string
 let outsiderToken: string
 let memberId: string
@@ -39,13 +41,21 @@ beforeAll(async () => {
   const outsider = await signup('outsider')
 
   adminToken = admin.accessToken
+  adminUserId = admin.userId
   globalOnlyAdminToken = globalOnly.accessToken
+  globalOnlyAdminUserId = globalOnly.userId
   memberToken = member.accessToken
   outsiderToken = outsider.accessToken
   memberId = member.userId
 
-  await app.prisma.user.update({ where: { id: admin.userId }, data: { isGlobalAdmin: true } })
-  await app.prisma.user.update({ where: { id: globalOnly.userId }, data: { isGlobalAdmin: true } })
+  await app.prisma.user.update({
+    where: { id: admin.userId },
+    data: { isGlobalAdmin: true, platformRole: 'GLOBAL_ADMIN' }
+  })
+  await app.prisma.user.update({
+    where: { id: globalOnly.userId },
+    data: { isGlobalAdmin: true, platformRole: 'GLOBAL_ADMIN' }
+  })
 
   const circle = await app.inject({
     method: 'POST',
@@ -178,6 +188,26 @@ describe('Phase 6 - portfolio/dashboard/admin', () => {
     expect(res.json().length).toBeGreaterThan(0)
   })
 
+  it('ADMIN-03b: repeated global admin update is idempotent and does not duplicate audit rows', async () => {
+    const before = await app.prisma.auditLog.count({
+      where: { action: 'GLOBAL_ADMIN_TOGGLED', subjectUserId: memberId }
+    })
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/members/${memberId}/role`,
+      headers: injectHeaders(adminToken),
+      payload: { isGlobalAdmin: true }
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().platformRole).toBe('GLOBAL_ADMIN')
+
+    const after = await app.prisma.auditLog.count({
+      where: { action: 'GLOBAL_ADMIN_TOGGLED', subjectUserId: memberId }
+    })
+    expect(after).toBe(before)
+  })
+
   it('ADMIN-05: global admin can verify pending contribution through admin endpoint', async () => {
     const pendingContribution = await app.inject({
       method: 'POST',
@@ -297,6 +327,92 @@ describe('Phase 6 - portfolio/dashboard/admin', () => {
     })
     expect(deleteCircle.statusCode).toBe(200)
     expect(deleteCircle.json().ok).toBe(true)
+  })
+
+  it('ADMIN-09: support flags can be created and triaged without duplicate no-op audits', async () => {
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/v1/support/flags',
+      headers: injectHeaders(memberToken),
+      payload: {
+        subjectUserId: globalOnlyAdminUserId,
+        reason: 'Suspicious admin behavior for triage'
+      }
+    })
+    expect(create.statusCode).toBe(201)
+    const flagId = create.json().id as string
+
+    const list = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/support/flags?status=open',
+      headers: injectHeaders(adminToken)
+    })
+    expect(list.statusCode).toBe(200)
+    expect(list.json().some((flag: { id: string }) => flag.id === flagId)).toBe(true)
+
+    const before = (
+      await app.prisma.auditLog.findMany({
+        where: { action: 'SUPPORT_FLAG_STATUS' },
+        select: { metadata: true }
+      })
+    ).filter((row) => (row.metadata as { flagId?: string } | null)?.flagId === flagId).length
+
+    const firstPatch = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/support/flags/${flagId}`,
+      headers: injectHeaders(adminToken),
+      payload: { status: 'triaged' }
+    })
+    expect(firstPatch.statusCode).toBe(200)
+    expect(firstPatch.json().status).toBe('triaged')
+
+    const secondPatch = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/support/flags/${flagId}`,
+      headers: injectHeaders(adminToken),
+      payload: { status: 'triaged' }
+    })
+    expect(secondPatch.statusCode).toBe(200)
+    expect(secondPatch.json().status).toBe('triaged')
+
+    const after = (
+      await app.prisma.auditLog.findMany({
+        where: { action: 'SUPPORT_FLAG_STATUS' },
+        select: { metadata: true }
+      })
+    ).filter((row) => (row.metadata as { flagId?: string } | null)?.flagId === flagId).length
+    expect(after).toBe(before + 1)
+  })
+
+  it('ADMIN-10: stale admin JWT loses access after DB demotion', async () => {
+    await app.prisma.user.update({
+      where: { id: globalOnlyAdminUserId },
+      data: { isGlobalAdmin: false, platformRole: 'USER' }
+    })
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/ledger',
+      headers: injectHeaders(globalOnlyAdminToken)
+    })
+    expect(res.statusCode).toBe(403)
+    expect(res.json().error.code).toBe('GLOBAL_ADMIN_REQUIRED')
+  })
+
+  it('ADMIN-11: cannot remove the last global admin', async () => {
+    await app.prisma.user.updateMany({
+      where: { id: { not: adminUserId } },
+      data: { isGlobalAdmin: false, platformRole: 'USER' }
+    })
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/members/${adminUserId}/role`,
+      headers: injectHeaders(adminToken),
+      payload: { isGlobalAdmin: false }
+    })
+    expect(res.statusCode).toBe(403)
+    expect(res.json().error.code).toBe('LAST_GLOBAL_ADMIN')
   })
 
   it('admin endpoints reject non-global-admin users', async () => {

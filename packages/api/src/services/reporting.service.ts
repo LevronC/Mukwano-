@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { Prisma } from '@prisma/client'
 import { ForbiddenError, NotFoundError } from '../errors/http-errors.js'
+import { isGlobalPlatformAdmin, toPersistedGlobalAdminFlags } from '../lib/platform-role.js'
 import { ContributionService } from './contribution.service.js'
 import { CircleService } from './circle.service.js'
 import { ProposalService } from './proposal.service.js'
@@ -425,6 +426,7 @@ export class ReportingService {
         email: true,
         displayName: true,
         isGlobalAdmin: true,
+        platformRole: true,
         country: true,
         sector: true,
         createdAt: true
@@ -434,19 +436,67 @@ export class ReportingService {
 
   async setGlobalAdmin(requestUserId: string, targetUserId: string, isGlobalAdmin: boolean) {
     await this.ensureGlobalAdmin(requestUserId)
+    const flags = toPersistedGlobalAdminFlags(isGlobalAdmin)
 
-    const target = await this.app.prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true } })
-    if (!target) throw new NotFoundError('User not found')
+    return this.app.prisma.$transaction(async (tx) => {
+      const target = await tx.user.findUnique({
+        where: { id: targetUserId },
+        select: {
+          id: true,
+          email: true,
+          displayName: true,
+          isGlobalAdmin: true,
+          platformRole: true
+        }
+      })
+      if (!target) throw new NotFoundError('User not found')
 
-    return this.app.prisma.user.update({
-      where: { id: targetUserId },
-      data: { isGlobalAdmin },
-      select: {
-        id: true,
-        email: true,
-        displayName: true,
-        isGlobalAdmin: true
+      const alreadyPersisted =
+        target.isGlobalAdmin === flags.isGlobalAdmin && target.platformRole === flags.platformRole
+      if (alreadyPersisted) {
+        return target
       }
+
+      if (!isGlobalAdmin && isGlobalPlatformAdmin(target)) {
+        const admins = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+          SELECT "id"
+          FROM "users"
+          WHERE "platformRole" = 'GLOBAL_ADMIN' OR "isGlobalAdmin" = true
+          ORDER BY "id"
+          FOR UPDATE
+        `)
+        const remaining = admins.filter((admin) => admin.id !== targetUserId).length
+        if (remaining < 1) {
+          throw new ForbiddenError('LAST_GLOBAL_ADMIN', 'Cannot remove the last global administrator')
+        }
+      }
+
+      const updated = await tx.user.update({
+        where: { id: targetUserId },
+        data: flags,
+        select: {
+          id: true,
+          email: true,
+          displayName: true,
+          isGlobalAdmin: true,
+          platformRole: true
+        }
+      })
+      await tx.auditLog.create({
+        data: {
+          actorId: requestUserId,
+          subjectUserId: targetUserId,
+          entityType: 'user',
+          action: 'GLOBAL_ADMIN_TOGGLED',
+          metadata: {
+            previousIsGlobalAdmin: target.isGlobalAdmin,
+            previousPlatformRole: target.platformRole,
+            isGlobalAdmin,
+            platformRole: flags.platformRole
+          }
+        }
+      })
+      return updated
     })
   }
 
@@ -466,7 +516,17 @@ export class ReportingService {
     await this.ensureGlobalAdmin(requestUserId)
     return this.app.prisma.auditLog.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 500
+      take: 500,
+      select: {
+        id: true,
+        circleId: true,
+        actorId: true,
+        subjectUserId: true,
+        entityType: true,
+        action: true,
+        metadata: true,
+        createdAt: true
+      }
     })
   }
 
@@ -585,8 +645,11 @@ export class ReportingService {
   }
 
   private async ensureGlobalAdmin(userId: string) {
-    const user = await this.app.prisma.user.findUnique({ where: { id: userId }, select: { isGlobalAdmin: true } })
-    if (!user?.isGlobalAdmin) {
+    const user = await this.app.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isGlobalAdmin: true, platformRole: true }
+    })
+    if (!isGlobalPlatformAdmin(user)) {
       throw new ForbiddenError('GLOBAL_ADMIN_REQUIRED', 'Global admin access required')
     }
   }

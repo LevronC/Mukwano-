@@ -18,7 +18,10 @@ model User {
   residenceRegion  String?
   sector        String?
   avatarUrl     String?
+  /** Legacy flag; kept in sync with `platformRole` for JWT and older clients. */
   isGlobalAdmin Boolean            @default(false)
+  /** Platform-level role: USER or GLOBAL_ADMIN. Circle CREATOR/ADMIN use `CircleMembership.role`. */
+  platformRole  String             @default("USER")
   emailVerified Boolean            @default(false)
   lastVerificationEmailSent DateTime?
   createdAt     DateTime           @default(now())
@@ -34,7 +37,12 @@ model User {
   votes          Vote[]
   projectUpdates ProjectUpdate[]
   notifications  Notification[]
+  auditLogsAsSubject AuditLog[]   @relation("AuditLogSubjectUser")
+  supportFlagsReported SupportFlag[] @relation("SupportFlagReporter")
+  supportFlagsAbout    SupportFlag[] @relation("SupportFlagSubject")
 
+  @@index([platformRole], map: "idx_users_platform_role")
+  @@index([createdAt], map: "idx_users_created_at")
   @@map("users")
 }
 
@@ -143,6 +151,8 @@ model Contribution {
   @@index([circleId], map: "idx_contributions_circle")
   @@index([userId], map: "idx_contributions_user")
   @@index([status], map: "idx_contributions_status")
+  @@index([status, verifiedAt], map: "idx_contributions_status_verified_at")
+  @@index([status, submittedAt], map: "idx_contributions_status_submitted_at")
   @@map("contributions")
 }
 
@@ -176,6 +186,7 @@ model LedgerEntry {
 
   @@index([circleId, recordedAt], map: "idx_ledger_circle")
   @@index([userId], map: "idx_ledger_user")
+  @@index([recordedAt], map: "idx_ledger_recorded_at")
   @@map("ledger_entries")
 }
 
@@ -279,6 +290,9 @@ model AuditLog {
   id         String   @id @default(uuid()) @db.Uuid
   circleId   String?  @db.Uuid
   actorId    String?  @db.Uuid
+  /** User impacted by the action (e.g. role grant), when applicable. */
+  subjectUserId String? @db.Uuid
+  subjectUser   User?  @relation("AuditLogSubjectUser", fields: [subjectUserId], references: [id], onDelete: SetNull)
   entityType String
   action     String
   metadata   Json?
@@ -287,5 +301,26 @@ model AuditLog {
   @@index([circleId, createdAt], map: "idx_audit_logs_circle_created_at")
   @@index([actorId, createdAt], map: "idx_audit_logs_actor_created_at")
   @@index([createdAt], map: "idx_audit_logs_created_at")
+  @@index([subjectUserId, createdAt], map: "idx_audit_logs_subject_created_at")
   @@map("audit_logs")
+}
+
+/** Lightweight admin triage queue; extend with assignments and SLA later. */
+model SupportFlag {
+  id            String   @id @default(uuid()) @db.Uuid
+  reporterId    String   @db.Uuid
+  subjectUserId String?  @db.Uuid
+  subjectType   String   @default("user")
+  reason        String
+  status        String   @default("open")
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  reporter      User     @relation("SupportFlagReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  subjectUser   User?    @relation("SupportFlagSubject", fields: [subjectUserId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt(sort: Desc)], map: "idx_support_flags_status_created")
+  @@index([subjectUserId], map: "idx_support_flags_subject")
+  @@index([reporterId, createdAt(sort: Desc)], map: "idx_support_flags_reporter_created")
+  @@map("support_flags")
 }

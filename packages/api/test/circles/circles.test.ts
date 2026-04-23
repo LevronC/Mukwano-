@@ -277,6 +277,27 @@ describe('PATCH /api/v1/circles/:id/members/:userId/role (CIRCLE-05)', () => {
     expect(res.json().role).toBe('contributor')
   })
 
+  it('same member role update is idempotent and does not duplicate audit rows', async () => {
+    const before = await app.prisma.auditLog.count({
+      where: { circleId, action: 'MEMBER_ROLE_UPDATED', subjectUserId: memberId }
+    })
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/circles/${circleId}/members/${memberId}/role`,
+      headers: injectHeaders(creatorToken),
+      payload: { role: 'contributor' }
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.json().role).toBe('contributor')
+
+    const after = await app.prisma.auditLog.count({
+      where: { circleId, action: 'MEMBER_ROLE_UPDATED', subjectUserId: memberId }
+    })
+    expect(after).toBe(before)
+  })
+
   it('non-admin gets 403 when trying to change a role', async () => {
     const res = await app.inject({
       method: 'PATCH',
@@ -286,6 +307,43 @@ describe('PATCH /api/v1/circles/:id/members/:userId/role (CIRCLE-05)', () => {
     })
 
     expect(res.statusCode).toBe(403)
+  })
+
+  it('circle admin cannot grant circle admin (only creator can)', async () => {
+    const circleRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/circles',
+      headers: injectHeaders(creatorToken),
+      payload: { name: 'RBAC Admin Circle', goalAmount: 2000 }
+    })
+    expect(circleRes.statusCode).toBe(201)
+    const cid = circleRes.json().id as string
+    const circleAdmin = await signup('rbacadmin')
+    const joiner = await signup('rbacjoiner')
+    await app.inject({
+      method: 'POST',
+      url: `/api/v1/circles/${cid}/join`,
+      headers: injectHeaders(circleAdmin.accessToken)
+    })
+    await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/circles/${cid}/members/${circleAdmin.userId}/role`,
+      headers: injectHeaders(creatorToken),
+      payload: { role: 'admin' }
+    })
+    await app.inject({
+      method: 'POST',
+      url: `/api/v1/circles/${cid}/join`,
+      headers: injectHeaders(joiner.accessToken)
+    })
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/circles/${cid}/members/${joiner.userId}/role`,
+      headers: injectHeaders(circleAdmin.accessToken),
+      payload: { role: 'admin' }
+    })
+    expect(res.statusCode).toBe(403)
+    expect(res.json().error.code).toBe('ONLY_CREATOR_ASSIGNS_CIRCLE_ADMIN')
   })
 })
 

@@ -92,7 +92,7 @@ export function AppLayout() {
               >
                 Portfolio
               </NavLink>
-              {user?.isGlobalAdmin && (
+              {(user?.isGlobalAdmin || user?.platformRole === 'GLOBAL_ADMIN') && (
                 <NavLink
                   to="/admin"
                   className={({ isActive }) =>
@@ -203,7 +203,9 @@ export function AppLayout() {
                 { to: '/circles', label: 'My Circles' },
                 { to: '/explore', label: 'Explore' },
                 { to: '/portfolio', label: 'Portfolio' },
-                ...(user?.isGlobalAdmin ? [{ to: '/admin', label: 'Admin' }] : [])
+                ...(user?.isGlobalAdmin || user?.platformRole === 'GLOBAL_ADMIN'
+                  ? [{ to: '/admin', label: 'Admin' }]
+                  : [])
               ] as Array<{ to: string; label: string }>
             ).map(({ to, label }) => (
               <NavLink

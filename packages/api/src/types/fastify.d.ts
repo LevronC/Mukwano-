@@ -34,6 +34,7 @@ declare module 'fastify' {
       id: string
       email: string
       isGlobalAdmin: boolean
+      platformRole: string
     }
     accessJwtVerify: <T = unknown>() => Promise<T>
     refreshJwtVerify: <T = unknown>() => Promise<T>

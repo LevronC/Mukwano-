@@ -142,6 +142,7 @@ export class AuthService {
         sector: true,
         avatarUrl: true,
         isGlobalAdmin: true,
+        platformRole: true,
         emailVerified: true,
         createdAt: true,
         updatedAt: true
@@ -327,6 +328,7 @@ export class AuthService {
         sector: true,
         avatarUrl: true,
         isGlobalAdmin: true,
+        platformRole: true,
         emailVerified: true,
         createdAt: true,
         updatedAt: true
@@ -365,6 +367,7 @@ export class AuthService {
       email: user.email,
       displayName: user.displayName,
       isGlobalAdmin: user.isGlobalAdmin,
+      platformRole: user.platformRole,
       emailVerified: user.emailVerified,
       country: user.country,
       residenceCountry: user.residenceCountry,
@@ -384,6 +387,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
       isGlobalAdmin: user.isGlobalAdmin,
+      platformRole: user.platformRole,
       emailVerified: user.emailVerified
     })
 

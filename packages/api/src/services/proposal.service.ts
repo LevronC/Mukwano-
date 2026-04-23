@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { Prisma } from '@prisma/client'
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/http-errors.js'
+import { isGlobalPlatformAdmin } from '../lib/platform-role.js'
 
 type MembershipRole = 'member' | 'contributor' | 'creator' | 'admin'
 const ROLE_RANK: Record<MembershipRole, number> = {
@@ -278,9 +279,9 @@ export class ProposalService {
   private async ensureGlobalAdmin(userId: string) {
     const user = await this.app.prisma.user.findUnique({
       where: { id: userId },
-      select: { isGlobalAdmin: true }
+      select: { isGlobalAdmin: true, platformRole: true }
     })
-    if (!user?.isGlobalAdmin) {
+    if (!isGlobalPlatformAdmin(user)) {
       throw new ForbiddenError('GLOBAL_ADMIN_REQUIRED', 'Global admin access required')
     }
   }

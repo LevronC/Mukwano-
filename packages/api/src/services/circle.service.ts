@@ -4,6 +4,7 @@ import {
   ONBOARDING_SECTOR_LABELS
 } from '../constants/circle-choices.js'
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/http-errors.js'
+import { isGlobalPlatformAdmin } from '../lib/platform-role.js'
 
 type MembershipRole = 'member' | 'contributor' | 'creator' | 'admin'
 
@@ -459,7 +460,7 @@ export class CircleService {
   }
 
   async updateMemberRole(circleId: string, adminUserId: string, memberUserId: string, role: MembershipRole) {
-    await this.ensureAdmin(circleId, adminUserId)
+    const adminMembership = await this.ensureAdmin(circleId, adminUserId)
 
     const membership = await this.app.prisma.circleMembership.findUnique({
       where: { circleId_userId: { circleId, userId: memberUserId } }
@@ -468,6 +469,21 @@ export class CircleService {
     if (!membership) throw new NotFoundError('Member not found')
     if (membership.role === 'creator') {
       throw new ForbiddenError('CANNOT_CHANGE_CREATOR_ROLE', 'Creator role cannot be changed')
+    }
+    if (role === 'admin' && adminMembership.role !== 'creator') {
+      throw new ForbiddenError(
+        'ONLY_CREATOR_ASSIGNS_CIRCLE_ADMIN',
+        'Only the circle creator can grant the circle admin role'
+      )
+    }
+    if (membership.role === 'admin' && role !== 'admin' && adminMembership.role !== 'creator') {
+      throw new ForbiddenError(
+        'ONLY_CREATOR_REVOKES_CIRCLE_ADMIN',
+        'Only the circle creator can remove a circle admin'
+      )
+    }
+    if (membership.role === role) {
+      return membership
     }
 
     return this.app.prisma.$transaction(async (tx) => {
@@ -479,9 +495,10 @@ export class CircleService {
         data: {
           circleId,
           actorId: adminUserId,
+          subjectUserId: memberUserId,
           entityType: 'membership',
           action: 'MEMBER_ROLE_UPDATED',
-          metadata: { memberUserId, role }
+          metadata: { memberUserId, previousRole: membership.role, role }
         }
       })
       return updated
@@ -491,9 +508,9 @@ export class CircleService {
   async adminDeleteCircle(requestUserId: string, circleId: string) {
     const admin = await this.app.prisma.user.findUnique({
       where: { id: requestUserId },
-      select: { isGlobalAdmin: true }
+      select: { isGlobalAdmin: true, platformRole: true }
     })
-    if (!admin?.isGlobalAdmin) {
+    if (!isGlobalPlatformAdmin(admin)) {
       throw new ForbiddenError('GLOBAL_ADMIN_REQUIRED', 'Global admin access required')
     }
 

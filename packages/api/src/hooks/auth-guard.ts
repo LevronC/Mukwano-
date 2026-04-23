@@ -3,11 +3,18 @@ import type { FastifyRequest, FastifyReply } from 'fastify'
 export async function authGuard(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   try {
     await request.accessJwtVerify()
-    const u = request.user as { id?: string; sub?: string; email: string; isGlobalAdmin: boolean }
+    const u = request.user as {
+      id?: string
+      sub?: string
+      email: string
+      isGlobalAdmin: boolean
+      platformRole?: string
+    }
     request.user = {
       id: u.id ?? u.sub ?? '',
       email: u.email,
-      isGlobalAdmin: u.isGlobalAdmin
+      isGlobalAdmin: u.isGlobalAdmin,
+      platformRole: u.platformRole ?? (u.isGlobalAdmin ? 'GLOBAL_ADMIN' : 'USER')
     }
   } catch (err: unknown) {
     const code =

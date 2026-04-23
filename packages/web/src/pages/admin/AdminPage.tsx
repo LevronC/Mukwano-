@@ -4,14 +4,17 @@ import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { getErrorMessage } from '@/hooks/useApiError'
+import { AdminAnalyticsCharts } from '@/components/admin/AdminAnalyticsCharts'
 
 const mukwanoLogo = '/assets/mukwano-logo.png'
 
 const NAV_ITEMS = [
   { tab: 'pending', label: 'Verifications', icon: 'verified_user' },
+  { tab: 'analytics', label: 'Analytics', icon: 'insights' },
   { tab: 'circles', label: 'Circles', icon: 'groups' },
   { tab: 'proposals', label: 'Proposals', icon: 'gavel' },
   { tab: 'members', label: 'Members', icon: 'group' },
+  { tab: 'support', label: 'Support', icon: 'flag' },
   { tab: 'ledger', label: 'Ledger', icon: 'account_balance_wallet' },
   { tab: 'activity', label: 'Activity', icon: 'analytics' },
 ]
@@ -49,7 +52,17 @@ export function AdminPage() {
   const members = useQuery({
     queryKey: ['admin-members'],
     queryFn: () =>
-      api.get<Array<{ id: string; displayName: string; email: string; isGlobalAdmin: boolean; country?: string | null; sector?: string | null }>>('/admin/members')
+      api.get<
+        Array<{
+          id: string
+          displayName: string
+          email: string
+          isGlobalAdmin: boolean
+          platformRole?: string
+          country?: string | null
+          sector?: string | null
+        }>
+      >('/admin/members')
   })
   const circles = useQuery({
     queryKey: ['admin-circles'],
@@ -69,12 +82,69 @@ export function AdminPage() {
   const activity = useQuery({
     queryKey: ['admin-activity'],
     queryFn: () =>
-      api.get<Array<{ id: string; type: string; createdAt: string; metadata: Record<string, unknown> }>>('/admin/activity')
+      api.get<
+        Array<{
+          id: string
+          action: string
+          subjectUserId?: string | null
+          createdAt: string
+          metadata: Record<string, unknown>
+        }>
+      >('/admin/activity')
   })
   const metrics = useQuery({
     queryKey: ['admin-metrics'],
     queryFn: () =>
       api.get<{ pendingVerifications: number; totalContributed: number; escrowBalance: number; activeCircles: number; activeProjects: number; currency: string }>('/admin/metrics')
+  })
+
+  const userGrowth = useQuery({
+    queryKey: ['admin-analytics-user-growth'],
+    queryFn: () => api.get<{ series: Array<{ period: string; count: number }> }>('/admin/analytics/user-growth?months=12'),
+    enabled: tab === 'analytics'
+  })
+  const contribSeries = useQuery({
+    queryKey: ['admin-analytics-contributions'],
+    queryFn: () =>
+      api.get<{ series: Array<{ period: string; amount: number }>; currency: string }>(
+        '/admin/analytics/contributions-timeseries?months=12'
+      ),
+    enabled: tab === 'analytics'
+  })
+  const proposalsSummary = useQuery({
+    queryKey: ['admin-analytics-proposals'],
+    queryFn: () =>
+      api.get<{
+        byStatus: Array<{ status: string; count: number }>
+        passed: number
+        failed: number
+        successRatePercent: number | null
+      }>('/admin/analytics/proposals-summary'),
+    enabled: tab === 'analytics'
+  })
+  const treasuryTrends = useQuery({
+    queryKey: ['admin-analytics-treasury'],
+    queryFn: () =>
+      api.get<{ series: Array<{ period: string; netAmount: number }>; currency: string }>(
+        '/admin/analytics/treasury-trends?months=12'
+      ),
+    enabled: tab === 'analytics'
+  })
+
+  const supportFlags = useQuery({
+    queryKey: ['admin-support-flags'],
+    queryFn: () =>
+      api.get<
+        Array<{
+          id: string
+          status: string
+          reason: string
+          createdAt: string
+          reporter: { displayName: string; email: string }
+          subjectUser: { id: string; displayName: string; email: string } | null
+        }>
+      >('/admin/support/flags'),
+    enabled: tab === 'support'
   })
 
   const verify = useMutation({
@@ -129,6 +199,26 @@ export function AdminPage() {
     },
     onError: (error) => toast.error(getErrorMessage(error))
   })
+  const updateSupportFlag = useMutation({
+    mutationFn: (payload: { id: string; status: 'open' | 'triaged' | 'closed' }) =>
+      api.patch(`/admin/support/flags/${payload.id}`, { status: payload.status }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-support-flags'] })
+      toast.success('Flag updated')
+    },
+    onError: (error) => toast.error(getErrorMessage(error))
+  })
+
+  const createSupportFlag = useMutation({
+    mutationFn: (payload: { subjectUserId?: string; reason: string }) =>
+      api.post('/support/flags', payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-support-flags'] })
+      toast.success('Flag submitted')
+    },
+    onError: (error) => toast.error(getErrorMessage(error))
+  })
+
   const deleteProposal = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/proposals/${id}`),
     onSuccess: () => {
@@ -139,7 +229,8 @@ export function AdminPage() {
     onError: (error) => toast.error(getErrorMessage(error))
   })
 
-  if (!user?.isGlobalAdmin) return <Navigate replace to="/dashboard" />
+  const isGlobalAdmin = Boolean(user?.isGlobalAdmin || user?.platformRole === 'GLOBAL_ADMIN')
+  if (!isGlobalAdmin) return <Navigate replace to="/dashboard" />
 
   function generateReport() {
     const ts = new Date().toISOString().slice(0, 10)
@@ -169,13 +260,22 @@ export function AdminPage() {
       '=== MEMBERS ===',
       'Name,Email,Country,Role',
       ...(members.data ?? []).map((m) =>
-        [m.displayName, m.email, m.country ?? '', m.isGlobalAdmin ? 'Global Admin' : 'Member'].join(',')
+        [
+          m.displayName,
+          m.email,
+          m.country ?? '',
+          m.platformRole === 'GLOBAL_ADMIN' || m.isGlobalAdmin ? 'Global Admin' : 'Member'
+        ].join(',')
       ),
       '',
       '=== ACTIVITY ===',
       'Type,Summary,Date',
       ...(activity.data ?? []).map((a) =>
-        [formatActivityType(a.type), summarizeMetadata(a.metadata), new Date(a.createdAt).toLocaleString()].join(',')
+        [
+          formatActivityType(a.action),
+          summarizeMetadata(a.metadata),
+          new Date(a.createdAt).toLocaleString()
+        ].join(',')
       ),
     ]
 
@@ -197,8 +297,22 @@ export function AdminPage() {
     members.isLoading ||
     ledger.isLoading ||
     activity.isLoading ||
-    metrics.isLoading
-  const error = pending.error ?? circles.error ?? proposalsAdmin.error ?? members.error ?? ledger.error ?? activity.error ?? metrics.error
+    metrics.isLoading ||
+    (tab === 'analytics' &&
+      (userGrowth.isLoading || contribSeries.isLoading || proposalsSummary.isLoading || treasuryTrends.isLoading)) ||
+    (tab === 'support' && supportFlags.isLoading)
+  const error =
+    pending.error ??
+    circles.error ??
+    proposalsAdmin.error ??
+    members.error ??
+    ledger.error ??
+    activity.error ??
+    metrics.error ??
+    (tab === 'analytics'
+      ? userGrowth.error ?? contribSeries.error ?? proposalsSummary.error ?? treasuryTrends.error
+      : null) ??
+    (tab === 'support' ? supportFlags.error : null)
 
   return (
     <div className="flex gap-0 -mx-6 min-h-[calc(100vh-5rem)]">
@@ -306,6 +420,21 @@ export function AdminPage() {
         </section>
 
         {/* Pending verifications table */}
+        {tab === 'analytics' && (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold" style={{ color: 'var(--mk-white)' }}>Platform analytics</h2>
+            <p className="text-sm" style={{ color: 'var(--mk-muted)' }}>
+              Aggregated from the database on the server — suitable for operational dashboards.
+            </p>
+            <AdminAnalyticsCharts
+              userGrowth={userGrowth.data}
+              contributions={contribSeries.data}
+              proposals={proposalsSummary.data}
+              treasury={treasuryTrends.data}
+            />
+          </div>
+        )}
+
         {tab === 'pending' && (
           <div className="space-y-6">
             <div>
@@ -380,13 +509,14 @@ export function AdminPage() {
             <div className="mukwano-card overflow-hidden">
               <div className="px-5 py-3" style={{ background: 'var(--mk-navy2)' }}>
                 <div
-                  className="grid grid-cols-4 gap-4 w-full text-[0.6875rem] font-bold uppercase tracking-widest label-font min-w-0"
+                  className="grid grid-cols-5 gap-4 w-full text-[0.6875rem] font-bold uppercase tracking-widest label-font min-w-0"
                   style={{ color: 'var(--mk-muted)' }}
                 >
                   <span className="min-w-0">Name</span>
                   <span className="min-w-0">Email</span>
                   <span className="min-w-0">Country</span>
                   <span className="min-w-0">Role</span>
+                  <span className="min-w-0">Support</span>
                 </div>
               </div>
               <div className="divide-y" style={{ borderColor: 'rgba(190,201,195,0.15)' }}>
@@ -398,7 +528,7 @@ export function AdminPage() {
                   (members.data ?? []).map((member) => (
                     <div
                       key={member.id}
-                      className="grid grid-cols-4 gap-4 items-start px-5 py-4 text-sm min-w-0"
+                      className="grid grid-cols-5 gap-4 items-start px-5 py-4 text-sm min-w-0"
                     >
                       <div className="min-w-0 font-medium" style={{ color: 'var(--mk-white)' }}>
                         {member.displayName}
@@ -411,11 +541,78 @@ export function AdminPage() {
                         {member.email}
                       </div>
                       <div className="min-w-0">{member.country ?? '-'}</div>
-                      <div className="min-w-0">{member.isGlobalAdmin ? 'Global Admin' : 'Member'}</div>
+                      <div className="min-w-0">
+                        {member.platformRole === 'GLOBAL_ADMIN' || member.isGlobalAdmin ? 'Global Admin' : 'User'}
+                      </div>
+                      <div className="min-w-0">
+                        <button
+                          type="button"
+                          className="rounded-lg px-3 py-1.5 text-xs font-semibold"
+                          style={{ background: 'rgba(240,165,0,0.15)', color: 'var(--mk-gold)' }}
+                          onClick={() => {
+                            const reason = window.prompt('Describe the issue (sent to admin queue)')
+                            if (reason?.trim()) {
+                              createSupportFlag.mutate({ subjectUserId: member.id, reason: reason.trim() })
+                            }
+                          }}
+                        >
+                          Flag
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {tab === 'support' && (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold" style={{ color: 'var(--mk-white)' }}>Support flags</h2>
+            <p className="text-sm" style={{ color: 'var(--mk-muted)' }}>
+              User-submitted reports. Update status as you triage.
+            </p>
+            <div className="mukwano-card overflow-hidden">
+              {(supportFlags.data ?? []).length === 0 ? (
+                <div className="px-5 py-12 text-center text-sm" style={{ color: 'var(--mk-muted)' }}>
+                  No open flags.
+                </div>
+              ) : (
+                <div className="divide-y" style={{ borderColor: 'rgba(190,201,195,0.15)' }}>
+                  {(supportFlags.data ?? []).map((f) => (
+                    <div key={f.id} className="grid gap-3 px-5 py-4 md:grid-cols-[1fr_auto] md:items-center">
+                      <div>
+                        <p className="font-medium text-sm" style={{ color: 'var(--mk-white)' }}>{f.reason}</p>
+                        <p className="mt-1 text-xs label-font" style={{ color: 'var(--mk-muted)' }}>
+                          From {f.reporter.displayName} ·{' '}
+                          {f.subjectUser ? `About ${f.subjectUser.displayName}` : 'General'}
+                        </p>
+                        <p className="text-xs label-font mt-0.5" style={{ color: 'var(--mk-muted)' }}>
+                          {new Date(f.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(['open', 'triaged', 'closed'] as const).map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            disabled={f.status === s || updateSupportFlag.isPending}
+                            className="rounded-lg px-3 py-1.5 text-xs font-semibold capitalize disabled:opacity-40"
+                            style={{
+                              background: f.status === s ? 'rgba(240,165,0,0.25)' : 'rgba(255,255,255,0.06)',
+                              color: 'var(--mk-white)'
+                            }}
+                            onClick={() => updateSupportFlag.mutate({ id: f.id, status: s })}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -509,9 +706,10 @@ export function AdminPage() {
             <div className="mukwano-card overflow-hidden">
               {(activity.data ?? []).slice(0, 100).map((item) => (
                 <div key={item.id} className="grid grid-cols-3 gap-4 border-b px-5 py-4 text-sm" style={{ borderColor: 'rgba(190,201,195,0.15)' }}>
-                  <div className="font-medium" style={{ color: 'var(--mk-white)' }}>{formatActivityType(item.type)}</div>
+                  <div className="font-medium" style={{ color: 'var(--mk-white)' }}>{formatActivityType(item.action)}</div>
                   <div className="truncate" title={JSON.stringify(item.metadata)}>
                     {summarizeMetadata(item.metadata)}
+                    {item.subjectUserId ? ` · subject: ${item.subjectUserId.slice(0, 8)}…` : ''}
                   </div>
                   <div>{new Date(item.createdAt).toLocaleString()}</div>
                 </div>

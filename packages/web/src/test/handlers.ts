@@ -3,11 +3,40 @@ import { http, HttpResponse } from 'msw'
 const ok = (data: any, status = 200) => HttpResponse.json(data, { status })
 
 export const handlers = [
-  http.post('/api/v1/auth/signup', () => ok({ user: { id: 'u1', email: 'creator@example.com', displayName: 'Creator', isGlobalAdmin: true }, accessToken: 'access-token', refreshToken: 'refresh-token' }, 201)),
-  http.post('/api/v1/auth/login', () => ok({ user: { id: 'u1', email: 'creator@example.com', displayName: 'Creator', isGlobalAdmin: true }, accessToken: 'access-token', refreshToken: 'refresh-token' })),
+  http.post('/api/v1/auth/signup', () =>
+    ok(
+      {
+        user: {
+          id: 'u1',
+          email: 'creator@example.com',
+          displayName: 'Creator',
+          isGlobalAdmin: true,
+          platformRole: 'GLOBAL_ADMIN'
+        },
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token'
+      },
+      201
+    )
+  ),
+  http.post('/api/v1/auth/login', () =>
+    ok({
+      user: {
+        id: 'u1',
+        email: 'creator@example.com',
+        displayName: 'Creator',
+        isGlobalAdmin: true,
+        platformRole: 'GLOBAL_ADMIN'
+      },
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token'
+    })
+  ),
   http.post('/api/v1/auth/logout', () => ok({ message: 'Logged out' })),
   http.post('/api/v1/auth/refresh', () => ok({ accessToken: 'next-access-token', refreshToken: 'next-refresh-token' })),
-  http.get('/api/v1/auth/me', () => ok({ id: 'u1', email: 'creator@example.com', displayName: 'Creator', isGlobalAdmin: true })),
+  http.get('/api/v1/auth/me', () =>
+    ok({ id: 'u1', email: 'creator@example.com', displayName: 'Creator', isGlobalAdmin: true, platformRole: 'GLOBAL_ADMIN' })
+  ),
   http.patch('/api/v1/auth/me', () => ok({ id: 'u1', email: 'creator@example.com', displayName: 'Creator Updated' })),
   http.get('/api/v1/config', () =>
     ok({ demoMode: true, currency: 'USD', escrowLabel: 'Simulated escrow', emailConfigured: true })
@@ -93,8 +122,54 @@ export const handlers = [
   http.get('/api/v1/admin/proposals', () => ok([{ id: 'p1', circleId: 'c1', title: 'Solar Water Pump', status: 'open', createdAt: new Date().toISOString() }])),
   http.patch('/api/v1/admin/proposals/:id/disable', () => ok({ id: 'p1', status: 'cancelled' })),
   http.delete('/api/v1/admin/proposals/:id', () => ok({ ok: true })),
-  http.get('/api/v1/admin/members', () => ok([{ id: 'u1', email: 'creator@example.com', displayName: 'Creator', isGlobalAdmin: true }])),
-  http.patch('/api/v1/admin/members/:id/role', () => ok({ id: 'u2', isGlobalAdmin: true })),
+  http.get('/api/v1/admin/members', () =>
+    ok([{ id: 'u1', email: 'creator@example.com', displayName: 'Creator', isGlobalAdmin: true, platformRole: 'GLOBAL_ADMIN' }])
+  ),
+  http.patch('/api/v1/admin/members/:id/role', () => ok({ id: 'u2', isGlobalAdmin: true, platformRole: 'GLOBAL_ADMIN' })),
   http.get('/api/v1/admin/ledger', () => ok([{ id: 'l1', type: 'CONTRIBUTION_VERIFIED', amount: 250, circleName: 'Mukwano Circle' }])),
-  http.get('/api/v1/admin/activity', () => ok([{ id: 'a1', type: 'PROJECT_STATUS_CHANGED', metadata: { projectId: 'pr1' }, createdAt: new Date().toISOString() }]))
+  http.get('/api/v1/admin/activity', () =>
+    ok([
+      {
+        id: 'a1',
+        action: 'PROJECT_STATUS_CHANGED',
+        subjectUserId: null,
+        metadata: { projectId: 'pr1' },
+        createdAt: new Date().toISOString()
+      }
+    ])
+  ),
+  http.get('/api/v1/admin/metrics', () =>
+    ok({
+      pendingVerifications: 0,
+      totalContributed: 0,
+      escrowBalance: 0,
+      activeCircles: 1,
+      activeProjects: 0,
+      currency: 'USD'
+    })
+  ),
+  http.get('/api/v1/admin/system-health', () => ok({ api: 'healthy', database: 'healthy', checkedAt: new Date().toISOString() })),
+  http.get('/api/v1/admin/analytics/user-growth', () =>
+    ok({ series: [{ period: '2025-01', count: 2 }, { period: '2025-02', count: 5 }] })
+  ),
+  http.get('/api/v1/admin/analytics/contributions-timeseries', () =>
+    ok({ currency: 'USD', series: [{ period: '2025-01', amount: 100 }, { period: '2025-02', amount: 240 }] })
+  ),
+  http.get('/api/v1/admin/analytics/proposals-summary', () =>
+    ok({
+      byStatus: [
+        { status: 'closed_passed', count: 3 },
+        { status: 'closed_failed', count: 1 }
+      ],
+      passed: 3,
+      failed: 1,
+      successRatePercent: 75
+    })
+  ),
+  http.get('/api/v1/admin/analytics/treasury-trends', () =>
+    ok({ currency: 'USD', series: [{ period: '2025-01', netAmount: 400 }, { period: '2025-02', netAmount: 120 }] })
+  ),
+  http.get('/api/v1/admin/support/flags', () => ok([])),
+  http.patch('/api/v1/admin/support/flags/:id', () => ok({ id: 'f1', status: 'triaged' })),
+  http.post('/api/v1/support/flags', () => ok({ id: 'f1', status: 'open', reason: 'test' }, 201))
 ]
