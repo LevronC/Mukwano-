@@ -115,6 +115,22 @@ export const handlers = [
     })
   ),
   http.get('/api/v1/dashboard', () => ok({ circles: [], pendingContributions: 2, unvotedProposals: 1, recentActivity: [] })),
+  http.get('/api/v1/exchange/dashboard', () =>
+    ok({
+      status: 'ok',
+      residenceCountryName: 'United States',
+      focusCountryName: 'Uganda',
+      residenceCurrency: 'USD',
+      focusCurrency: 'UGX',
+      rate: 3700,
+      asOf: '2025-04-20',
+      series: [
+        { date: '2025-01-02', rate: 3600 },
+        { date: '2025-04-20', rate: 3700 }
+      ],
+      message: null
+    })
+  ),
   http.get('/api/v1/admin/contributions/pending', () => ok([{ id: 'co1', amount: 250, circleName: 'Mukwano Circle' }])),
   http.get('/api/v1/admin/circles', () => ok([{ id: 'c1', name: 'Mukwano Circle', status: 'active', country: 'Uganda', sector: 'Education' }])),
   http.patch('/api/v1/admin/circles/:id/disable', () => ok({ id: 'c1', status: 'closed' })),

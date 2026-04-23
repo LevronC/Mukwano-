@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { getErrorMessage } from '@/hooks/useApiError'
 import { getLocalTimeGreeting } from '@/lib/time-greeting'
 import { Progress } from '@/components/ui/progress'
+import { DashboardCurrencyConverter } from '@/components/dashboard/DashboardCurrencyConverter'
 
 type ActivityItem = {
   id: string
@@ -255,6 +256,8 @@ export function DashboardPage() {
           )}
         </div>
       </section>
+
+      <DashboardCurrencyConverter />
 
       <section className="space-y-4">
         <h2 className="text-xl font-semibold font-display" style={{ color: 'var(--mk-white)' }}>
