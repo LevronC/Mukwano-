@@ -20,17 +20,29 @@ export class ProjectService {
     const existing = await this.app.prisma.project.findFirst({ where: { proposalId, circleId } })
     if (existing) throw new ConflictError('PROJECT_ALREADY_EXISTS', 'Project already created for this proposal')
 
-    return this.app.prisma.project.create({
-      data: {
-        circleId,
-        proposalId,
-        createdBy: userId,
-        title: proposal.title,
-        description: proposal.description,
-        budget: proposal.requestedAmount,
-        currency: proposal.currency,
-        status: 'approved'
-      }
+    return this.app.prisma.$transaction(async (tx) => {
+      const project = await tx.project.create({
+        data: {
+          circleId,
+          proposalId,
+          createdBy: userId,
+          title: proposal.title,
+          description: proposal.description,
+          budget: proposal.requestedAmount,
+          currency: proposal.currency,
+          status: 'approved'
+        }
+      })
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: userId,
+          entityType: 'project',
+          action: 'PROJECT_CREATED',
+          metadata: { projectId: project.id, proposalId }
+        }
+      })
+      return project
     })
   }
 
@@ -80,9 +92,21 @@ export class ProjectService {
       }
     }
 
-    return this.app.prisma.project.update({
-      where: { id: project.id },
-      data: patch
+    return this.app.prisma.$transaction(async (tx) => {
+      const updated = await tx.project.update({
+        where: { id: project.id },
+        data: patch
+      })
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: userId,
+          entityType: 'project',
+          action: 'PROJECT_METADATA_UPDATED',
+          metadata: { projectId: project.id, ...patch }
+        }
+      })
+      return updated
     })
   }
 
@@ -138,6 +162,16 @@ export class ProjectService {
         }
       })
 
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: userId,
+          entityType: 'project',
+          action: 'PROJECT_STATUS_CHANGED',
+          metadata: { projectId: project.id, status }
+        }
+      })
+
       return { updated, project }
     })
 
@@ -174,13 +208,25 @@ export class ProjectService {
       throw new ConflictError('PROJECT_NOT_EXECUTING', 'Updates can only be posted for executing projects')
     }
 
-    return this.app.prisma.projectUpdate.create({
-      data: {
-        projectId,
-        postedBy: userId,
-        content,
-        percentComplete: percentComplete ?? 0
-      }
+    return this.app.prisma.$transaction(async (tx) => {
+      const update = await tx.projectUpdate.create({
+        data: {
+          projectId,
+          postedBy: userId,
+          content,
+          percentComplete: percentComplete ?? 0
+        }
+      })
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: userId,
+          entityType: 'project',
+          action: 'PROJECT_UPDATE_POSTED',
+          metadata: { projectId, percentComplete: percentComplete ?? 0 }
+        }
+      })
+      return update
     })
   }
 

@@ -139,6 +139,7 @@ export class AuthService {
         email: true,
         displayName: true,
         country: true,
+        residenceCountry: true,
         sector: true,
         avatarUrl: true,
         isGlobalAdmin: true,
@@ -285,6 +286,7 @@ export class AuthService {
     const allowed = {
       displayName: typeof body.displayName === 'string' ? body.displayName : undefined,
       country: typeof body.country === 'string' ? body.country : undefined,
+      residenceCountry: typeof body.residenceCountry === 'string' ? body.residenceCountry : undefined,
       sector: typeof body.sector === 'string' ? body.sector : undefined,
       avatarUrl: typeof body.avatarUrl === 'string' ? body.avatarUrl : undefined
     }
@@ -298,6 +300,7 @@ export class AuthService {
         email: true,
         displayName: true,
         country: true,
+        residenceCountry: true,
         sector: true,
         avatarUrl: true,
         isGlobalAdmin: true,

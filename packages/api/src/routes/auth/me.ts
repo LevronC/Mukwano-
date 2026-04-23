@@ -19,6 +19,7 @@ export const meRoute: FastifyPluginAsync = async (fastify) => {
         properties: {
           displayName: { type: 'string', minLength: 1, maxLength: 100 },
           country: { type: 'string', maxLength: 100 },
+          residenceCountry: { type: 'string', maxLength: 100 },
           sector: { type: 'string', maxLength: 100 },
           avatarUrl: { type: 'string', maxLength: 200000 }
         },

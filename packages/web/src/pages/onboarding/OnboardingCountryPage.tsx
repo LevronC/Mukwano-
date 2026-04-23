@@ -4,17 +4,17 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { getErrorMessage } from '@/hooks/useApiError'
-import { flagEmojiForCountryName, ONBOARDING_COUNTRIES } from '@/lib/onboarding-display'
+import { flagEmojiForCountryName, RESIDENCE_COUNTRIES } from '@/lib/onboarding-display'
 
 export function OnboardingCountryPage() {
   const navigate = useNavigate()
-  const [country, setCountry] = useState('Uganda')
+  const [residenceCountry, setResidenceCountry] = useState('United States')
   const [search, setSearch] = useState('')
-  const filtered = ONBOARDING_COUNTRIES.filter(({ name }) =>
+  const filtered = RESIDENCE_COUNTRIES.filter(({ name }) =>
     name.toLowerCase().includes(search.toLowerCase())
   )
   const save = useMutation({
-    mutationFn: () => api.patch('/auth/me', { country }),
+    mutationFn: () => api.patch('/auth/me', { residenceCountry }),
     onSuccess: () => navigate('/onboarding/complete'),
     onError: (error) => toast.error(getErrorMessage(error))
   })
@@ -32,10 +32,10 @@ export function OnboardingCountryPage() {
         </p>
 
         <h1 className="mb-2 text-3xl font-semibold" style={{ color: 'var(--mk-white)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-          Which country are you investing in?
+          Which country do you currently live in?
         </h1>
         <p className="mb-8 text-base" style={{ color: 'var(--mk-muted)' }}>
-          Pick the country where your circle will create impact.
+          Pick your residence country so we can localize your circle discovery.
         </p>
 
         {/* Search — flex row so icon never overlaps text/caret (absolute+pl-* fought .mukwano-input padding) */}
@@ -69,12 +69,12 @@ export function OnboardingCountryPage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {filtered.map(({ name }) => {
             const flag = flagEmojiForCountryName(name)
-            const selected = country === name
+            const selected = residenceCountry === name
             return (
               <button
                 key={name}
                 type="button"
-                onClick={() => setCountry(name)}
+                onClick={() => setResidenceCountry(name)}
                 className="flex items-center gap-3 rounded-xl p-4 text-left transition-all active:scale-[0.98]"
                 style={
                   selected

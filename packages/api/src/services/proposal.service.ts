@@ -32,15 +32,27 @@ export class ProposalService {
     const now = Date.now()
     const deadline = new Date(now + governance.proposalDurationDays * 24 * 60 * 60 * 1000)
 
-    return this.app.prisma.proposal.create({
-      data: {
-        circleId,
-        createdBy: userId,
-        title: input.title,
-        description: input.description,
-        requestedAmount: new Prisma.Decimal(input.requestedAmount),
-        votingDeadline: deadline
-      }
+    return this.app.prisma.$transaction(async (tx) => {
+      const proposal = await tx.proposal.create({
+        data: {
+          circleId,
+          createdBy: userId,
+          title: input.title,
+          description: input.description,
+          requestedAmount: new Prisma.Decimal(input.requestedAmount),
+          votingDeadline: deadline
+        }
+      })
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: userId,
+          entityType: 'proposal',
+          action: 'PROPOSAL_CREATED',
+          metadata: { proposalId: proposal.id, title: proposal.title }
+        }
+      })
+      return proposal
     })
   }
 
@@ -98,12 +110,24 @@ export class ProposalService {
     }
 
     try {
-      return await this.app.prisma.vote.create({
-        data: {
-          proposalId,
-          userId,
-          vote
-        }
+      return await this.app.prisma.$transaction(async (tx) => {
+        const createdVote = await tx.vote.create({
+          data: {
+            proposalId,
+            userId,
+            vote
+          }
+        })
+        await tx.auditLog.create({
+          data: {
+            circleId,
+            actorId: userId,
+            entityType: 'proposal',
+            action: 'VOTE_CAST',
+            metadata: { proposalId, vote }
+          }
+        })
+        return createdVote
       })
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -125,13 +149,25 @@ export class ProposalService {
       throw new ForbiddenError('INSUFFICIENT_ROLE', 'Only proposer or admin can cancel proposal')
     }
 
-    return this.app.prisma.proposal.update({
-      where: { id: proposal.id },
-      data: {
-        status: 'cancelled',
-        cancelledAt: new Date(),
-        closedAt: new Date()
-      }
+    return this.app.prisma.$transaction(async (tx) => {
+      const updated = await tx.proposal.update({
+        where: { id: proposal.id },
+        data: {
+          status: 'cancelled',
+          cancelledAt: new Date(),
+          closedAt: new Date()
+        }
+      })
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: userId,
+          entityType: 'proposal',
+          action: 'PROPOSAL_CANCELLED',
+          metadata: { proposalId: proposal.id }
+        }
+      })
+      return updated
     })
   }
 
@@ -158,7 +194,7 @@ export class ProposalService {
       const approvalRatio = cast === 0 ? 0 : (yes / cast) * 100
       const passed = quorumMet && approvalRatio >= gov.approvalPercent
 
-      return tx.proposal.update({
+      const updated = await tx.proposal.update({
         where: { id: proposal.id },
         data: {
           status: passed ? 'closed_passed' : 'closed_failed',
@@ -169,7 +205,58 @@ export class ProposalService {
           closedAt: new Date()
         }
       })
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: userId,
+          entityType: 'proposal',
+          action: passed ? 'PROPOSAL_CLOSED_PASSED' : 'PROPOSAL_CLOSED_FAILED',
+          metadata: { proposalId: proposal.id, yes, no, abstain, quorumMet }
+        }
+      })
+      return updated
     })
+  }
+
+  async adminDisableProposal(requestUserId: string, circleId: string, proposalId: string) {
+    await this.ensureGlobalAdmin(requestUserId)
+    return this.app.prisma.$transaction(async (tx) => {
+      const proposal = await tx.proposal.findFirst({ where: { id: proposalId, circleId } })
+      if (!proposal) throw new NotFoundError('Proposal not found')
+      const updated = await tx.proposal.update({
+        where: { id: proposal.id },
+        data: { status: 'cancelled', cancelledAt: new Date(), closedAt: new Date() }
+      })
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: requestUserId,
+          entityType: 'proposal',
+          action: 'PROPOSAL_DISABLED',
+          metadata: { proposalId: proposal.id }
+        }
+      })
+      return updated
+    })
+  }
+
+  async adminDeleteProposal(requestUserId: string, circleId: string, proposalId: string) {
+    await this.ensureGlobalAdmin(requestUserId)
+    await this.app.prisma.$transaction(async (tx) => {
+      const proposal = await tx.proposal.findFirst({ where: { id: proposalId, circleId }, select: { id: true } })
+      if (!proposal) throw new NotFoundError('Proposal not found')
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: requestUserId,
+          entityType: 'proposal',
+          action: 'PROPOSAL_DELETED',
+          metadata: { proposalId }
+        }
+      })
+      await tx.proposal.delete({ where: { id: proposal.id } })
+    })
+    return { ok: true }
   }
 
   private async ensureMember(circleId: string, userId: string) {
@@ -186,5 +273,15 @@ export class ProposalService {
       throw new ForbiddenError('INSUFFICIENT_ROLE', 'Admin or creator role required')
     }
     return membership
+  }
+
+  private async ensureGlobalAdmin(userId: string) {
+    const user = await this.app.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isGlobalAdmin: true }
+    })
+    if (!user?.isGlobalAdmin) {
+      throw new ForbiddenError('GLOBAL_ADMIN_REQUIRED', 'Global admin access required')
+    }
   }
 }

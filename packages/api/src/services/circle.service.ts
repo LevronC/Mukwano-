@@ -122,6 +122,16 @@ export class CircleService {
         }
       })
 
+      await tx.auditLog.create({
+        data: {
+          circleId: circle.id,
+          actorId: userId,
+          entityType: 'circle',
+          action: 'CIRCLE_CREATED',
+          metadata: { circleId: circle.id, name: circle.name }
+        }
+      })
+
       return circle
     })
 
@@ -200,7 +210,19 @@ export class CircleService {
       throw new ValidationError('No valid fields provided')
     }
 
-    return this.app.prisma.circle.update({ where: { id: circleId }, data })
+    return this.app.prisma.$transaction(async (tx) => {
+      const updated = await tx.circle.update({ where: { id: circleId }, data })
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: userId,
+          entityType: 'circle',
+          action: 'CIRCLE_UPDATED',
+          metadata: data
+        }
+      })
+      return updated
+    })
   }
 
   async updateGovernance(circleId: string, userId: string, body: Record<string, unknown>) {
@@ -246,9 +268,21 @@ export class CircleService {
     }
 
     await this.ensureCircleExists(circleId)
-    return this.app.prisma.governanceConfig.update({
-      where: { circleId },
-      data
+    return this.app.prisma.$transaction(async (tx) => {
+      const updated = await tx.governanceConfig.update({
+        where: { circleId },
+        data
+      })
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: userId,
+          entityType: 'governance',
+          action: 'GOVERNANCE_UPDATED',
+          metadata: data
+        }
+      })
+      return updated
     })
   }
 
@@ -268,9 +302,21 @@ export class CircleService {
 
   async closeCircle(circleId: string, userId: string) {
     await this.ensureAdmin(circleId, userId)
-    return this.app.prisma.circle.update({
-      where: { id: circleId },
-      data: { status: 'closed' }
+    return this.app.prisma.$transaction(async (tx) => {
+      const updated = await tx.circle.update({
+        where: { id: circleId },
+        data: { status: 'closed' }
+      })
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: userId,
+          entityType: 'circle',
+          action: 'CIRCLE_DISABLED',
+          metadata: { status: 'closed' }
+        }
+      })
+      return updated
     })
   }
 
@@ -424,10 +470,50 @@ export class CircleService {
       throw new ForbiddenError('CANNOT_CHANGE_CREATOR_ROLE', 'Creator role cannot be changed')
     }
 
-    return this.app.prisma.circleMembership.update({
-      where: { circleId_userId: { circleId, userId: memberUserId } },
-      data: { role }
+    return this.app.prisma.$transaction(async (tx) => {
+      const updated = await tx.circleMembership.update({
+        where: { circleId_userId: { circleId, userId: memberUserId } },
+        data: { role }
+      })
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: adminUserId,
+          entityType: 'membership',
+          action: 'MEMBER_ROLE_UPDATED',
+          metadata: { memberUserId, role }
+        }
+      })
+      return updated
     })
+  }
+
+  async adminDeleteCircle(requestUserId: string, circleId: string) {
+    const admin = await this.app.prisma.user.findUnique({
+      where: { id: requestUserId },
+      select: { isGlobalAdmin: true }
+    })
+    if (!admin?.isGlobalAdmin) {
+      throw new ForbiddenError('GLOBAL_ADMIN_REQUIRED', 'Global admin access required')
+    }
+
+    const circle = await this.app.prisma.circle.findUnique({ where: { id: circleId }, select: { id: true } })
+    if (!circle) throw new NotFoundError('Circle not found')
+
+    await this.app.prisma.$transaction(async (tx) => {
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: requestUserId,
+          entityType: 'circle',
+          action: 'CIRCLE_DELETED',
+          metadata: { circleId }
+        }
+      })
+      await tx.circle.delete({ where: { id: circleId } })
+    })
+
+    return { ok: true }
   }
 
   private async ensureCircleExists(circleId: string) {

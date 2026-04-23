@@ -2,6 +2,7 @@ import fp from 'fastify-plugin'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 import type { FastifyPluginAsync } from 'fastify'
+import pg from 'pg'
 
 /** What to pass to `pg` Pool `ssl` option (false = no TLS). */
 type PgSslOption = false | { rejectUnauthorized: boolean } | undefined
@@ -50,6 +51,36 @@ function resolvePgSsl(connectionString: string): PgSslOption {
   return { rejectUnauthorized: true }
 }
 
+async function disableLedgerImmutabilityForTests(connectionString: string, ssl: PgSslOption) {
+  if (!connectionString) return
+
+  const client = new pg.Client({
+    connectionString,
+    ssl,
+    connectionTimeoutMillis: 5000
+  })
+
+  await client.connect()
+
+  try {
+    const { rows } = await client.query<{ exists: boolean }>(`
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'ledger_entries'
+      ) AS "exists"
+    `)
+
+    if (!rows[0]?.exists) return
+
+    await client.query('DROP TRIGGER IF EXISTS trg_prevent_ledger_entries_update ON ledger_entries')
+    await client.query('DROP TRIGGER IF EXISTS trg_prevent_ledger_entries_delete ON ledger_entries')
+    await client.query('DROP FUNCTION IF EXISTS prevent_ledger_entries_mutation()')
+  } finally {
+    await client.end()
+  }
+}
+
 const prismaPlugin: FastifyPluginAsync = fp(async (server) => {
   // Pass PoolConfig (a plain object) so PrismaPg creates the pool internally
   // using its own pg instance. Importing pg directly causes a dual-package
@@ -66,18 +97,8 @@ const prismaPlugin: FastifyPluginAsync = fp(async (server) => {
   const prisma = new PrismaClient({ adapter })
 
   await prisma.$connect()
-
   if (process.env.NODE_ENV === 'test') {
-    await prisma.$executeRawUnsafe(`
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ledger_entries') THEN
-    DROP TRIGGER IF EXISTS trg_prevent_ledger_entries_update ON ledger_entries;
-    DROP TRIGGER IF EXISTS trg_prevent_ledger_entries_delete ON ledger_entries;
-    DROP FUNCTION IF EXISTS prevent_ledger_entries_mutation();
-  END IF;
-END $$;
-    `)
+    await disableLedgerImmutabilityForTests(dbUrl, ssl)
   }
   // No else — triggers are deployed once by scripts/deploy-triggers.mjs at build time.
   // No DDL at Lambda runtime = no catalog lock = no lock wait = no plugin timeout.

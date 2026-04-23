@@ -9,6 +9,8 @@ const mukwanoLogo = '/assets/mukwano-logo.png'
 
 const NAV_ITEMS = [
   { tab: 'pending', label: 'Verifications', icon: 'verified_user' },
+  { tab: 'circles', label: 'Circles', icon: 'groups' },
+  { tab: 'proposals', label: 'Proposals', icon: 'gavel' },
   { tab: 'members', label: 'Members', icon: 'group' },
   { tab: 'ledger', label: 'Ledger', icon: 'account_balance_wallet' },
   { tab: 'activity', label: 'Activity', icon: 'analytics' },
@@ -49,6 +51,16 @@ export function AdminPage() {
     queryFn: () =>
       api.get<Array<{ id: string; displayName: string; email: string; isGlobalAdmin: boolean; country?: string | null; sector?: string | null }>>('/admin/members')
   })
+  const circles = useQuery({
+    queryKey: ['admin-circles'],
+    queryFn: () =>
+      api.get<Array<{ id: string; name: string; status: string; country?: string | null; sector?: string | null }>>('/admin/circles')
+  })
+  const proposalsAdmin = useQuery({
+    queryKey: ['admin-proposals'],
+    queryFn: () =>
+      api.get<Array<{ id: string; circleId: string; title: string; status: string; createdAt: string }>>('/admin/proposals')
+  })
   const ledger = useQuery({
     queryKey: ['admin-ledger'],
     queryFn: () =>
@@ -87,6 +99,42 @@ export function AdminPage() {
       qc.invalidateQueries({ queryKey: ['circles'] })
       qc.invalidateQueries({ queryKey: ['circles-explore'] })
       toast.success('Contribution rejected')
+    },
+    onError: (error) => toast.error(getErrorMessage(error))
+  })
+  const disableCircle = useMutation({
+    mutationFn: (id: string) => api.patch(`/admin/circles/${id}/disable`, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-circles'] })
+      qc.invalidateQueries({ queryKey: ['admin-activity'] })
+      toast.success('Circle disabled')
+    },
+    onError: (error) => toast.error(getErrorMessage(error))
+  })
+  const deleteCircle = useMutation({
+    mutationFn: (id: string) => api.delete(`/admin/circles/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-circles'] })
+      qc.invalidateQueries({ queryKey: ['admin-activity'] })
+      toast.success('Circle deleted')
+    },
+    onError: (error) => toast.error(getErrorMessage(error))
+  })
+  const disableProposal = useMutation({
+    mutationFn: (id: string) => api.patch(`/admin/proposals/${id}/disable`, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-proposals'] })
+      qc.invalidateQueries({ queryKey: ['admin-activity'] })
+      toast.success('Proposal disabled')
+    },
+    onError: (error) => toast.error(getErrorMessage(error))
+  })
+  const deleteProposal = useMutation({
+    mutationFn: (id: string) => api.delete(`/admin/proposals/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-proposals'] })
+      qc.invalidateQueries({ queryKey: ['admin-activity'] })
+      toast.success('Proposal deleted')
     },
     onError: (error) => toast.error(getErrorMessage(error))
   })
@@ -142,8 +190,15 @@ export function AdminPage() {
     setTimeout(() => URL.revokeObjectURL(url), 100)
   }
 
-  const isLoading = pending.isLoading || members.isLoading || ledger.isLoading || activity.isLoading || metrics.isLoading
-  const error = pending.error ?? members.error ?? ledger.error ?? activity.error ?? metrics.error
+  const isLoading =
+    pending.isLoading ||
+    circles.isLoading ||
+    proposalsAdmin.isLoading ||
+    members.isLoading ||
+    ledger.isLoading ||
+    activity.isLoading ||
+    metrics.isLoading
+  const error = pending.error ?? circles.error ?? proposalsAdmin.error ?? members.error ?? ledger.error ?? activity.error ?? metrics.error
 
   return (
     <div className="flex gap-0 -mx-6 min-h-[calc(100vh-5rem)]">
@@ -361,6 +416,73 @@ export function AdminPage() {
                   ))
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {tab === 'circles' && (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold" style={{ color: 'var(--mk-white)' }}>Circles</h2>
+            <div className="mukwano-card overflow-hidden">
+              {(circles.data ?? []).slice(0, 100).map((entry) => (
+                <div key={entry.id} className="grid grid-cols-5 gap-4 border-b px-5 py-4 text-sm items-center" style={{ borderColor: 'rgba(190,201,195,0.15)' }}>
+                  <div className="font-medium" style={{ color: 'var(--mk-white)' }}>{entry.name}</div>
+                  <div>{entry.country ?? '-'}</div>
+                  <div>{entry.sector ?? '-'}</div>
+                  <div className="capitalize">{entry.status}</div>
+                  <div className="flex gap-2">
+                    <button
+                      className="rounded-xl px-3 py-1.5 text-xs font-semibold"
+                      style={{ background: '#ffdcbb', color: '#6b3f00' }}
+                      onClick={() => disableCircle.mutate(entry.id)}
+                    >
+                      Disable
+                    </button>
+                    <button
+                      className="rounded-xl px-3 py-1.5 text-xs font-semibold"
+                      style={{ background: '#ffe9e7', color: '#7a1f1f' }}
+                      onClick={() => {
+                        if (window.confirm('Delete this circle permanently?')) deleteCircle.mutate(entry.id)
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === 'proposals' && (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold" style={{ color: 'var(--mk-white)' }}>Proposals</h2>
+            <div className="mukwano-card overflow-hidden">
+              {(proposalsAdmin.data ?? []).slice(0, 100).map((entry) => (
+                <div key={entry.id} className="grid grid-cols-4 gap-4 border-b px-5 py-4 text-sm items-center" style={{ borderColor: 'rgba(190,201,195,0.15)' }}>
+                  <div className="font-medium" style={{ color: 'var(--mk-white)' }}>{entry.title}</div>
+                  <div className="capitalize">{entry.status}</div>
+                  <div>{new Date(entry.createdAt).toLocaleString()}</div>
+                  <div className="flex gap-2">
+                    <button
+                      className="rounded-xl px-3 py-1.5 text-xs font-semibold"
+                      style={{ background: '#ffdcbb', color: '#6b3f00' }}
+                      onClick={() => disableProposal.mutate(entry.id)}
+                    >
+                      Disable
+                    </button>
+                    <button
+                      className="rounded-xl px-3 py-1.5 text-xs font-semibold"
+                      style={{ background: '#ffe9e7', color: '#7a1f1f' }}
+                      onClick={() => {
+                        if (window.confirm('Delete this proposal permanently?')) deleteProposal.mutate(entry.id)
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

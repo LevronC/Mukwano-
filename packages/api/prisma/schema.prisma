@@ -13,6 +13,7 @@ model User {
   passwordHash  String
   displayName   String
   country       String?
+  residenceCountry String?
   sector        String?
   avatarUrl     String?
   isGlobalAdmin Boolean            @default(false)
@@ -270,4 +271,19 @@ model Notification {
 
   @@index([userId, createdAt(sort: Desc)], map: "idx_notifications_user")
   @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  circleId   String?  @db.Uuid
+  actorId    String?  @db.Uuid
+  entityType String
+  action     String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([circleId, createdAt], map: "idx_audit_logs_circle_created_at")
+  @@index([actorId, createdAt], map: "idx_audit_logs_actor_created_at")
+  @@index([createdAt], map: "idx_audit_logs_created_at")
+  @@map("audit_logs")
 }

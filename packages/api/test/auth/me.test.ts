@@ -54,18 +54,19 @@ describe('GET /api/v1/auth/me (AUTH-05)', () => {
 })
 
 describe('PATCH /api/v1/auth/me (AUTH-05)', () => {
-  it('updates displayName, country, and sector', async () => {
+  it('updates displayName, country, residenceCountry, and sector', async () => {
     const res = await app.inject({
       method: 'PATCH',
       url: '/api/v1/auth/me',
       headers: injectHeaders(accessToken),
-      payload: { displayName: 'Updated Name', country: 'UG', sector: 'Tech' }
+      payload: { displayName: 'Updated Name', country: 'UG', residenceCountry: 'United States', sector: 'Tech' }
     })
 
     expect(res.statusCode).toBe(200)
     const body = res.json()
     expect(body.displayName).toBe('Updated Name')
     expect(body.country).toBe('UG')
+    expect(body.residenceCountry).toBe('United States')
     expect(body.sector).toBe('Tech')
   })
 

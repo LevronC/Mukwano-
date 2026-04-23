@@ -66,9 +66,8 @@ beforeAll(async () => {
   const contributionId = contribution.json().id
   await app.inject({ method: 'PATCH', url: `/api/v1/circles/${circleId}/contributions/${contributionId}/verify`, headers: injectHeaders(adminToken) })
 
-  const memberJwt = app.jwt.access.decode(memberToken) as { id: string }
   await app.prisma.circleMembership.update({
-    where: { circleId_userId: { circleId, userId: memberJwt.id } },
+    where: { circleId_userId: { circleId, userId: memberId } },
     data: { role: 'contributor' }
   })
 
@@ -247,6 +246,57 @@ describe('Phase 6 - portfolio/dashboard/admin', () => {
     expect(health.statusCode).toBe(200)
     expect(health.json().api).toBe('healthy')
     expect(health.json().database).toBe('healthy')
+  })
+
+  it('ADMIN-08: global admin can disable/delete circles and proposals', async () => {
+    const circle = await app.inject({
+      method: 'POST',
+      url: '/api/v1/circles',
+      headers: injectHeaders(adminToken),
+      payload: { name: 'Ops Circle', goalAmount: 2500, governance: { whoCanPropose: 'member' } }
+    })
+    expect(circle.statusCode).toBe(201)
+    const opsCircleId = circle.json().id as string
+
+    const proposal = await app.inject({
+      method: 'POST',
+      url: `/api/v1/circles/${opsCircleId}/proposals`,
+      headers: injectHeaders(adminToken),
+      payload: { title: 'Ops Proposal', description: 'ops', requestedAmount: 100 }
+    })
+    expect(proposal.statusCode).toBe(201)
+    const opsProposalId = proposal.json().id as string
+
+    const disableProposal = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/proposals/${opsProposalId}/disable`,
+      headers: injectHeaders(adminToken)
+    })
+    expect(disableProposal.statusCode).toBe(200)
+    expect(disableProposal.json().status).toBe('cancelled')
+
+    const deleteProposal = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/admin/proposals/${opsProposalId}`,
+      headers: injectHeaders(adminToken)
+    })
+    expect(deleteProposal.statusCode).toBe(200)
+
+    const disableCircle = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/circles/${opsCircleId}/disable`,
+      headers: injectHeaders(adminToken)
+    })
+    expect(disableCircle.statusCode).toBe(200)
+    expect(disableCircle.json().status).toBe('closed')
+
+    const deleteCircle = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/admin/circles/${opsCircleId}`,
+      headers: injectHeaders(adminToken)
+    })
+    expect(deleteCircle.statusCode).toBe(200)
+    expect(deleteCircle.json().ok).toBe(true)
   })
 
   it('admin endpoints reject non-global-admin users', async () => {

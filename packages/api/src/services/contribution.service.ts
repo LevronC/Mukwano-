@@ -15,15 +15,27 @@ export class ContributionService {
     await this.ensureMember(circleId, userId)
     if (amount <= 0) throw new ValidationError('Amount must be greater than 0', 'amount')
 
-    return this.app.prisma.contribution.create({
-      data: {
-        circleId,
-        userId,
-        amount: new Prisma.Decimal(amount),
-        note,
-        status: 'pending',
-        currency: 'USD'
-      }
+    return this.app.prisma.$transaction(async (tx) => {
+      const contribution = await tx.contribution.create({
+        data: {
+          circleId,
+          userId,
+          amount: new Prisma.Decimal(amount),
+          note,
+          status: 'pending',
+          currency: 'USD'
+        }
+      })
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: userId,
+          entityType: 'contribution',
+          action: 'CONTRIBUTION_SUBMITTED',
+          metadata: { contributionId: contribution.id, amount: contribution.amount.toString() }
+        }
+      })
+      return contribution
     })
   }
 
@@ -111,6 +123,16 @@ export class ContributionService {
         data: { role: 'contributor' }
       })
 
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: adminUserId,
+          entityType: 'contribution',
+          action: 'CONTRIBUTION_VERIFIED',
+          metadata: { contributionId: contribution.id, amount: contribution.amount.toString(), userId: contribution.userId }
+        }
+      })
+
       return { contribution: updated, ledgerEntry: ledger, verifiedContribution: contribution }
     })
 
@@ -156,9 +178,21 @@ export class ContributionService {
       throw new ConflictError('CONTRIBUTION_NOT_PENDING', 'Only pending contributions can be rejected')
     }
 
-    return this.app.prisma.contribution.update({
-      where: { id: contribution.id },
-      data: { status: 'rejected', rejectionReason: reason }
+    return this.app.prisma.$transaction(async (tx) => {
+      const updated = await tx.contribution.update({
+        where: { id: contribution.id },
+        data: { status: 'rejected', rejectionReason: reason }
+      })
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: adminUserId,
+          entityType: 'contribution',
+          action: 'CONTRIBUTION_REJECTED',
+          metadata: { contributionId: contribution.id, reason }
+        }
+      })
+      return updated
     })
   }
 

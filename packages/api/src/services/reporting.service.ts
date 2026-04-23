@@ -2,6 +2,8 @@ import type { FastifyInstance } from 'fastify'
 import { Prisma } from '@prisma/client'
 import { ForbiddenError, NotFoundError } from '../errors/http-errors.js'
 import { ContributionService } from './contribution.service.js'
+import { CircleService } from './circle.service.js'
+import { ProposalService } from './proposal.service.js'
 
 type ActivityItem = {
   id: string
@@ -462,8 +464,89 @@ export class ReportingService {
 
   async getAdminActivity(requestUserId: string) {
     await this.ensureGlobalAdmin(requestUserId)
-    const circles = await this.app.prisma.circle.findMany({ select: { id: true } })
-    return this.getActivityForCircles(circles.map((c: { id: string }) => c.id), 500)
+    return this.app.prisma.auditLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 500
+    })
+  }
+
+  async getAdminCircles(requestUserId: string) {
+    await this.ensureGlobalAdmin(requestUserId)
+    return this.app.prisma.circle.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        country: true,
+        sector: true,
+        createdAt: true
+      }
+    })
+  }
+
+  async disableCircle(requestUserId: string, circleId: string) {
+    await this.ensureGlobalAdmin(requestUserId)
+    return this.app.prisma.$transaction(async (tx) => {
+      const circle = await tx.circle.findUnique({ where: { id: circleId }, select: { id: true } })
+      if (!circle) throw new NotFoundError('Circle not found')
+      const updated = await tx.circle.update({
+        where: { id: circleId },
+        data: { status: 'closed' }
+      })
+      await tx.auditLog.create({
+        data: {
+          circleId,
+          actorId: requestUserId,
+          entityType: 'circle',
+          action: 'CIRCLE_DISABLED',
+          metadata: { status: 'closed' }
+        }
+      })
+      return updated
+    })
+  }
+
+  async deleteCircle(requestUserId: string, circleId: string) {
+    const circleService = new CircleService(this.app)
+    return circleService.adminDeleteCircle(requestUserId, circleId)
+  }
+
+  async getAdminProposals(requestUserId: string) {
+    await this.ensureGlobalAdmin(requestUserId)
+    return this.app.prisma.proposal.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        circleId: true,
+        title: true,
+        status: true,
+        createdAt: true
+      },
+      take: 500
+    })
+  }
+
+  async disableProposal(requestUserId: string, proposalId: string) {
+    await this.ensureGlobalAdmin(requestUserId)
+    const proposal = await this.app.prisma.proposal.findUnique({
+      where: { id: proposalId },
+      select: { circleId: true }
+    })
+    if (!proposal) throw new NotFoundError('Proposal not found')
+    const proposalService = new ProposalService(this.app)
+    return proposalService.adminDisableProposal(requestUserId, proposal.circleId, proposalId)
+  }
+
+  async deleteProposal(requestUserId: string, proposalId: string) {
+    await this.ensureGlobalAdmin(requestUserId)
+    const proposal = await this.app.prisma.proposal.findUnique({
+      where: { id: proposalId },
+      select: { circleId: true }
+    })
+    if (!proposal) throw new NotFoundError('Proposal not found')
+    const proposalService = new ProposalService(this.app)
+    return proposalService.adminDeleteProposal(requestUserId, proposal.circleId, proposalId)
   }
 
   async getAdminMetrics(requestUserId: string) {
@@ -510,141 +593,18 @@ export class ReportingService {
 
   private async getActivityForCircles(circleIds: string[], limit: number) {
     if (!circleIds.length) return []
-
-    const [contributions, proposals, votes, projects, updates] = await Promise.all([
-      this.app.prisma.contribution.findMany({
-        where: { circleId: { in: circleIds } },
-        orderBy: { submittedAt: 'desc' },
-        take: limit,
-        select: {
-          id: true, circleId: true, userId: true, status: true, submittedAt: true, verifiedAt: true, verifiedBy: true
-        }
-      }),
-      this.app.prisma.proposal.findMany({
-        where: { circleId: { in: circleIds } },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-        select: { id: true, circleId: true, createdBy: true, status: true, createdAt: true, closedAt: true, cancelledAt: true }
-      }),
-      this.app.prisma.vote.findMany({
-        where: { proposal: { circleId: { in: circleIds } } },
-        orderBy: { castAt: 'desc' },
-        take: limit,
-        select: { id: true, userId: true, vote: true, castAt: true, proposal: { select: { id: true, circleId: true } } }
-      }),
-      this.app.prisma.project.findMany({
-        where: { circleId: { in: circleIds } },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-        select: { id: true, circleId: true, createdBy: true, status: true, createdAt: true, completedAt: true }
-      }),
-      this.app.prisma.projectUpdate.findMany({
-        where: { project: { circleId: { in: circleIds } } },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-        select: { id: true, postedBy: true, content: true, percentComplete: true, createdAt: true, project: { select: { id: true, circleId: true } } }
-      })
-    ])
-
-    const activity: ActivityItem[] = []
-
-    for (const c of contributions) {
-      activity.push({
-        id: `contrib-${c.id}`,
-        circleId: c.circleId,
-        actorId: c.userId,
-        type: 'CONTRIBUTION_SUBMITTED',
-        createdAt: c.submittedAt,
-        metadata: { contributionId: c.id, status: c.status }
-      })
-      if (c.verifiedAt && c.verifiedBy) {
-        activity.push({
-          id: `contrib-verified-${c.id}`,
-          circleId: c.circleId,
-          actorId: c.verifiedBy,
-          type: 'CONTRIBUTION_VERIFIED',
-          createdAt: c.verifiedAt,
-          metadata: { contributionId: c.id }
-        })
-      }
-    }
-
-    for (const p of proposals) {
-      activity.push({
-        id: `proposal-${p.id}`,
-        circleId: p.circleId,
-        actorId: p.createdBy,
-        type: 'PROPOSAL_CREATED',
-        createdAt: p.createdAt,
-        metadata: { proposalId: p.id, status: p.status }
-      })
-      if (p.closedAt) {
-        activity.push({
-          id: `proposal-closed-${p.id}`,
-          circleId: p.circleId,
-          actorId: p.createdBy,
-          type: p.status === 'closed_passed' ? 'PROPOSAL_CLOSED_PASSED' : 'PROPOSAL_CLOSED_FAILED',
-          createdAt: p.closedAt,
-          metadata: { proposalId: p.id }
-        })
-      }
-      if (p.cancelledAt) {
-        activity.push({
-          id: `proposal-cancelled-${p.id}`,
-          circleId: p.circleId,
-          actorId: p.createdBy,
-          type: 'PROPOSAL_CANCELLED',
-          createdAt: p.cancelledAt,
-          metadata: { proposalId: p.id }
-        })
-      }
-    }
-
-    for (const v of votes) {
-      activity.push({
-        id: `vote-${v.id}`,
-        circleId: v.proposal.circleId,
-        actorId: v.userId,
-        type: 'VOTE_CAST',
-        createdAt: v.castAt,
-        metadata: { proposalId: v.proposal.id, vote: v.vote }
-      })
-    }
-
-    for (const p of projects) {
-      activity.push({
-        id: `project-${p.id}`,
-        circleId: p.circleId,
-        actorId: p.createdBy,
-        type: 'PROJECT_CREATED',
-        createdAt: p.createdAt,
-        metadata: { projectId: p.id, status: p.status }
-      })
-      if (p.completedAt) {
-        activity.push({
-          id: `project-complete-${p.id}`,
-          circleId: p.circleId,
-          actorId: p.createdBy,
-          type: 'PROJECT_COMPLETE',
-          createdAt: p.completedAt,
-          metadata: { projectId: p.id }
-        })
-      }
-    }
-
-    for (const u of updates) {
-      activity.push({
-        id: `project-update-${u.id}`,
-        circleId: u.project.circleId,
-        actorId: u.postedBy,
-        type: 'PROJECT_UPDATE_POSTED',
-        createdAt: u.createdAt,
-        metadata: { projectId: u.project.id, percentComplete: u.percentComplete, content: u.content }
-      })
-    }
-
-    return activity
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(0, limit)
+    const logs = await this.app.prisma.auditLog.findMany({
+      where: { circleId: { in: circleIds } },
+      orderBy: { createdAt: 'desc' },
+      take: limit
+    })
+    return logs.map((log) => ({
+      id: log.id,
+      circleId: log.circleId ?? '',
+      actorId: log.actorId,
+      type: log.action,
+      createdAt: log.createdAt,
+      metadata: (log.metadata as Record<string, unknown> | null) ?? {}
+    }))
   }
 }

@@ -86,6 +86,40 @@ export const reportingRoute: FastifyPluginAsync = async (fastify) => {
     return reply.send(data)
   })
 
+  fastify.get('/admin/circles', async (request, reply) => {
+    const data = await service.getAdminCircles(currentUserId(request))
+    return reply.send(data)
+  })
+
+  fastify.patch('/admin/circles/:id/disable', async (request, reply) => {
+    const params = request.params as { id: string }
+    const data = await service.disableCircle(currentUserId(request), params.id)
+    return reply.send(data)
+  })
+
+  fastify.delete('/admin/circles/:id', async (request, reply) => {
+    const params = request.params as { id: string }
+    const data = await service.deleteCircle(currentUserId(request), params.id)
+    return reply.send(data)
+  })
+
+  fastify.get('/admin/proposals', async (request, reply) => {
+    const data = await service.getAdminProposals(currentUserId(request))
+    return reply.send(data)
+  })
+
+  fastify.patch('/admin/proposals/:id/disable', async (request, reply) => {
+    const params = request.params as { id: string }
+    const data = await service.disableProposal(currentUserId(request), params.id)
+    return reply.send(data)
+  })
+
+  fastify.delete('/admin/proposals/:id', async (request, reply) => {
+    const params = request.params as { id: string }
+    const data = await service.deleteProposal(currentUserId(request), params.id)
+    return reply.send(data)
+  })
+
   fastify.get('/admin/metrics', async (request, reply) => {
     const data = await service.getAdminMetrics(currentUserId(request))
     return reply.send(data)

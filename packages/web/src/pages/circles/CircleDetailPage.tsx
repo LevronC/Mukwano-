@@ -71,6 +71,7 @@ export function CircleDetailPage() {
   const isMember = membershipRole !== null && membershipRole !== 'pending' && membershipRole !== 'rejected'
   const isPending = membershipRole === 'pending'
   const isAdmin = membershipRole === 'creator' || membershipRole === 'admin'
+  const canPromoteToAdmin = membershipRole === 'creator'
 
   const { data: members } = useQuery({
     queryKey: ['members', id],
@@ -158,6 +159,15 @@ export function CircleDetailPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['join-requests', id] })
       toast.success('Join request rejected')
+    },
+    onError: (error) => toast.error(getErrorMessage(error))
+  })
+
+  const promoteToAdmin = useMutation({
+    mutationFn: (userId: string) => api.patch(`/circles/${id}/members/${userId}/role`, { role: 'admin' }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['members', id] })
+      toast.success('Member promoted to admin')
     },
     onError: (error) => toast.error(getErrorMessage(error))
   })
@@ -383,6 +393,35 @@ export function CircleDetailPage() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+          {canPromoteToAdmin && (
+            <div className="mukwano-card p-6 sm:col-span-2">
+              <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font mb-3" style={{ color: 'var(--mk-muted)' }}>
+                Promote to Admin
+              </p>
+              <div className="space-y-2">
+                {(members ?? [])
+                  .filter((member) => member.role !== 'creator' && member.role !== 'admin')
+                  .map((member) => (
+                    <div key={member.userId} className="flex items-center justify-between rounded-xl px-3 py-2" style={{ background: 'var(--mk-navy2)' }}>
+                      <div>
+                        <p className="text-sm font-semibold" style={{ color: 'var(--mk-white)' }}>{member.user?.displayName ?? 'Member'}</p>
+                        <p className="text-xs capitalize" style={{ color: 'var(--mk-muted)' }}>{member.role}</p>
+                      </div>
+                      <button
+                        className="mukwano-btn mukwano-btn-primary rounded-xl px-3 py-1.5 text-xs"
+                        onClick={() => promoteToAdmin.mutate(member.userId)}
+                        disabled={promoteToAdmin.isPending}
+                      >
+                        Promote
+                      </button>
+                    </div>
+                  ))}
+                {(members ?? []).filter((member) => member.role !== 'creator' && member.role !== 'admin').length === 0 ? (
+                  <p className="text-sm" style={{ color: 'var(--mk-muted)' }}>No eligible members to promote.</p>
+                ) : null}
+              </div>
             </div>
           )}
         </div>

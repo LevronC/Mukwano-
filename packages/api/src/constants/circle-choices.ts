@@ -12,6 +12,20 @@ export const ONBOARDING_COUNTRY_NAMES = [
   'Ethiopia'
 ] as const
 
+export const DIASPORA_HOST_COUNTRY_NAMES = [
+  'United States',
+  'United Kingdom',
+  'Germany',
+  'France',
+  'Canada',
+  'Netherlands',
+  'United Arab Emirates',
+  'Saudi Arabia',
+  'Australia',
+  'Sweden',
+  'Norway'
+] as const
+
 export const ONBOARDING_SECTOR_LABELS = [
   'Healthcare',
   'Education',

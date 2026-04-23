@@ -24,7 +24,27 @@ export const ONBOARDING_COUNTRIES: readonly OnboardingCountry[] = [
   { name: 'Ethiopia', code: 'ET' },
 ] as const
 
-const countryNameToCode = new Map(ONBOARDING_COUNTRIES.map((c) => [c.name, c.code]))
+/** Diaspora host countries supported for user residence capture. */
+export const DIASPORA_HOST_COUNTRIES: readonly OnboardingCountry[] = [
+  { name: 'United States', code: 'US' },
+  { name: 'United Kingdom', code: 'GB' },
+  { name: 'Germany', code: 'DE' },
+  { name: 'France', code: 'FR' },
+  { name: 'Canada', code: 'CA' },
+  { name: 'Netherlands', code: 'NL' },
+  { name: 'United Arab Emirates', code: 'AE' },
+  { name: 'Saudi Arabia', code: 'SA' },
+  { name: 'Australia', code: 'AU' },
+  { name: 'Sweden', code: 'SE' },
+  { name: 'Norway', code: 'NO' },
+] as const
+
+export const RESIDENCE_COUNTRIES: readonly OnboardingCountry[] = [
+  ...DIASPORA_HOST_COUNTRIES,
+  ...ONBOARDING_COUNTRIES
+] as const
+
+const countryNameToCode = new Map(RESIDENCE_COUNTRIES.map((c) => [c.name, c.code]))
 
 export function flagEmojiForCountryName(name: string): string {
   const code = countryNameToCode.get(name)

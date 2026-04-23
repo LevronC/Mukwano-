@@ -87,8 +87,14 @@ export const handlers = [
   ),
   http.get('/api/v1/dashboard', () => ok({ circles: [], pendingContributions: 2, unvotedProposals: 1, recentActivity: [] })),
   http.get('/api/v1/admin/contributions/pending', () => ok([{ id: 'co1', amount: 250, circleName: 'Mukwano Circle' }])),
+  http.get('/api/v1/admin/circles', () => ok([{ id: 'c1', name: 'Mukwano Circle', status: 'active', country: 'Uganda', sector: 'Education' }])),
+  http.patch('/api/v1/admin/circles/:id/disable', () => ok({ id: 'c1', status: 'closed' })),
+  http.delete('/api/v1/admin/circles/:id', () => ok({ ok: true })),
+  http.get('/api/v1/admin/proposals', () => ok([{ id: 'p1', circleId: 'c1', title: 'Solar Water Pump', status: 'open', createdAt: new Date().toISOString() }])),
+  http.patch('/api/v1/admin/proposals/:id/disable', () => ok({ id: 'p1', status: 'cancelled' })),
+  http.delete('/api/v1/admin/proposals/:id', () => ok({ ok: true })),
   http.get('/api/v1/admin/members', () => ok([{ id: 'u1', email: 'creator@example.com', displayName: 'Creator', isGlobalAdmin: true }])),
   http.patch('/api/v1/admin/members/:id/role', () => ok({ id: 'u2', isGlobalAdmin: true })),
   http.get('/api/v1/admin/ledger', () => ok([{ id: 'l1', type: 'CONTRIBUTION_VERIFIED', amount: 250, circleName: 'Mukwano Circle' }])),
-  http.get('/api/v1/admin/activity', () => ok([{ id: 'a1', type: 'PROJECT_STATUS_CHANGED', description: 'Project moved to executing', createdAt: new Date().toISOString() }]))
+  http.get('/api/v1/admin/activity', () => ok([{ id: 'a1', type: 'PROJECT_STATUS_CHANGED', metadata: { projectId: 'pr1' }, createdAt: new Date().toISOString() }]))
 ]

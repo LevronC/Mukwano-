@@ -24,7 +24,7 @@ export function SignupPage() {
       if (res.user.emailVerified === false) {
         toast.message('Check your email for a link to verify your address. You can resend it from the banner after you continue.')
       }
-      navigate('/onboarding/sector', { replace: true })
+      navigate('/verify-email-required', { replace: true })
     } catch (error) {
       setFieldError(getErrorField(error))
       toast.error(getErrorMessage(error))

@@ -1,10 +1,11 @@
-import { Navigate, createBrowserRouter } from 'react-router-dom'
+import { Navigate, Outlet, createBrowserRouter } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { RootLayout } from '@/components/theme/RootLayout'
 import { useAuth } from '@/contexts/AuthContext'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { SignupPage } from '@/pages/auth/SignupPage'
 import { VerifyEmailPage } from '@/pages/auth/VerifyEmailPage'
+import { VerifyEmailRequiredPage } from '@/pages/auth/VerifyEmailRequiredPage'
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { SplashPage } from '@/pages/SplashPage'
@@ -33,6 +34,19 @@ function ProtectedLayout() {
   return <AppLayout />
 }
 
+function VerifiedLayout() {
+  const { user } = useAuth()
+  // Phone verification can be added to this gate when OTP flows are implemented.
+  if (!user?.emailVerified) return <Navigate replace to="/verify-email-required" />
+  return <Outlet />
+}
+
+function OnboardingRequiredLayout() {
+  const { user } = useAuth()
+  if (!user?.sector || !user?.residenceCountry) return <Navigate replace to="/onboarding/sector" />
+  return <Outlet />
+}
+
 export const router = createBrowserRouter([
   {
     element: <RootLayout />,
@@ -49,20 +63,31 @@ export const router = createBrowserRouter([
       {
         element: <ProtectedLayout />,
         children: [
-          { path: 'dashboard', element: <DashboardPage /> },
-          { path: 'onboarding/sector', element: <OnboardingSectorPage /> },
-          { path: 'onboarding/country', element: <OnboardingCountryPage /> },
-          { path: 'onboarding/complete', element: <OnboardingCompletePage /> },
-          { path: 'circles', element: <CirclesListPage /> },
-          { path: 'circles/new', element: <NewCirclePage /> },
-          { path: 'circles/:id', element: <CircleDetailPage /> },
-          { path: 'circles/:id/contributions/new', element: <NewContributionPage /> },
-          { path: 'circles/:id/proposals/new', element: <NewProposalPage /> },
-          { path: 'circles/:id/proposals/:pid', element: <ProposalDetailPage /> },
-          { path: 'circles/:id/projects/:projId', element: <ProjectDetailPage /> },
-          { path: 'portfolio', element: <PortfolioPage /> },
-          { path: 'admin', element: <AdminPage /> },
-          { path: 'profile', element: <ProfilePage /> }
+          { path: 'verify-email-required', element: <VerifyEmailRequiredPage /> },
+          {
+            element: <VerifiedLayout />,
+            children: [
+              { path: 'onboarding/sector', element: <OnboardingSectorPage /> },
+              { path: 'onboarding/country', element: <OnboardingCountryPage /> },
+              { path: 'onboarding/complete', element: <OnboardingCompletePage /> },
+              {
+                element: <OnboardingRequiredLayout />,
+                children: [
+                  { path: 'dashboard', element: <DashboardPage /> },
+                  { path: 'circles', element: <CirclesListPage /> },
+                  { path: 'circles/new', element: <NewCirclePage /> },
+                  { path: 'circles/:id', element: <CircleDetailPage /> },
+                  { path: 'circles/:id/contributions/new', element: <NewContributionPage /> },
+                  { path: 'circles/:id/proposals/new', element: <NewProposalPage /> },
+                  { path: 'circles/:id/proposals/:pid', element: <ProposalDetailPage /> },
+                  { path: 'circles/:id/projects/:projId', element: <ProjectDetailPage /> },
+                  { path: 'portfolio', element: <PortfolioPage /> },
+                  { path: 'admin', element: <AdminPage /> },
+                  { path: 'profile', element: <ProfilePage /> }
+                ]
+              }
+            ]
+          }
         ]
       }
     ]
