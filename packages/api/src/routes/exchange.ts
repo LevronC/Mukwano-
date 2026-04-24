@@ -14,4 +14,26 @@ export const exchangeRoute: FastifyPluginAsync = async (fastify) => {
       return reply.send(data)
     }
   )
+
+  fastify.get(
+    '/exchange/pair',
+    {
+      preHandler: [authGuard],
+      schema: {
+        querystring: {
+          type: 'object',
+          required: ['from', 'to'],
+          properties: {
+            from: { type: 'string', minLength: 3, maxLength: 3 },
+            to: { type: 'string', minLength: 3, maxLength: 3 }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const { from, to } = request.query as { from: string; to: string }
+      const data = await service.getPair(from, to)
+      return reply.send(data)
+    }
+  )
 }

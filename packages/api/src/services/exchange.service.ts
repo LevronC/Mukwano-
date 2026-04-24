@@ -1,5 +1,10 @@
 import type { FastifyInstance } from 'fastify'
-import { currencyForCountryName } from '../constants/currency-by-country.js'
+import {
+  currencyForCountryName,
+  isAllowedExchangeCurrencyCode,
+  listSelectableCurrencies,
+  type SelectableCurrency
+} from '../constants/currency-by-country.js'
 
 /**
  * Public currency data on jsDelivr (fawazahmed0/currency-api). Frankfurter ECB
@@ -28,6 +33,20 @@ export type ExchangeDashboardResponse = {
   residenceCurrency: string | null
   focusCurrency: string | null
   /** 1 unit of residence currency equals this many focus-currency units */
+  rate: number | null
+  asOf: string | null
+  series: Array<{ date: string; rate: number }>
+  message: string | null
+  /** ISO codes from onboarding countries; use for custom pair picker. */
+  selectableCurrencies: SelectableCurrency[]
+}
+
+export type ExchangePairStatus = 'ok' | 'same_currency' | 'invalid_pair' | 'provider_error'
+
+export type ExchangePairResponse = {
+  status: ExchangePairStatus
+  fromCurrency: string
+  toCurrency: string
   rate: number | null
   asOf: string | null
   series: Array<{ date: string; rate: number }>
@@ -162,6 +181,85 @@ async function fetchTimeSeries(
 export class ExchangeService {
   constructor(private readonly app: FastifyInstance) {}
 
+  private readonly selectable = listSelectableCurrencies()
+
+  private dash(
+    partial: Omit<ExchangeDashboardResponse, 'selectableCurrencies'>
+  ): ExchangeDashboardResponse {
+    return { ...partial, selectableCurrencies: this.selectable }
+  }
+
+  /** Latest + series for any allowed ISO pair (profile-independent). */
+  async getPair(fromRaw: string, toRaw: string): Promise<ExchangePairResponse> {
+    const fromCurrency = fromRaw.trim().toUpperCase()
+    const toCurrency = toRaw.trim().toUpperCase()
+    if (!/^[A-Z]{3}$/.test(fromCurrency) || !/^[A-Z]{3}$/.test(toCurrency)) {
+      return {
+        status: 'invalid_pair',
+        fromCurrency,
+        toCurrency,
+        rate: null,
+        asOf: null,
+        series: [],
+        message: 'from and to must be three-letter ISO 4217 codes.'
+      }
+    }
+    if (!isAllowedExchangeCurrencyCode(fromCurrency) || !isAllowedExchangeCurrencyCode(toCurrency)) {
+      return {
+        status: 'invalid_pair',
+        fromCurrency,
+        toCurrency,
+        rate: null,
+        asOf: null,
+        series: [],
+        message: 'One or both currencies are not available in Mukwano yet.'
+      }
+    }
+    if (fromCurrency === toCurrency) {
+      return {
+        status: 'same_currency',
+        fromCurrency,
+        toCurrency,
+        rate: 1,
+        asOf: new Date().toISOString().slice(0, 10),
+        series: [],
+        message: null
+      }
+    }
+    try {
+      const { rate, date } = await fetchLatestRate(fromCurrency, toCurrency)
+      let series: Array<{ date: string; rate: number }> = []
+      try {
+        series = await fetchTimeSeries(fromCurrency, toCurrency, 90)
+      } catch (seriesErr) {
+        this.app.log.warn(
+          { err: seriesErr, fromCurrency, toCurrency },
+          'exchange pair timeseries failed; returning latest only'
+        )
+      }
+      return {
+        status: 'ok',
+        fromCurrency,
+        toCurrency,
+        rate,
+        asOf: date,
+        series,
+        message: null
+      }
+    } catch (e) {
+      this.app.log.warn({ err: e, fromCurrency, toCurrency }, 'exchange pair fetch failed')
+      return {
+        status: 'provider_error',
+        fromCurrency,
+        toCurrency,
+        rate: null,
+        asOf: null,
+        series: [],
+        message: 'Live rates are temporarily unavailable. Try again in a few minutes.'
+      }
+    }
+  }
+
   async getDashboardExchange(userId: string): Promise<ExchangeDashboardResponse> {
     const user = await this.app.prisma.user.findUnique({
       where: { id: userId },
@@ -171,7 +269,7 @@ export class ExchangeService {
     const focusCountryName = user?.country?.trim() || null
 
     if (!residenceCountryName || !focusCountryName) {
-      return {
+      return this.dash({
         status: 'incomplete_profile',
         residenceCountryName,
         focusCountryName,
@@ -181,13 +279,13 @@ export class ExchangeService {
         asOf: null,
         series: [],
         message: 'Add your residence and Africa investment focus in your profile to see a personalized rate.'
-      }
+      })
     }
 
     const residenceCurrency = currencyForCountryName(residenceCountryName)
     const focusCurrency = currencyForCountryName(focusCountryName)
     if (!residenceCurrency || !focusCurrency) {
-      return {
+      return this.dash({
         status: 'unknown_country',
         residenceCountryName,
         focusCountryName,
@@ -197,11 +295,11 @@ export class ExchangeService {
         asOf: null,
         series: [],
         message: 'We do not have a currency mapping for one of your profile countries yet.'
-      }
+      })
     }
 
     if (residenceCurrency === focusCurrency) {
-      return {
+      return this.dash({
         status: 'same_currency',
         residenceCountryName,
         focusCountryName,
@@ -211,7 +309,7 @@ export class ExchangeService {
         asOf: new Date().toISOString().slice(0, 10),
         series: [],
         message: null
-      }
+      })
     }
 
     try {
@@ -225,7 +323,7 @@ export class ExchangeService {
           'exchange timeseries failed; returning latest only'
         )
       }
-      return {
+      return this.dash({
         status: 'ok',
         residenceCountryName,
         focusCountryName,
@@ -235,10 +333,10 @@ export class ExchangeService {
         asOf: date,
         series,
         message: null
-      }
+      })
     } catch (e) {
       this.app.log.warn({ err: e, userId, residenceCurrency, focusCurrency }, 'exchange dashboard fetch failed')
-      return {
+      return this.dash({
         status: 'provider_error',
         residenceCountryName,
         focusCountryName,
@@ -248,7 +346,7 @@ export class ExchangeService {
         asOf: null,
         series: [],
         message: 'Live rates are temporarily unavailable. Try again in a few minutes.'
-      }
+      })
     }
   }
 }

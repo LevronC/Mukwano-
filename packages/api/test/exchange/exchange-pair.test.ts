@@ -2,8 +2,8 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { createTestApp, injectHeaders } from '../helpers/app.js'
 
-const DOMAIN = '@exchange-dash.example'
-const EMAIL = `trader${DOMAIN}`
+const DOMAIN = '@exchange-pair.example'
+const EMAIL = `pair${DOMAIN}`
 const PASSWORD = 'password123'
 
 let app: FastifyInstance
@@ -15,7 +15,7 @@ beforeAll(async () => {
   await app.inject({
     method: 'POST',
     url: '/api/v1/auth/signup',
-    payload: { email: EMAIL, password: PASSWORD, displayName: 'Exchange User' }
+    payload: { email: EMAIL, password: PASSWORD, displayName: 'Pair User' }
   })
   const login = await app.inject({
     method: 'POST',
@@ -30,35 +30,23 @@ afterAll(async () => {
   await app.close()
 })
 
-describe('GET /api/v1/exchange/dashboard', () => {
-  it('requires authentication', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/v1/exchange/dashboard' })
+describe('GET /api/v1/exchange/pair', () => {
+  it('returns 401 without auth', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/exchange/pair?from=USD&to=UGX' })
     expect(res.statusCode).toBe(401)
   })
 
-  it('returns incomplete_profile when residence or focus country is missing', async () => {
+  it('returns invalid_pair for disallowed ISO codes', async () => {
     const res = await app.inject({
       method: 'GET',
-      url: '/api/v1/exchange/dashboard',
+      url: '/api/v1/exchange/pair?from=USD&to=XXX',
       headers: injectHeaders(accessToken)
     })
     expect(res.statusCode).toBe(200)
-    const body = res.json()
-    expect(body.status).toBe('incomplete_profile')
-    expect(body.rate).toBeNull()
-    expect(Array.isArray(body.selectableCurrencies)).toBe(true)
-    expect(body.selectableCurrencies.length).toBeGreaterThan(3)
+    expect(res.json().status).toBe('invalid_pair')
   })
 
-  it('returns ok with rate after profile is completed (currency API mocked)', async () => {
-    const patch = await app.inject({
-      method: 'PATCH',
-      url: '/api/v1/auth/me',
-      headers: injectHeaders(accessToken),
-      payload: { residenceCountry: 'United States', country: 'Uganda' }
-    })
-    expect(patch.statusCode).toBe(200)
-
+  it('returns ok for USD/UGX when currency API is mocked', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
@@ -81,20 +69,16 @@ describe('GET /api/v1/exchange/dashboard', () => {
 
     const res = await app.inject({
       method: 'GET',
-      url: '/api/v1/exchange/dashboard',
+      url: '/api/v1/exchange/pair?from=USD&to=UGX',
       headers: injectHeaders(accessToken)
     })
-
     vi.unstubAllGlobals()
 
     expect(res.statusCode).toBe(200)
     const body = res.json()
     expect(body.status).toBe('ok')
-    expect(body.residenceCurrency).toBe('USD')
-    expect(body.focusCurrency).toBe('UGX')
+    expect(body.fromCurrency).toBe('USD')
+    expect(body.toCurrency).toBe('UGX')
     expect(body.rate).toBe(3800)
-    expect(Array.isArray(body.series)).toBe(true)
-    expect(body.series.length).toBeGreaterThanOrEqual(1)
-    expect(body.selectableCurrencies?.some((c: { code: string }) => c.code === 'USD')).toBe(true)
   })
 })

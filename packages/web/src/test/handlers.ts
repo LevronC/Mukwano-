@@ -128,6 +128,25 @@ export const handlers = [
         { date: '2025-01-02', rate: 3600 },
         { date: '2025-04-20', rate: 3700 }
       ],
+      message: null,
+      selectableCurrencies: [
+        { code: 'USD', label: 'USD — US Dollar', representativeCountryName: 'United States' },
+        { code: 'UGX', label: 'UGX — Ugandan Shilling', representativeCountryName: 'Uganda' },
+        { code: 'EUR', label: 'EUR — Euro', representativeCountryName: 'Germany' }
+      ]
+    })
+  ),
+  http.get('/api/v1/exchange/pair', () =>
+    ok({
+      status: 'ok',
+      fromCurrency: 'USD',
+      toCurrency: 'UGX',
+      rate: 3700,
+      asOf: '2025-04-20',
+      series: [
+        { date: '2025-01-02', rate: 3600 },
+        { date: '2025-04-20', rate: 3700 }
+      ],
       message: null
     })
   ),
