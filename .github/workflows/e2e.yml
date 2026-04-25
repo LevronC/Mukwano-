@@ -28,6 +28,7 @@ jobs:
       DATABASE_URL: postgresql://mukwano:mukwano@localhost:5432/mukwano
       JWT_SECRET: ci-e2e-jwt-secret-must-be-at-least-32-chars
       REFRESH_TOKEN_SECRET: ci-e2e-refresh-secret-at-least-32-chars
+      DEMO_MODE: "true"
       CI: "true"
       NODE_ENV: test
 
@@ -74,6 +75,7 @@ jobs:
       DATABASE_URL: postgresql://mukwano:mukwano@localhost:5432/mukwano
       JWT_SECRET: ci-e2e-jwt-secret-must-be-at-least-32-chars
       REFRESH_TOKEN_SECRET: ci-e2e-refresh-secret-at-least-32-chars
+      DEMO_MODE: "true"
       CI: "true"
 
     steps:
