@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { createTestApp, injectHeaders } from '../helpers/app.js'
+import { createTestApp, injectHeaders, loginUser, signupWithVerifiedEmail } from '../helpers/app.js'
 
 const DOMAIN = '@reporting.example'
 
@@ -16,17 +16,7 @@ let circleId: string
 let projectId: string
 
 async function signup(suffix: string): Promise<{ accessToken: string; userId: string }> {
-  const res = await app.inject({
-    method: 'POST',
-    url: '/api/v1/auth/signup',
-    payload: {
-      email: `${suffix}${DOMAIN}`,
-      password: 'password123',
-      displayName: suffix
-    }
-  })
-  const body = res.json()
-  return { accessToken: body.accessToken, userId: body.user.id }
+  return signupWithVerifiedEmail(app, `${suffix}${DOMAIN}`, 'password123', suffix)
 }
 
 beforeAll(async () => {
@@ -40,9 +30,7 @@ beforeAll(async () => {
   const member = await signup('member')
   const outsider = await signup('outsider')
 
-  adminToken = admin.accessToken
   adminUserId = admin.userId
-  globalOnlyAdminToken = globalOnly.accessToken
   globalOnlyAdminUserId = globalOnly.userId
   memberToken = member.accessToken
   outsiderToken = outsider.accessToken
@@ -56,6 +44,11 @@ beforeAll(async () => {
     where: { id: globalOnly.userId },
     data: { isGlobalAdmin: true, platformRole: 'GLOBAL_ADMIN' }
   })
+
+  const adminSession = await loginUser(app, `admin${DOMAIN}`, 'password123')
+  const globalOnlySession = await loginUser(app, `globalonly${DOMAIN}`, 'password123')
+  adminToken = adminSession.accessToken
+  globalOnlyAdminToken = globalOnlySession.accessToken
 
   const circle = await app.inject({
     method: 'POST',

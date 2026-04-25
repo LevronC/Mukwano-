@@ -23,7 +23,20 @@ const schema = {
     RESEND_FROM: {
       type: 'string',
       default: 'Mukwano <onboarding@resend.dev>'
-    }
+    },
+    AZURE_STORAGE_ACCOUNT_NAME: { type: 'string', default: '' },
+    AZURE_STORAGE_ACCOUNT_KEY: { type: 'string', default: '' },
+    AZURE_STORAGE_CONTAINER_NAME: { type: 'string', default: 'mukwano-proofs' },
+    STRIPE_SECRET_KEY: { type: 'string', default: '' },
+    STRIPE_WEBHOOK_SECRET: { type: 'string', default: '' },
+    /** Sentry DSN — omit in dev/test to disable reporting */
+    SENTRY_DSN: { type: 'string', default: '' },
+    SENTRY_ENVIRONMENT: { type: 'string', default: '' },
+    SENTRY_TRACES_SAMPLE_RATE: { type: 'string', default: '0' },
+    /** Ops: optional queue depth (e.g. outbox/backfill); 0 if unknown */
+    QUEUE_DEPTH: { type: 'string', default: '0' },
+    /** ISO-8601 date of last successful backup verify drill (ops-set) */
+    BACKUP_LAST_VERIFIED_ISO: { type: 'string', default: '' }
   }
 } as const
 

@@ -1,6 +1,6 @@
 import type { PrismaClient } from '@prisma/client'
 import type { JWT } from '@fastify/jwt'
-import type { EscrowAdapter, StorageAdapter, NotificationAdapter } from '../plugins/demo-mode.js'
+import type { EscrowAdapter, StorageAdapter, NotificationAdapter, PaymentAdapter } from '../plugins/demo-mode.js'
 import type { NotificationService } from '../services/notification.service.js'
 import type { EmailService } from '../services/email.service.js'
 
@@ -17,6 +17,16 @@ declare module 'fastify' {
       APP_URL: string
       RESEND_API_KEY: string
       RESEND_FROM: string
+      AZURE_STORAGE_ACCOUNT_NAME: string
+      AZURE_STORAGE_ACCOUNT_KEY: string
+      AZURE_STORAGE_CONTAINER_NAME: string
+      STRIPE_SECRET_KEY: string
+      STRIPE_WEBHOOK_SECRET: string
+      SENTRY_DSN: string
+      SENTRY_ENVIRONMENT: string
+      SENTRY_TRACES_SAMPLE_RATE: string
+      QUEUE_DEPTH: string
+      BACKUP_LAST_VERIFIED_ISO: string
     }
     jwt: {
       access: JWT
@@ -26,6 +36,7 @@ declare module 'fastify' {
     escrowAdapter: EscrowAdapter
     storageAdapter: StorageAdapter
     notificationAdapter: NotificationAdapter
+    paymentAdapter: PaymentAdapter
     notificationService: NotificationService
     emailService: EmailService
   }
@@ -35,7 +46,11 @@ declare module 'fastify' {
       email: string
       isGlobalAdmin: boolean
       platformRole: string
+      emailVerified?: boolean
+      totpEnabled?: boolean
+      stepUpAt?: number
     }
+    idempotencyKey?: string
     accessJwtVerify: <T = unknown>() => Promise<T>
     refreshJwtVerify: <T = unknown>() => Promise<T>
   }

@@ -1,9 +1,11 @@
 import crypto from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import { v4 as uuidv4 } from 'uuid'
+import { generateSecret as totpGenerateSecret, verifySync as totpVerifySync, generateURI as totpGenerateURI } from 'otplib'
+import { toDataURL } from 'qrcode'
 import type { FastifyInstance } from 'fastify'
 import type { User } from '@prisma/client'
-import { UnauthorizedError, ConflictError, ValidationError, NotFoundError, HttpError } from '../errors/http-errors.js'
+import { UnauthorizedError, ConflictError, ValidationError, NotFoundError, ForbiddenError, HttpError } from '../errors/http-errors.js'
 
 const BCRYPT_COST = process.env.NODE_ENV === 'test' ? 4 : 12
 const EMAIL_TOKEN_VERIFY = 'VERIFY'
@@ -11,6 +13,15 @@ const EMAIL_TOKEN_RESET = 'RESET'
 const VERIFY_TTL_MS = 24 * 60 * 60 * 1000
 const RESET_TTL_MS = 60 * 60 * 1000
 const RESEND_COOLDOWN_MS = 60 * 1000
+const STEP_UP_TTL_S = 300
+
+// Login lockout thresholds (failures in a 60-minute rolling window)
+const LOCKOUT_WINDOW_MS = 60 * 60 * 1000
+const LOCKOUT_TIERS = [
+  { failures: 10, retryAfterMs: 30 * 60 * 1000 },
+  { failures: 8, retryAfterMs: 5 * 60 * 1000 },
+  { failures: 5, retryAfterMs: 15 * 1000 },
+] as const
 
 export class AuthService {
   constructor(private readonly app: FastifyInstance) {}
@@ -37,6 +48,7 @@ export class AuthService {
     if (existing) throw new ConflictError('EMAIL_ALREADY_EXISTS', 'An account with this email already exists')
 
     const passwordHash = await bcrypt.hash(password, BCRYPT_COST)
+
     const user = await this.app.prisma.user.create({
       data: { email, passwordHash, displayName, emailVerified: false }
     })
@@ -62,15 +74,39 @@ export class AuthService {
     return this.issueTokenPair(userWithSent)
   }
 
-  async login(rawEmail: string, password: string) {
+  async login(rawEmail: string, password: string, ipAddress?: string) {
     const email = rawEmail.toLowerCase().trim()
-    const user = await this.app.prisma.user.findUnique({ where: { email } })
 
-    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    await this.checkLoginLockout(email)
+
+    const user = await this.app.prisma.user.findUnique({ where: { email } })
+    const passwordMatch = user ? await bcrypt.compare(password, user.passwordHash) : false
+
+    if (!user || !passwordMatch) {
+      await this.app.prisma.loginAttempt.create({ data: { email, ipAddress, success: false } })
       throw new UnauthorizedError('INVALID_CREDENTIALS', 'Invalid email or password')
     }
 
+    if (user.deactivatedAt) {
+      throw new ForbiddenError('ACCOUNT_DEACTIVATED', 'This account has been deactivated')
+    }
+
+    await this.app.prisma.loginAttempt.create({ data: { email, ipAddress, success: true } })
     return this.issueTokenPair(user)
+  }
+
+  private async checkLoginLockout(email: string): Promise<void> {
+    if (process.env.NODE_ENV === 'test') return
+    const since = new Date(Date.now() - LOCKOUT_WINDOW_MS)
+    const recentFailures = await this.app.prisma.loginAttempt.count({
+      where: { email, success: false, createdAt: { gte: since } }
+    })
+    for (const tier of LOCKOUT_TIERS) {
+      if (recentFailures >= tier.failures) {
+        const retryAfterSecs = Math.ceil(tier.retryAfterMs / 1000)
+        throw new HttpError(429, 'ACCOUNT_LOCKED', `Too many failed attempts. Try again in ${retryAfterSecs} seconds`)
+      }
+    }
   }
 
   async refresh(rawRefreshToken: string) {
@@ -354,11 +390,79 @@ export class AuthService {
     const match = await bcrypt.compare(currentPassword, user.passwordHash)
     if (!match) throw new UnauthorizedError('WRONG_PASSWORD', 'Current password is incorrect')
     const passwordHash = await bcrypt.hash(newPassword, BCRYPT_COST)
-    await this.app.prisma.user.update({ where: { id: userId }, data: { passwordHash } })
+    await this.app.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: userId }, data: { passwordHash } })
+      await tx.refreshToken.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } })
+    })
   }
 
-  async deleteAccount(userId: string) {
-    await this.app.prisma.user.delete({ where: { id: userId } })
+  async deactivateAccount(userId: string) {
+    await this.app.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: userId }, data: { deactivatedAt: new Date() } })
+      await tx.refreshToken.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } })
+    })
+  }
+
+  async setupTotp(userId: string) {
+    const user = await this.app.prisma.user.findUnique({ where: { id: userId } })
+    if (!user) throw new NotFoundError('User not found')
+    if (user.totpEnabled) throw new ConflictError('TOTP_ALREADY_ENABLED', 'TOTP is already enabled')
+
+    const secret = totpGenerateSecret()
+    await this.app.prisma.user.update({ where: { id: userId }, data: { totpSecret: secret } })
+
+    const otpAuthUrl = totpGenerateURI({ issuer: 'Mukwano', label: user.email, secret })
+    const qrCodeDataUrl = await toDataURL(otpAuthUrl)
+    return { secret, qrCodeDataUrl }
+  }
+
+  async confirmTotp(userId: string, code: string) {
+    const user = await this.app.prisma.user.findUnique({ where: { id: userId } })
+    if (!user) throw new NotFoundError('User not found')
+    if (user.totpEnabled) throw new ConflictError('TOTP_ALREADY_ENABLED', 'TOTP is already enabled')
+    if (!user.totpSecret) throw new ValidationError('Run setup first', 'code')
+
+    if (!totpVerifySync({ token: code, secret: user.totpSecret })) {
+      throw new UnauthorizedError('INVALID_TOTP', 'Invalid authenticator code')
+    }
+    await this.app.prisma.user.update({ where: { id: userId }, data: { totpEnabled: true } })
+  }
+
+  async disableTotp(userId: string, code: string) {
+    const user = await this.app.prisma.user.findUnique({ where: { id: userId } })
+    if (!user) throw new NotFoundError('User not found')
+    if (!user.totpEnabled || !user.totpSecret) throw new ConflictError('TOTP_NOT_ENABLED', 'TOTP is not enabled')
+
+    if (!totpVerifySync({ token: code, secret: user.totpSecret })) {
+      throw new UnauthorizedError('INVALID_TOTP', 'Invalid authenticator code')
+    }
+    await this.app.prisma.user.update({ where: { id: userId }, data: { totpEnabled: false, totpSecret: null } })
+  }
+
+  async issueStepUpToken(userId: string, code: string) {
+    const user = await this.app.prisma.user.findUnique({ where: { id: userId } })
+    if (!user) throw new NotFoundError('User not found')
+    if (!user.totpEnabled || !user.totpSecret) {
+      throw new ForbiddenError('TOTP_NOT_ENABLED', 'TOTP must be enabled before step-up')
+    }
+    if (!totpVerifySync({ token: code, secret: user.totpSecret })) {
+      throw new UnauthorizedError('INVALID_TOTP', 'Invalid authenticator code')
+    }
+    const stepUpAt = Math.floor(Date.now() / 1000)
+    const accessToken = await (this.namespacedJwt.access as unknown as { sign: (p: object, opts: object) => Promise<string> }).sign(
+      {
+        sub: user.id,
+        id: user.id,
+        email: user.email,
+        isGlobalAdmin: user.isGlobalAdmin,
+        platformRole: user.platformRole,
+        emailVerified: user.emailVerified,
+        totpEnabled: user.totpEnabled,
+        stepUpAt,
+      },
+      { expiresIn: STEP_UP_TTL_S }
+    )
+    return { accessToken, stepUpAt }
   }
 
   private toPublicUser(user: User) {
@@ -388,7 +492,8 @@ export class AuthService {
       email: user.email,
       isGlobalAdmin: user.isGlobalAdmin,
       platformRole: user.platformRole,
-      emailVerified: user.emailVerified
+      emailVerified: user.emailVerified,
+      totpEnabled: user.totpEnabled,
     })
 
     const refreshToken = await this.namespacedJwt.refresh.sign({

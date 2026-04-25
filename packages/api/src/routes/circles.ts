@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { ONBOARDING_COUNTRY_NAMES, ONBOARDING_SECTOR_LABELS } from '../constants/circle-choices.js'
 import { authGuard } from '../hooks/auth-guard.js'
+import { requireEmailVerified } from '../hooks/require-email-verified.js'
 import { CircleService } from '../services/circle.service.js'
 
 const roleEnum = ['member', 'contributor', 'creator', 'admin']
@@ -39,7 +40,7 @@ export const circlesRoute: FastifyPluginAsync = async (fastify) => {
         additionalProperties: false
       }
     },
-    preHandler: [authGuard]
+    preHandler: [authGuard, requireEmailVerified]
   }, async (request, reply) => {
     const circle = await circleService.createCircle(currentUserId(request), request.body as any)
     return reply.code(201).send(circle)
@@ -125,13 +126,13 @@ export const circlesRoute: FastifyPluginAsync = async (fastify) => {
     return reply.send(updated)
   })
 
-  fastify.post('/circles/:id/join', { preHandler: [authGuard] }, async (request, reply) => {
+  fastify.post('/circles/:id/join', { preHandler: [authGuard, requireEmailVerified] }, async (request, reply) => {
     const params = request.params as { id: string }
     const membership = await circleService.joinCircle(params.id, currentUserId(request))
     return reply.code(201).send(membership)
   })
 
-  fastify.post('/circles/:id/join-request', { preHandler: [authGuard] }, async (request, reply) => {
+  fastify.post('/circles/:id/join-request', { preHandler: [authGuard, requireEmailVerified] }, async (request, reply) => {
     const params = request.params as { id: string }
     const membership = await circleService.requestJoinCircle(params.id, currentUserId(request))
     return reply.code(201).send(membership)

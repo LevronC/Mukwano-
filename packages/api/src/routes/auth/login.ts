@@ -19,7 +19,7 @@ export const loginRoute: FastifyPluginAsync = async (fastify) => {
     }
   }, async (request, reply) => {
     const { email, password } = request.body as { email: string; password: string }
-    const result = await authService.login(email, password)
+    const result = await authService.login(email, password, request.ip)
     return reply.send(result)
   })
 }

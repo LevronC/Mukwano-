@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { Prisma } from '@prisma/client'
 import { ConflictError, ForbiddenError, HttpError, NotFoundError, ValidationError } from '../errors/http-errors.js'
+import { captureFinancialException } from '../lib/observability/sentry.js'
 
 type Role = 'member' | 'contributor' | 'creator' | 'admin'
 const ADMIN_ROLES: Role[] = ['creator', 'admin']
@@ -183,11 +184,16 @@ export class ProjectService {
       status
     })
 
-    this.app.notificationService.createForCircle(
-      circleId,
-      'PROJECT_STATUS_CHANGED',
-      `Project "${result.project.title}" moved to ${status}`
-    ).catch((err) => this.app.log.error({ err }, 'notification.createForCircle failed silently'))
+    this.app.notificationService
+      .createForCircle(
+        circleId,
+        'PROJECT_STATUS_CHANGED',
+        `Project "${result.project.title}" moved to ${status}`
+      )
+      .catch((err) => {
+        this.app.log.error({ err }, 'notification.createForCircle failed silently')
+        captureFinancialException(err, 'notification.project_status', { projectId: result.project.id, status })
+      })
 
     return result.updated
   }

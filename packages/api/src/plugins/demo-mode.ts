@@ -1,5 +1,7 @@
 import fp from 'fastify-plugin'
 import type { FastifyPluginAsync } from 'fastify'
+import { AzureBlobStorageAdapter } from '../adapters/azure-blob.storage.js'
+import { DemoPaymentAdapter, StripePaymentAdapter, type PaymentAdapter } from '../adapters/stripe.payment.js'
 
 type UploadUrlInput = { fileKey: string; fileName: string; mimeType: string; sizeBytes: number }
 type DownloadUrlInput = { fileKey: string }
@@ -96,16 +98,44 @@ class ProviderNotificationAdapter implements NotificationAdapter {
 const demoModePlugin: FastifyPluginAsync = fp(async (server) => {
   const demoMode = server.config.DEMO_MODE === 'true'
   const escrowAdapter: EscrowAdapter = demoMode ? new DemoEscrowAdapter() : new LiveEscrowAdapter()
-  const storageAdapter: StorageAdapter = demoMode ? new LocalStorageAdapter() : new RemoteStorageAdapter()
   const notificationAdapter: NotificationAdapter = demoMode
     ? new ConsoleNotificationAdapter()
     : new ProviderNotificationAdapter()
+
+  let storageAdapter: StorageAdapter
+  if (demoMode) {
+    storageAdapter = new LocalStorageAdapter()
+  } else {
+    const { AZURE_STORAGE_ACCOUNT_NAME, AZURE_STORAGE_ACCOUNT_KEY, AZURE_STORAGE_CONTAINER_NAME } = server.config
+    if (!AZURE_STORAGE_ACCOUNT_NAME || !AZURE_STORAGE_ACCOUNT_KEY) {
+      throw new Error('AZURE_STORAGE_ACCOUNT_NAME and AZURE_STORAGE_ACCOUNT_KEY are required when DEMO_MODE=false')
+    }
+    const azureAdapter = new AzureBlobStorageAdapter(
+      AZURE_STORAGE_ACCOUNT_NAME,
+      AZURE_STORAGE_ACCOUNT_KEY,
+      AZURE_STORAGE_CONTAINER_NAME
+    )
+    await azureAdapter.ensureContainer()
+    storageAdapter = azureAdapter
+  }
+
+  let paymentAdapter: PaymentAdapter
+  if (demoMode) {
+    paymentAdapter = new DemoPaymentAdapter()
+  } else {
+    const { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } = server.config
+    if (!STRIPE_SECRET_KEY || !STRIPE_WEBHOOK_SECRET) {
+      throw new Error('STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are required when DEMO_MODE=false')
+    }
+    paymentAdapter = new StripePaymentAdapter(STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET)
+  }
 
   server.decorate('demoMode', demoMode)
   server.decorate('escrowAdapter', escrowAdapter)
   server.decorate('storageAdapter', storageAdapter)
   server.decorate('notificationAdapter', notificationAdapter)
+  server.decorate('paymentAdapter', paymentAdapter)
 })
 
 export { demoModePlugin }
-export type { EscrowAdapter, StorageAdapter, NotificationAdapter }
+export type { EscrowAdapter, StorageAdapter, NotificationAdapter, PaymentAdapter }

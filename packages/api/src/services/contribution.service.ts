@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { Prisma } from '@prisma/client'
 import { v4 as uuidv4 } from 'uuid'
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/http-errors.js'
+import { captureFinancialException } from '../lib/observability/sentry.js'
 
 type Role = 'member' | 'contributor' | 'creator' | 'admin'
 const ADMIN_ROLES: Role[] = ['creator', 'admin']
@@ -151,11 +152,18 @@ export class ContributionService {
       amount: result.verifiedContribution.amount.toString()
     })
 
-    this.app.notificationService.createForUser(
-      result.verifiedContribution.userId,
-      'CONTRIBUTION_VERIFIED',
-      `Your contribution of ${result.verifiedContribution.amount} ${result.verifiedContribution.currency} was verified`
-    ).catch((err) => this.app.log.error({ err }, 'notification.createForUser failed silently'))
+    this.app.notificationService
+      .createForUser(
+        result.verifiedContribution.userId,
+        'CONTRIBUTION_VERIFIED',
+        `Your contribution of ${result.verifiedContribution.amount} ${result.verifiedContribution.currency} was verified`
+      )
+      .catch((err) => {
+        this.app.log.error({ err }, 'notification.createForUser failed silently')
+        captureFinancialException(err, 'notification.after_verify_contribution', {
+          contributionId: result.verifiedContribution.id
+        })
+      })
 
     return { contribution: result.contribution, ledgerEntry: result.ledgerEntry }
   }
@@ -194,6 +202,45 @@ export class ContributionService {
       })
       return updated
     })
+  }
+
+  async startStripeCheckout(circleId: string, contributionId: string, userId: string) {
+    const contribution = await this.app.prisma.contribution.findFirst({ where: { id: contributionId, circleId } })
+    if (!contribution) throw new NotFoundError('Contribution not found')
+    if (contribution.userId !== userId) throw new ForbiddenError('OWNER_ONLY', 'Only the contribution owner can initiate payment')
+    if (contribution.status !== 'pending') throw new ConflictError('CONTRIBUTION_NOT_PENDING', 'Contribution is no longer pending')
+    if (contribution.stripeCheckoutSessionId) throw new ConflictError('CHECKOUT_EXISTS', 'A checkout session already exists for this contribution')
+
+    const appUrl = this.app.config.APP_URL
+    const { sessionId, checkoutUrl } = await this.app.paymentAdapter.createCheckoutSession({
+      contributionId,
+      circleId,
+      amount: contribution.amount.toNumber(),
+      currency: contribution.currency,
+      successUrl: `${appUrl}/circles/${circleId}?payment=success&contribution=${contributionId}`,
+      cancelUrl: `${appUrl}/circles/${circleId}?payment=cancelled&contribution=${contributionId}`,
+    })
+
+    await this.app.prisma.contribution.update({
+      where: { id: contributionId },
+      data: { stripeCheckoutSessionId: sessionId }
+    })
+
+    return { checkoutUrl, sessionId }
+  }
+
+  async handleStripePaymentConfirmed(circleId: string, contributionId: string, sessionId: string) {
+    const contribution = await this.app.prisma.contribution.findFirst({ where: { id: contributionId, circleId } })
+    if (!contribution) {
+      this.app.log.warn({ contributionId, sessionId }, 'stripe webhook: contribution not found')
+      return
+    }
+    if (contribution.status !== 'pending') {
+      this.app.log.info({ contributionId, status: contribution.status }, 'stripe webhook: contribution already processed')
+      return
+    }
+    // Auto-verify: Stripe confirmed payment, so funds exist — skip manual admin step
+    await this.verifyContribution(circleId, contributionId, 'stripe-system', { skipCircleRoleCheck: true })
   }
 
   async createProofUploadUrl(circleId: string, contributionId: string, userId: string, fileName: string, mimeType: string, sizeBytes: number) {

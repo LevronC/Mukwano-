@@ -4,6 +4,7 @@ packages/e2e/.e2e-credentials.json
 packages/e2e/playwright-report/
 packages/e2e/test-results/
 packages/api/.env
+packages/api/coverage/
 *.js.map
 
 # Design tool scratch exports (Stitch previews, screenshots)

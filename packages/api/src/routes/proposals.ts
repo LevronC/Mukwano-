@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { httpRateLimit } from '../http-rate-limit-presets.js'
 import { authGuard } from '../hooks/auth-guard.js'
+import { requireEmailVerified } from '../hooks/require-email-verified.js'
 import { ProposalService } from '../services/proposal.service.js'
 
 export const proposalsRoute: FastifyPluginAsync = async (fastify) => {
@@ -9,6 +10,7 @@ export const proposalsRoute: FastifyPluginAsync = async (fastify) => {
     (request.user as { id: string; email: string; isGlobalAdmin: boolean }).id
 
   fastify.addHook('preHandler', authGuard)
+  fastify.addHook('preHandler', requireEmailVerified)
 
   fastify.post('/circles/:id/proposals', {
     config: { rateLimit: httpRateLimit.financialMutation },

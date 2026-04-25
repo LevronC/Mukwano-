@@ -2,6 +2,7 @@ import Fastify from 'fastify'
 import type { FastifyInstance } from 'fastify'
 import { Prisma } from '@prisma/client'
 import { HttpError } from './errors/http-errors.js'
+import { captureHttpException } from './lib/observability/sentry.js'
 import { envPlugin } from './plugins/env.js'
 import { prismaPlugin } from './plugins/prisma.js'
 import { jwtPlugin } from './plugins/jwt.js'
@@ -11,6 +12,9 @@ import { rateLimitPlugin } from './plugins/rate-limit.js'
 import { demoModePlugin } from './plugins/demo-mode.js'
 import { notificationsPlugin } from './plugins/notifications.js'
 import { emailPlugin } from './plugins/email.js'
+import { sanitizeInputPlugin } from './plugins/sanitize-input.js'
+import { deadlineCronPlugin } from './plugins/deadline-cron.js'
+import { webhooksRoute } from './routes/webhooks.js'
 import { authRoutes } from './routes/auth/index.js'
 import { configRoute } from './routes/config.js'
 import { circlesRoute } from './routes/circles.js'
@@ -82,6 +86,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(demoModePlugin)
   await app.register(emailPlugin)
   await app.register(notificationsPlugin)
+  await app.register(sanitizeInputPlugin)
+  await app.register(deadlineCronPlugin)
 
   // Root — API has no HTML UI; browsers hitting / otherwise get 404
   app.get('/', async (_request, reply) => {
@@ -95,6 +101,27 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   app.get('/favicon.ico', async (_request, reply) => {
     return reply.code(204).send()
+  })
+
+  app.get('/healthz', async (_request, reply) => {
+    let db: 'ok' | 'error' = 'ok'
+    try {
+      await app.prisma.$queryRaw`SELECT 1`
+    } catch {
+      db = 'error'
+    }
+    const cfg = app.config
+    const rawQ = process.env.QUEUE_DEPTH ?? cfg.QUEUE_DEPTH ?? '0'
+    const parsedQ = Number.parseInt(rawQ, 10)
+    const queue = Number.isFinite(parsedQ) ? parsedQ : 0
+    const backupRaw =
+      process.env.BACKUP_LAST_VERIFIED_ISO?.trim() || cfg.BACKUP_LAST_VERIFIED_ISO?.trim()
+    const backup_last_verified = backupRaw && backupRaw.length > 0 ? backupRaw : null
+    return reply.send({
+      db,
+      queue,
+      backup_last_verified
+    })
   })
 
   app.setErrorHandler((error: unknown, request, reply) => {
@@ -153,6 +180,11 @@ export async function buildApp(): Promise<FastifyInstance> {
     }
 
     app.log.error({ correlationId, err: error }, 'Unhandled server error')
+    captureHttpException(error, {
+      correlationId: String(correlationId),
+      method: request.method,
+      path: request.url
+    })
     return reply.code(500).send({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
@@ -173,6 +205,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(supportFlagsRoute, { prefix: '/api/v1' })
   await app.register(notificationsRoute, { prefix: '/api/v1' })
   await app.register(exchangeRoute, { prefix: '/api/v1' })
+  await app.register(webhooksRoute, { prefix: '/api/v1' })
 
   return app
 }

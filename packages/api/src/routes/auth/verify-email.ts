@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { AuthService } from '../../services/auth.service.js'
 import { authGuard } from '../../hooks/auth-guard.js'
+import { httpRateLimit } from '../../http-rate-limit-presets.js'
 
 export const verifyEmailRoute: FastifyPluginAsync = async (fastify) => {
   const authService = new AuthService(fastify)
@@ -21,7 +22,10 @@ export const verifyEmailRoute: FastifyPluginAsync = async (fastify) => {
     return reply.code(204).send()
   })
 
-  fastify.post('/resend-verification', { preHandler: authGuard }, async (request, reply) => {
+  fastify.post('/resend-verification', {
+    preHandler: authGuard,
+    config: { rateLimit: httpRateLimit.resendVerification },
+  }, async (request, reply) => {
     await authService.resendVerification(userId(request))
     return reply.code(204).send()
   })

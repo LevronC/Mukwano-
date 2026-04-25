@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { createTestApp, injectHeaders } from '../helpers/app.js'
+import { createTestApp, injectHeaders, signupWithVerifiedEmail } from '../helpers/app.js'
 
 const DOMAIN = '@proposal.example'
 
@@ -13,17 +13,7 @@ let circleId: string
 let proposalId: string
 
 async function signup(suffix: string): Promise<{ accessToken: string; userId: string }> {
-  const res = await app.inject({
-    method: 'POST',
-    url: '/api/v1/auth/signup',
-    payload: {
-      email: `${suffix}${DOMAIN}`,
-      password: 'password123',
-      displayName: suffix
-    }
-  })
-  const body = res.json()
-  return { accessToken: body.accessToken, userId: body.user.id }
+  return signupWithVerifiedEmail(app, `${suffix}${DOMAIN}`, 'password123', suffix)
 }
 
 beforeAll(async () => {

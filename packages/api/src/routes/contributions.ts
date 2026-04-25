@@ -1,6 +1,8 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { httpRateLimit } from '../http-rate-limit-presets.js'
 import { authGuard } from '../hooks/auth-guard.js'
+import { requireEmailVerified } from '../hooks/require-email-verified.js'
+import { checkIdempotency, storeIdempotency } from '../hooks/idempotency.js'
 import { ContributionService } from '../services/contribution.service.js'
 
 export const contributionsRoute: FastifyPluginAsync = async (fastify) => {
@@ -9,6 +11,7 @@ export const contributionsRoute: FastifyPluginAsync = async (fastify) => {
     (request.user as { id: string; email: string; isGlobalAdmin: boolean }).id
 
   fastify.addHook('preHandler', authGuard)
+  fastify.addHook('preHandler', requireEmailVerified)
 
   fastify.post('/circles/:id/contributions', {
     config: { rateLimit: httpRateLimit.financialMutation },
@@ -24,9 +27,11 @@ export const contributionsRoute: FastifyPluginAsync = async (fastify) => {
       }
     }
   }, async (request, reply) => {
+    if (await checkIdempotency(fastify, request, reply)) return
     const params = request.params as { id: string }
     const body = request.body as { amount: number; note?: string }
     const contribution = await service.submitContribution(params.id, currentUserId(request), body.amount, body.note)
+    await storeIdempotency(fastify, request, 201, contribution)
     return reply.code(201).send(contribution)
   })
 
@@ -109,6 +114,19 @@ export const contributionsRoute: FastifyPluginAsync = async (fastify) => {
     const body = request.body as { fileKey: string; fileName: string; mimeType: string; sizeBytes: number }
     const result = await service.confirmProofUpload(params.id, params.cid, currentUserId(request), body.fileKey, body.fileName, body.mimeType, body.sizeBytes)
     return reply.code(201).send(result)
+  })
+
+  fastify.post('/circles/:id/contributions/:cid/pay', {
+    config: { rateLimit: httpRateLimit.financialMutation }
+  }, async (request, reply) => {
+    if (fastify.demoMode) {
+      return reply.code(400).send({
+        error: { code: 'DEMO_MODE', message: 'Stripe payments are disabled in demo mode. Ask a circle admin to manually verify your contribution.', status: 400 }
+      })
+    }
+    const params = request.params as { id: string; cid: string }
+    const result = await service.startStripeCheckout(params.id, params.cid, currentUserId(request))
+    return reply.send(result)
   })
 
   fastify.get('/circles/:id/contributions/:cid/proof/:proofId/view', async (request, reply) => {

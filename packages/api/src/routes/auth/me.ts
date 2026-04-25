@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { AuthService } from '../../services/auth.service.js'
 import { authGuard } from '../../hooks/auth-guard.js'
+import { requireStepUp } from '../../hooks/require-step-up.js'
 import { ValidationError } from '../../errors/http-errors.js'
 
 export const meRoute: FastifyPluginAsync = async (fastify) => {
@@ -51,7 +52,7 @@ export const meRoute: FastifyPluginAsync = async (fastify) => {
   })
 
   fastify.post('/me/change-password', {
-    preHandler: authGuard,
+    preHandler: [authGuard, requireStepUp],
     schema: {
       body: {
         type: 'object',
@@ -69,8 +70,8 @@ export const meRoute: FastifyPluginAsync = async (fastify) => {
     return reply.code(204).send()
   })
 
-  fastify.delete('/me', { preHandler: authGuard }, async (request, reply) => {
-    await authService.deleteAccount(userId(request))
+  fastify.delete('/me', { preHandler: [authGuard, requireStepUp] }, async (request, reply) => {
+    await authService.deactivateAccount(userId(request))
     return reply.code(204).send()
   })
 }
