@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -7,18 +8,40 @@ import { ExploreImpactFeatured } from '@/components/explore/ExploreImpactFeature
 import { ExploreTrendingAfrica } from '@/components/explore/ExploreTrendingAfrica'
 import { useAuth } from '@/contexts/AuthContext'
 import { getErrorMessage } from '@/hooks/useApiError'
+import { ONBOARDING_COUNTRIES, flagEmojiForCountryName } from '@/lib/onboarding-display'
 
 const mukwanoLogo = '/assets/mukwano-logo.png'
+
+type ExploreSort = 'recent' | 'members' | 'funded'
 
 export function ExplorePage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { user } = useAuth()
 
+  const [searchInput, setSearchInput] = useState('')
+  const [q, setQ] = useState('')
+  const [country, setCountry] = useState('')
+  const [sort, setSort] = useState<ExploreSort>('recent')
+
+  // Debounce text search by 350 ms
+  useEffect(() => {
+    const t = setTimeout(() => setQ(searchInput.trim()), 350)
+    return () => clearTimeout(t)
+  }, [searchInput])
+
+  const params = useMemo(() => {
+    const p: Record<string, string> = { sort }
+    if (q) p.q = q
+    if (country) p.country = country
+    return p
+  }, [q, country, sort])
+
   const { data: circles, isLoading, error } = useQuery({
-    queryKey: ['circles-explore'],
-    queryFn: () =>
-      api.get<
+    queryKey: ['circles-explore', params],
+    queryFn: () => {
+      const qs = new URLSearchParams(params).toString()
+      return api.get<
         Array<{
           id: string
           name: string
@@ -30,8 +53,10 @@ export function ExplorePage() {
           currency: string
           coverImageUrl?: string | null
           verifiedRaisedAmount?: string | null
+          memberCount?: number
         }>
-      >('/circles')
+      >(`/explore/circles?${qs}`)
+    }
   })
 
   const { data: myRequests } = useQuery({
@@ -123,6 +148,95 @@ export function ExplorePage() {
       <ExploreCommunityNews />
 
       <ExploreTrendingAfrica />
+
+      {/* Search + filter bar */}
+      <section className="space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          {/* Text search */}
+          <div className="relative flex-1">
+            <span
+              className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 select-none"
+              style={{ fontSize: '18px', color: 'var(--mk-muted)' }}
+            >
+              search
+            </span>
+            <input
+              type="text"
+              placeholder="Search circles…"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full rounded-xl py-2.5 pl-9 pr-4 text-sm outline-none transition-colors"
+              style={{
+                background: 'var(--mk-navy2)',
+                border: '1px solid rgba(240,165,0,0.15)',
+                color: 'var(--mk-white)',
+              }}
+            />
+          </div>
+
+          {/* Country filter */}
+          <select
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            className="rounded-xl px-3 py-2.5 text-sm outline-none"
+            style={{
+              background: 'var(--mk-navy2)',
+              border: '1px solid rgba(240,165,0,0.15)',
+              color: country ? 'var(--mk-white)' : 'var(--mk-muted)',
+              minWidth: '160px',
+            }}
+          >
+            <option value="">All countries</option>
+            {ONBOARDING_COUNTRIES.map((c) => (
+              <option key={c.code} value={c.name}>
+                {flagEmojiForCountryName(c.name)} {c.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Sort buttons */}
+          <div className="flex gap-1 rounded-xl p-1" style={{ background: 'var(--mk-navy2)' }}>
+            {(['recent', 'members', 'funded'] as ExploreSort[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSort(s)}
+                className="rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-all"
+                style={
+                  sort === s
+                    ? { background: 'var(--mk-gold)', color: '#0a0e18' }
+                    : { color: 'var(--mk-muted)' }
+                }
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Active filter chips */}
+        {(q || country) && (
+          <div className="flex flex-wrap gap-2">
+            {q && (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                style={{ background: 'rgba(240,165,0,0.12)', color: 'var(--mk-gold)' }}
+              >
+                "{q}"
+                <button onClick={() => { setSearchInput(''); setQ('') }} className="opacity-70 hover:opacity-100">✕</button>
+              </span>
+            )}
+            {country && (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                style={{ background: 'rgba(240,165,0,0.12)', color: 'var(--mk-gold)' }}
+              >
+                {flagEmojiForCountryName(country)} {country}
+                <button onClick={() => setCountry('')} className="opacity-70 hover:opacity-100">✕</button>
+              </span>
+            )}
+          </div>
+        )}
+      </section>
 
       <ExploreImpactFeatured
         circles={circles ?? []}

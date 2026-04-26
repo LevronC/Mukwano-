@@ -114,6 +114,10 @@ model Circle {
   goalAmount       Decimal            @db.Decimal(18, 2)
   currency         String             @default("USD")
   status           String             @default("active")
+  /** Whether this circle appears in the public Explore listing. Only admins can toggle. */
+  isPublic         Boolean            @default(false)
+  /** 8-char alphanumeric invite code. Auto-generated on creation; regeneratable by admin. */
+  inviteCode       String?            @unique
   createdBy        String             @db.Uuid
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt

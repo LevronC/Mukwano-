@@ -493,7 +493,7 @@ export function DashboardCurrencyConverter() {
                 </p>
 
                 <Link
-                  to="/circles/new"
+                  to="/circles"
                   className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold transition-opacity hover:opacity-90"
                   style={{ background: LIME, color: '#0a0e18' }}
                 >

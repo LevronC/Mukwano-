@@ -52,6 +52,52 @@ export const circlesRoute: FastifyPluginAsync = async (fastify) => {
     return reply.send(circles)
   })
 
+  // Public search/filter endpoint for Explore page
+  fastify.get('/explore/circles', {
+    schema: {
+      querystring: {
+        type: 'object',
+        properties: {
+          q:       { type: 'string', maxLength: 100 },
+          country: { type: 'string', maxLength: 60 },
+          sort:    { type: 'string', enum: ['recent', 'members', 'funded'] },
+          limit:   { type: 'integer', minimum: 1, maximum: 50 }
+        },
+        additionalProperties: false
+      }
+    }
+  }, async (request, reply) => {
+    const query = request.query as {
+      q?: string
+      country?: string
+      sort?: 'recent' | 'members' | 'funded'
+      limit?: number
+    }
+    const circles = await circleService.exploreCircles(query)
+    return reply.send(circles)
+  })
+
+  // Public: returns circle preview for an invite link (no auth)
+  fastify.get('/circles/join/:code', async (request, reply) => {
+    const { code } = request.params as { code: string }
+    const preview = await circleService.getCircleByInviteCode(code)
+    return reply.send(preview)
+  })
+
+  // Auth required: join a circle via invite code
+  fastify.post('/circles/join/:code', { preHandler: [authGuard, requireEmailVerified] }, async (request, reply) => {
+    const { code } = request.params as { code: string }
+    const membership = await circleService.joinByInviteCode(code, currentUserId(request))
+    return reply.code(201).send(membership)
+  })
+
+  // Admin only: regenerate invite code
+  fastify.post('/circles/:id/invite-code/regenerate', { preHandler: [authGuard] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const result = await circleService.regenerateInviteCode(id, currentUserId(request))
+    return reply.send(result)
+  })
+
   fastify.get('/circles/my-requests', { preHandler: [authGuard] }, async (request, reply) => {
     const requests = await circleService.listMyJoinRequests(currentUserId(request))
     return reply.send(requests)
@@ -71,7 +117,8 @@ export const circlesRoute: FastifyPluginAsync = async (fastify) => {
           name: { type: 'string', minLength: 1, maxLength: 120 },
           description: { anyOf: [{ type: 'string', maxLength: 2000 }, { type: 'null' }] },
           coverImageUrl: { anyOf: [{ type: 'string', maxLength: 8200000 }, { type: 'null' }] },
-          goalAmount: { type: 'number', exclusiveMinimum: 0 }
+          goalAmount: { type: 'number', exclusiveMinimum: 0 },
+          isPublic: { type: 'boolean' }
         },
         additionalProperties: false
       }

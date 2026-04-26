@@ -58,6 +58,14 @@ beforeAll(async () => {
   })
   circleId = circleRes.json().id
 
+  // Publish the circle so it appears in Explore and is visible to non-members
+  await app.inject({
+    method: 'PATCH',
+    url: `/api/v1/circles/${circleId}`,
+    headers: injectHeaders(creatorToken),
+    payload: { isPublic: true }
+  })
+
   // Member joins the circle
   await app.inject({
     method: 'POST',
@@ -147,8 +155,48 @@ describe('POST /api/v1/circles (CIRCLE-01)', () => {
   })
 })
 
+describe('GET /api/v1/explore/circles (EXPLORE)', () => {
+  it('returns public circles without auth', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/explore/circles' })
+    expect(res.statusCode).toBe(200)
+    expect(Array.isArray(res.json())).toBe(true)
+  })
+
+  it('returns the published test circle in results', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/explore/circles' })
+    const body = res.json() as Array<{ id: string }>
+    expect(body.find((c) => c.id === circleId)).toBeTruthy()
+  })
+
+  it('filters by text search (q)', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/explore/circles?q=Test+Circle' })
+    expect(res.statusCode).toBe(200)
+    const body = res.json() as Array<{ id: string }>
+    expect(body.find((c) => c.id === circleId)).toBeTruthy()
+  })
+
+  it('search returning no match gives empty array', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/explore/circles?q=xyzNonExistentCircle999' })
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toHaveLength(0)
+  })
+
+  it('accepts sort=members and sort=funded without error', async () => {
+    const r1 = await app.inject({ method: 'GET', url: '/api/v1/explore/circles?sort=members' })
+    const r2 = await app.inject({ method: 'GET', url: '/api/v1/explore/circles?sort=funded' })
+    expect(r1.statusCode).toBe(200)
+    expect(r2.statusCode).toBe(200)
+  })
+
+  it('rejects invalid sort value with 4xx', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/explore/circles?sort=bogus' })
+    expect(res.statusCode).toBeGreaterThanOrEqual(400)
+    expect(res.statusCode).toBeLessThan(500)
+  })
+})
+
 describe('GET /api/v1/circles (CIRCLE-02)', () => {
-  it('returns list of all circles for any authenticated user', async () => {
+  it('returns only public circles (is_public = true)', async () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/v1/circles',
@@ -214,6 +262,26 @@ describe('GET /api/v1/circles/:id (CIRCLE-03, GOV-01)', () => {
     const body = res.json()
     expect(body.id).toBe(circleId)
     expect(body.membershipRole).toBe('pending')
+  })
+
+  it('returns 403 PRIVATE_CIRCLE for non-members accessing a private circle', async () => {
+    // Create a private circle (isPublic defaults to false)
+    const privateRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/circles',
+      headers: injectHeaders(creatorToken),
+      payload: { name: 'Private Circle', goalAmount: 1000 }
+    })
+    const privateCircleId = privateRes.json().id
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/v1/circles/${privateCircleId}`,
+      headers: injectHeaders(outsiderToken)
+    })
+
+    expect(res.statusCode).toBe(403)
+    expect(res.json().error.code).toBe('PRIVATE_CIRCLE')
   })
 
   it('returns 404 for non-existent circle', async () => {
@@ -504,6 +572,74 @@ describe('POST /api/v1/circles/:id/close (CIRCLE-09)', () => {
       headers: injectHeaders(memberToken)
     })
 
+    expect(res.statusCode).toBe(403)
+  })
+})
+
+// Must run last — the join test mutates outsiderToken's membership status
+describe('Invite system (5.1)', () => {
+  it('circle is created with an invite code', async () => {
+    const circle = await app.prisma.circle.findUnique({
+      where: { id: circleId },
+      select: { inviteCode: true }
+    })
+    expect(circle?.inviteCode).toBeTruthy()
+    expect(circle?.inviteCode?.length).toBe(8)
+  })
+
+  it('GET /circles/join/:code returns circle preview without auth', async () => {
+    const circle = await app.prisma.circle.findUnique({ where: { id: circleId }, select: { inviteCode: true } })
+    const res = await app.inject({ method: 'GET', url: `/api/v1/circles/join/${circle!.inviteCode}` })
+    expect(res.statusCode).toBe(200)
+    const body = res.json()
+    expect(body.id).toBe(circleId)
+    expect(typeof body.memberCount).toBe('number')
+  })
+
+  it('GET /circles/join/:code returns 404 for unknown code', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/circles/join/XXXXXXXX' })
+    expect(res.statusCode).toBe(404)
+  })
+
+  it('POST /circles/join/:code lets outsider join and become member', async () => {
+    const circle = await app.prisma.circle.findUnique({ where: { id: circleId }, select: { inviteCode: true } })
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/v1/circles/join/${circle!.inviteCode}`,
+      headers: injectHeaders(outsiderToken)
+    })
+    expect(res.statusCode).toBe(201)
+    expect(res.json().role).toBe('member')
+  })
+
+  it('POST /circles/join/:code is idempotent for existing members (409)', async () => {
+    const circle = await app.prisma.circle.findUnique({ where: { id: circleId }, select: { inviteCode: true } })
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/v1/circles/join/${circle!.inviteCode}`,
+      headers: injectHeaders(memberToken)
+    })
+    expect(res.statusCode).toBe(409)
+  })
+
+  it('POST /circles/:id/invite-code/regenerate updates the code', async () => {
+    const before = await app.prisma.circle.findUnique({ where: { id: circleId }, select: { inviteCode: true } })
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/v1/circles/${circleId}/invite-code/regenerate`,
+      headers: injectHeaders(creatorToken)
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().inviteCode).not.toBe(before?.inviteCode)
+    expect(res.json().inviteCode?.length).toBe(8)
+  })
+
+  it('non-admin cannot regenerate invite code', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/v1/circles/${circleId}/invite-code/regenerate`,
+      headers: injectHeaders(memberToken)
+    })
     expect(res.statusCode).toBe(403)
   })
 })

@@ -39,6 +39,14 @@ export function normalizeCoverImageUrl(raw: unknown): string | undefined {
 
 const ADMIN_ROLES: MembershipRole[] = ['creator', 'admin']
 
+/** Chars chosen to avoid look-alike pairs (0/O, 1/I). */
+const INVITE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+function generateInviteCode(): string {
+  return Array.from({ length: 8 }, () =>
+    INVITE_CHARS[Math.floor(Math.random() * INVITE_CHARS.length)]
+  ).join('')
+}
+
 function validateCountryName(raw: unknown): string | undefined {
   if (raw == null || raw === '') return undefined
   if (typeof raw !== 'string') throw new ValidationError('Country must be a string', 'country')
@@ -98,6 +106,7 @@ export class CircleService {
           sector: sector ?? null,
           coverImageUrl: coverImageUrl ?? null,
           goalAmount: input.goalAmount,
+          inviteCode: generateInviteCode(),
           createdBy: userId
         }
       })
@@ -139,8 +148,86 @@ export class CircleService {
     return result
   }
 
+  async exploreCircles(params: {
+    q?: string
+    country?: string
+    sort?: 'recent' | 'members' | 'funded'
+    limit?: number
+  }) {
+    const limit = Math.min(params.limit ?? 20, 50)
+    const q = params.q?.trim()
+
+    const where: {
+      isPublic: boolean
+      status: string
+      country?: string
+      OR?: Array<{ name?: { contains: string; mode: 'insensitive' }; description?: { contains: string; mode: 'insensitive' } }>
+    } = { isPublic: true, status: 'active' }
+
+    if (q) {
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' } },
+        { description: { contains: q, mode: 'insensitive' } }
+      ]
+    }
+
+    if (params.country) where.country = params.country
+
+    const circles = await this.app.prisma.circle.findMany({
+      where,
+      orderBy: params.sort === 'members'
+        ? { memberships: { _count: 'desc' } }
+        : { createdAt: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        country: true,
+        sector: true,
+        coverImageUrl: true,
+        goalAmount: true,
+        currency: true,
+        status: true,
+        createdAt: true,
+        _count: { select: { memberships: true } }
+      }
+    })
+
+    const ids = circles.map((c) => c.id)
+    const verifiedSums = await this.app.prisma.contribution.groupBy({
+      by: ['circleId'],
+      where: { circleId: { in: ids }, status: 'verified' },
+      _sum: { amount: true }
+    })
+    const raisedByCircle = new Map(
+      verifiedSums.map((r) => [r.circleId, r._sum.amount?.toString() ?? '0'])
+    )
+
+    const result = circles.map((c) => ({
+      id: c.id,
+      name: c.name,
+      description: c.description,
+      country: c.country,
+      sector: c.sector,
+      coverImageUrl: c.coverImageUrl,
+      goalAmount: c.goalAmount.toString(),
+      currency: c.currency,
+      status: c.status,
+      memberCount: c._count.memberships,
+      verifiedRaisedAmount: raisedByCircle.get(c.id) ?? '0'
+    }))
+
+    if (params.sort === 'funded') {
+      result.sort((a, b) => parseFloat(b.verifiedRaisedAmount) - parseFloat(a.verifiedRaisedAmount))
+    }
+
+    return result
+  }
+
   async listCircles() {
     const circles = await this.app.prisma.circle.findMany({
+      where: { isPublic: true },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -152,6 +239,7 @@ export class CircleService {
         goalAmount: true,
         currency: true,
         status: true,
+        isPublic: true,
         createdBy: true,
         createdAt: true,
         updatedAt: true
@@ -185,13 +273,26 @@ export class CircleService {
       where: { circleId_userId: { circleId, userId } }
     })
 
+    const isMember = membership !== null &&
+      !['pending', 'rejected'].includes(membership.role)
+
+    if (!circle.isPublic && !isMember) {
+      throw new ForbiddenError('PRIVATE_CIRCLE', 'This circle is private')
+    }
+
     return { ...circle, membershipRole: membership?.role ?? null }
   }
 
   async updateCircle(circleId: string, userId: string, body: Record<string, unknown>) {
     await this.ensureAdmin(circleId, userId)
 
-    const data: { name?: string; description?: string | null; goalAmount?: number; coverImageUrl?: string | null } = {}
+    const data: {
+      name?: string
+      description?: string | null
+      goalAmount?: number
+      coverImageUrl?: string | null
+      isPublic?: boolean
+    } = {}
 
     if (typeof body.name === 'string') data.name = body.name
     if (typeof body.description === 'string') data.description = body.description
@@ -206,6 +307,7 @@ export class CircleService {
         data.coverImageUrl = normalizeCoverImageUrl(body.coverImageUrl) ?? null
       }
     }
+    if (typeof body.isPublic === 'boolean') data.isPublic = body.isPublic
 
     if (Object.keys(data).length === 0) {
       throw new ValidationError('No valid fields provided')
@@ -503,6 +605,79 @@ export class CircleService {
       })
       return updated
     })
+  }
+
+  async getCircleByInviteCode(code: string) {
+    const circle = await this.app.prisma.circle.findUnique({
+      where: { inviteCode: code.toUpperCase() },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        country: true,
+        sector: true,
+        goalAmount: true,
+        currency: true,
+        status: true,
+        inviteCode: true,
+        _count: { select: { memberships: true } }
+      }
+    })
+    if (!circle) throw new NotFoundError('Invite code not found')
+    if (circle.status !== 'active') {
+      throw new ValidationError('This circle is no longer accepting members', 'code')
+    }
+    return {
+      id: circle.id,
+      name: circle.name,
+      description: circle.description,
+      country: circle.country,
+      sector: circle.sector,
+      goalAmount: circle.goalAmount.toString(),
+      currency: circle.currency,
+      memberCount: circle._count.memberships,
+      inviteCode: circle.inviteCode
+    }
+  }
+
+  async joinByInviteCode(code: string, userId: string) {
+    const circle = await this.app.prisma.circle.findUnique({
+      where: { inviteCode: code.toUpperCase() },
+      select: { id: true, status: true }
+    })
+    if (!circle) throw new NotFoundError('Invite code not found')
+    if (circle.status !== 'active') {
+      throw new ValidationError('This circle is no longer accepting members', 'code')
+    }
+
+    const existing = await this.app.prisma.circleMembership.findUnique({
+      where: { circleId_userId: { circleId: circle.id, userId } }
+    })
+    if (existing) {
+      if (['member', 'contributor', 'creator', 'admin'].includes(existing.role)) {
+        throw new ConflictError('ALREADY_MEMBER', 'You are already a member of this circle')
+      }
+      // pending or rejected → upgrade to member via invite
+      return this.app.prisma.circleMembership.update({
+        where: { circleId_userId: { circleId: circle.id, userId } },
+        data: { role: 'member', joinedAt: new Date() }
+      })
+    }
+
+    return this.app.prisma.circleMembership.create({
+      data: { circleId: circle.id, userId, role: 'member' }
+    })
+  }
+
+  async regenerateInviteCode(circleId: string, userId: string) {
+    await this.ensureAdmin(circleId, userId)
+    const newCode = generateInviteCode()
+    const updated = await this.app.prisma.circle.update({
+      where: { id: circleId },
+      data: { inviteCode: newCode },
+      select: { id: true, inviteCode: true }
+    })
+    return updated
   }
 
   async adminDeleteCircle(requestUserId: string, circleId: string) {

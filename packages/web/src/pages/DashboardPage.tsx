@@ -133,7 +133,7 @@ export function DashboardPage() {
           </div>
           <div className="flex shrink-0 flex-col gap-3">
             <Link
-              to="/circles/new"
+              to={circles.length === 1 ? `/circles/${circles[0].id}/contributions/new` : '/circles'}
               className="mukwano-btn-primary mukwano-cursor-hover flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-bold"
             >
               <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>

@@ -29,6 +29,7 @@ import { OnboardingExploreSoloPage } from '@/pages/onboarding/OnboardingExploreS
 import { isOnboardingComplete } from '@/lib/onboarding-gate'
 import { TermsPage } from '@/pages/legal/TermsPage'
 import { PrivacyPage } from '@/pages/legal/PrivacyPage'
+import { JoinByCodePage } from '@/pages/circles/JoinByCodePage'
 
 function ProtectedLayout() {
   const { user, loading } = useAuth()
@@ -81,6 +82,7 @@ export const router = createBrowserRouter([
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
       { path: 'reset-password', element: <ResetPasswordPage /> },
       { path: 'explore', element: <ExplorePage /> },
+      { path: 'join/:code', element: <JoinByCodePage /> },
       { path: 'terms', element: <TermsPage /> },
       { path: 'privacy', element: <PrivacyPage /> },
       {

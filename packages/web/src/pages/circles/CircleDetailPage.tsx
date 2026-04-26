@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -15,6 +16,8 @@ type CircleOverview = {
   sector?: string | null
   membershipRole?: string | null
   coverImageUrl?: string | null
+  isPublic?: boolean
+  inviteCode?: string | null
 } & Record<string, unknown>
 
 type CircleMember = {
@@ -172,6 +175,37 @@ export function CircleDetailPage() {
     onError: (error) => toast.error(getErrorMessage(error))
   })
 
+  const updatePrivacy = useMutation({
+    mutationFn: (isPublic: boolean) => api.patch(`/circles/${id}`, { isPublic }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['circle', id] })
+      await queryClient.invalidateQueries({ queryKey: ['circles-explore'] })
+      toast.success('Circle visibility updated')
+    },
+    onError: (error) => toast.error(getErrorMessage(error))
+  })
+
+  const regenerateCode = useMutation({
+    mutationFn: () => api.post(`/circles/${id}/invite-code/regenerate`, {}),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['circle', id] })
+      toast.success('Invite link regenerated')
+    },
+    onError: (error) => toast.error(getErrorMessage(error))
+  })
+
+  const [copied, setCopied] = useState(false)
+  function copyInviteLink() {
+    const code = circle?.inviteCode
+    if (!code) return
+    const url = `${window.location.origin}/join/${code}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      toast.success('Invite link copied!')
+      setTimeout(() => setCopied(false), 2500)
+    })
+  }
+
   if (circleError) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20">
@@ -307,8 +341,21 @@ export function CircleDetailPage() {
       {/* Hero */}
       <section className="mukwano-hero p-8 md:p-10">
         <div className="relative z-10 space-y-2">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center justify-between mb-3">
             <span className="chip-demo">{membershipRole ?? 'member'}</span>
+            {circle?.inviteCode && (
+              <button
+                onClick={copyInviteLink}
+                className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors"
+                style={{ background: 'rgba(255,255,255,0.10)', color: 'var(--mk-white)' }}
+                title="Copy invite link"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                  {copied ? 'check' : 'share'}
+                </span>
+                {copied ? 'Copied!' : 'Share Circle'}
+              </button>
+            )}
           </div>
           <h1 className="text-3xl font-semibold" style={{ color: '#ffffff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             {circle?.name ?? 'Circle'}
@@ -421,6 +468,70 @@ export function CircleDetailPage() {
                 {(members ?? []).filter((member) => member.role !== 'creator' && member.role !== 'admin').length === 0 ? (
                   <p className="text-sm" style={{ color: 'var(--mk-muted)' }}>No eligible members to promote.</p>
                 ) : null}
+              </div>
+            </div>
+          )}
+          {isAdmin && circle?.inviteCode && (
+            <div className="mukwano-card p-6 sm:col-span-2">
+              <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font mb-3" style={{ color: 'var(--mk-muted)' }}>
+                Invite Link
+              </p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <code
+                  className="flex-1 rounded-xl px-4 py-2.5 text-sm font-mono truncate"
+                  style={{ background: 'var(--mk-navy2)', color: 'var(--mk-gold)' }}
+                >
+                  {window.location.origin}/join/{circle.inviteCode}
+                </code>
+                <button
+                  className="mukwano-btn mukwano-btn-primary rounded-xl px-4 py-2 text-xs font-semibold shrink-0"
+                  onClick={copyInviteLink}
+                >
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+                <button
+                  className="mukwano-btn rounded-xl px-4 py-2 text-xs font-semibold shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--mk-muted)' }}
+                  onClick={() => regenerateCode.mutate()}
+                  disabled={regenerateCode.isPending}
+                  title="Generate a new link — old link stops working"
+                >
+                  Regenerate
+                </button>
+              </div>
+              <p className="mt-2 text-xs" style={{ color: 'var(--mk-muted)' }}>
+                Regenerating invalidates the current link immediately.
+              </p>
+            </div>
+          )}
+          {isAdmin && (
+            <div className="mukwano-card p-6 sm:col-span-2">
+              <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font mb-3" style={{ color: 'var(--mk-muted)' }}>
+                Circle Visibility
+              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--mk-white)' }}>
+                    {circle?.isPublic ? 'Public — visible in Explore' : 'Private — invite only'}
+                  </p>
+                  <p className="mt-1 text-xs max-w-sm" style={{ color: 'var(--mk-muted)' }}>
+                    {circle?.isPublic
+                      ? 'Anyone can discover and request to join this circle.'
+                      : 'Only members with a direct link can see this circle.'}
+                  </p>
+                </div>
+                <button
+                  className="mukwano-btn rounded-xl px-4 py-2 text-xs font-semibold transition-colors"
+                  style={
+                    circle?.isPublic
+                      ? { background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }
+                      : { background: 'rgba(74,222,128,0.12)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }
+                  }
+                  onClick={() => updatePrivacy.mutate(!circle?.isPublic)}
+                  disabled={updatePrivacy.isPending}
+                >
+                  {circle?.isPublic ? 'Make Private' : 'Make Public'}
+                </button>
               </div>
             </div>
           )}
