@@ -196,11 +196,11 @@ describe('GET /api/v1/explore/circles (EXPLORE)', () => {
 })
 
 describe('GET /api/v1/circles (CIRCLE-02)', () => {
-  it('returns only public circles (is_public = true)', async () => {
+  it('returns circles the authenticated user is a member of', async () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/v1/circles',
-      headers: injectHeaders(outsiderToken)
+      headers: injectHeaders(creatorToken)
     })
 
     expect(res.statusCode).toBe(200)
@@ -210,13 +210,13 @@ describe('GET /api/v1/circles (CIRCLE-02)', () => {
     expect(found).toBeTruthy()
   })
 
-  it('returns 200 for unauthenticated requests (public route)', async () => {
+  it('returns 401 for unauthenticated requests (now auth-required)', async () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/v1/circles'
     })
 
-    expect(res.statusCode).toBe(200)
+    expect(res.statusCode).toBe(401)
   })
 })
 

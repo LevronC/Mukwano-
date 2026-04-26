@@ -145,11 +145,7 @@ export function ExplorePage() {
         </div>
       </section>
 
-      <ExploreCommunityNews />
-
-      <ExploreTrendingAfrica />
-
-      {/* Search + filter bar */}
+      {/* Search + filter bar — prominent, right below the hero */}
       <section className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           {/* Text search */}
@@ -247,6 +243,10 @@ export function ExplorePage() {
         onRequestJoin={(circleId) => requestJoin.mutate(circleId)}
         requestJoinPending={requestJoin.isPending}
       />
+
+      <ExploreCommunityNews />
+
+      <ExploreTrendingAfrica />
     </div>
   )
 

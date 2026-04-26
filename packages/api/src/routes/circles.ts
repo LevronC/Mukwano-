@@ -46,9 +46,9 @@ export const circlesRoute: FastifyPluginAsync = async (fastify) => {
     return reply.code(201).send(circle)
   })
 
-  // Public route — no auth required
-  fastify.get('/circles', async (_request, reply) => {
-    const circles = await circleService.listCircles()
+  // Auth required — returns circles the current user is a member of ("My Circles")
+  fastify.get('/circles', { preHandler: [authGuard] }, async (request, reply) => {
+    const circles = await circleService.listMyCircles(currentUserId(request))
     return reply.send(circles)
   })
 

@@ -165,9 +165,9 @@ describe('S-10 — double vote', () => {
 })
 
 describe('S-01 — unauthenticated access', () => {
-  it('returns 200 for GET /api/v1/circles without JWT (public route)', async () => {
+  it('returns 401 for GET /api/v1/circles without JWT (now requires auth)', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/circles' })
-    expect(res.statusCode).toBe(200)
+    expect(res.statusCode).toBe(401)
   })
 })
 
