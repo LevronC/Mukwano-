@@ -7,7 +7,7 @@ import type { FastifyPluginAsync } from 'fastify'
 export const devVerifyRoute: FastifyPluginAsync = async (fastify) => {
   if (process.env.NODE_ENV === 'production') return
 
-  fastify.post('/auth/dev-verify', {
+  fastify.post('/dev-verify', {
     schema: {
       body: {
         type: 'object',
