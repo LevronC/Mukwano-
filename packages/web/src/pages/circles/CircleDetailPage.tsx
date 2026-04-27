@@ -343,17 +343,18 @@ export function CircleDetailPage() {
         <div className="relative z-10 space-y-2">
           <div className="flex items-center justify-between mb-3">
             <span className="chip-demo">{membershipRole ?? 'member'}</span>
-            {circle?.inviteCode && (
+            {isAdmin && (
               <button
-                onClick={copyInviteLink}
+                onClick={circle?.inviteCode ? copyInviteLink : () => regenerateCode.mutate()}
                 className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors"
                 style={{ background: 'rgba(255,255,255,0.10)', color: 'var(--mk-white)' }}
-                title="Copy invite link"
+                title={circle?.inviteCode ? 'Copy invite link' : 'Generate invite link'}
+                disabled={regenerateCode.isPending}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
                   {copied ? 'check' : 'share'}
                 </span>
-                {copied ? 'Copied!' : 'Share Circle'}
+                {copied ? 'Copied!' : circle?.inviteCode ? 'Share Circle' : 'Get invite link'}
               </button>
             )}
           </div>
@@ -471,37 +472,55 @@ export function CircleDetailPage() {
               </div>
             </div>
           )}
-          {isAdmin && circle?.inviteCode && (
+          {isAdmin && (
             <div className="mukwano-card p-6 sm:col-span-2">
               <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font mb-3" style={{ color: 'var(--mk-muted)' }}>
-                Invite Link
+                Invite Members
               </p>
-              <div className="flex items-center gap-3 flex-wrap">
-                <code
-                  className="flex-1 rounded-xl px-4 py-2.5 text-sm font-mono truncate"
-                  style={{ background: 'var(--mk-navy2)', color: 'var(--mk-gold)' }}
-                >
-                  {window.location.origin}/join/{circle.inviteCode}
-                </code>
-                <button
-                  className="mukwano-btn mukwano-btn-primary rounded-xl px-4 py-2 text-xs font-semibold shrink-0"
-                  onClick={copyInviteLink}
-                >
-                  {copied ? 'Copied!' : 'Copy'}
-                </button>
-                <button
-                  className="mukwano-btn rounded-xl px-4 py-2 text-xs font-semibold shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--mk-muted)' }}
-                  onClick={() => regenerateCode.mutate()}
-                  disabled={regenerateCode.isPending}
-                  title="Generate a new link — old link stops working"
-                >
-                  Regenerate
-                </button>
-              </div>
-              <p className="mt-2 text-xs" style={{ color: 'var(--mk-muted)' }}>
-                Regenerating invalidates the current link immediately.
-              </p>
+              {circle?.inviteCode ? (
+                <>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <code
+                      className="flex-1 rounded-xl px-4 py-2.5 text-sm font-mono truncate"
+                      style={{ background: 'var(--mk-navy2)', color: 'var(--mk-gold)' }}
+                    >
+                      {window.location.origin}/join/{circle.inviteCode}
+                    </code>
+                    <button
+                      className="mukwano-btn mukwano-btn-primary rounded-xl px-4 py-2 text-xs font-semibold shrink-0"
+                      onClick={copyInviteLink}
+                    >
+                      {copied ? 'Copied!' : 'Copy link'}
+                    </button>
+                    <button
+                      className="mukwano-btn rounded-xl px-4 py-2 text-xs font-semibold shrink-0"
+                      style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--mk-muted)' }}
+                      onClick={() => regenerateCode.mutate()}
+                      disabled={regenerateCode.isPending}
+                      title="Generate a new link — old link stops working"
+                    >
+                      Regenerate
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs" style={{ color: 'var(--mk-muted)' }}>
+                    Share this link with anyone you want to invite. Regenerating immediately invalidates the old link.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm mb-4" style={{ color: 'var(--mk-muted)' }}>
+                    Generate a shareable invite link so others can join this circle directly.
+                  </p>
+                  <button
+                    className="mukwano-btn mukwano-btn-primary rounded-xl px-5 py-2.5 text-sm font-semibold flex items-center gap-2"
+                    onClick={() => regenerateCode.mutate()}
+                    disabled={regenerateCode.isPending}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>link</span>
+                    {regenerateCode.isPending ? 'Generating…' : 'Generate invite link'}
+                  </button>
+                </>
+              )}
             </div>
           )}
           {isAdmin && (
