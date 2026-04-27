@@ -43,7 +43,7 @@ type ExchangePair = {
   message: string | null
 }
 
-const LIME = '#bef264'
+const GOLD = '#f0a500'
 
 const selectClass =
   'max-w-[min(52vw,11rem)] shrink-0 truncate rounded-lg border bg-transparent py-2 pl-2 pr-7 text-xs font-semibold outline-none md:max-w-[14rem] md:text-sm'
@@ -212,7 +212,7 @@ export function DashboardCurrencyConverter() {
                 <Link
                   to="/profile"
                   className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
-                  style={{ background: LIME, color: '#0a0e18' }}
+                  style={{ background: GOLD, color: '#0a0e18' }}
                 >
                   Complete profile
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
@@ -391,7 +391,7 @@ export function DashboardCurrencyConverter() {
                             toCode ?? ''
                           ]}
                         />
-                        <Line type="monotone" dataKey="rate" stroke={LIME} strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="rate" stroke={GOLD} strokeWidth={2} dot={false} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -399,7 +399,7 @@ export function DashboardCurrencyConverter() {
 
                 <p className="text-center text-sm font-medium" style={{ color: 'var(--mk-white)' }}>
                   1 {fromCode} ={' '}
-                  <span style={{ color: LIME }}>{rate.toLocaleString('en-US', { maximumFractionDigits: 4 })}</span>{' '}
+                  <span style={{ color: GOLD }}>{rate.toLocaleString('en-US', { maximumFractionDigits: 4 })}</span>{' '}
                   {toCode}
                   {asOf ? (
                     <span className="mt-1 block text-xs font-normal" style={{ color: 'var(--mk-muted)' }}>
@@ -450,7 +450,7 @@ export function DashboardCurrencyConverter() {
                       style={{
                         borderColor: 'rgba(190,201,195,0.25)',
                         background: '#121a28',
-                        color: LIME
+                        color: GOLD
                       }}
                       aria-label="Swap which side you type on"
                     >
@@ -495,7 +495,7 @@ export function DashboardCurrencyConverter() {
                 <Link
                   to="/circles"
                   className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold transition-opacity hover:opacity-90"
-                  style={{ background: LIME, color: '#0a0e18' }}
+                  style={{ background: GOLD, color: '#0a0e18' }}
                 >
                   Plan a contribution
                 </Link>
