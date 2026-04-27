@@ -25,5 +25,15 @@ export default async function globalSetup(): Promise<void> {
     throw new Error(`E2E globalSetup signup failed ${res.status}: ${body}`)
   }
 
+  // Auto-verify email so the E2E session can proceed past the verify-email gate.
+  const verifyRes = await fetch(`${apiBase}/api/v1/auth/dev-verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  })
+  if (!verifyRes.ok) {
+    throw new Error(`E2E globalSetup dev-verify failed ${verifyRes.status}`)
+  }
+
   writeFileSync(credPath, JSON.stringify({ email, password }, null, 0), 'utf8')
 }

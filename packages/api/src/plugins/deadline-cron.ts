@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin'
 import type { FastifyPluginAsync, FastifyInstance } from 'fastify'
 import { captureFinancialException } from '../lib/observability/sentry.js'
+import { countActiveMembers } from '../lib/membership.js'
 
 const TICK_MS = 60 * 1000
 
@@ -47,7 +48,7 @@ async function autoCloseProposal(app: FastifyInstance, circleId: string, proposa
     if (!proposal || proposal.status !== 'open') return
 
     const votes = await tx.vote.findMany({ where: { proposalId } })
-    const eligible = await tx.circleMembership.count({ where: { circleId } })
+    const eligible = await countActiveMembers(tx as never, circleId)
     const gov = await tx.governanceConfig.findUnique({ where: { circleId } })
     if (!gov) return
 

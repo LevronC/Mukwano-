@@ -738,16 +738,20 @@ export class CircleService {
     if (!circle) throw new NotFoundError('Circle not found')
 
     await this.app.prisma.$transaction(async (tx) => {
+      // Soft-archive: preserve ledger, audit trail, and membership history.
+      await tx.circle.update({
+        where: { id: circleId },
+        data: { status: 'archived' }
+      })
       await tx.auditLog.create({
         data: {
           circleId,
           actorId: requestUserId,
           entityType: 'circle',
-          action: 'CIRCLE_DELETED',
+          action: 'CIRCLE_ARCHIVED',
           metadata: { circleId }
         }
       })
-      await tx.circle.delete({ where: { id: circleId } })
     })
 
     return { ok: true }

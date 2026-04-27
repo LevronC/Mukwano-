@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { Prisma } from '@prisma/client'
 import { ConflictError, ForbiddenError, HttpError, NotFoundError, ValidationError } from '../errors/http-errors.js'
 import { captureFinancialException } from '../lib/observability/sentry.js'
+import { assertActiveMembership } from '../lib/membership.js'
 
 type Role = 'member' | 'contributor' | 'creator' | 'admin'
 const ADMIN_ROLES: Role[] = ['creator', 'admin']
@@ -248,9 +249,7 @@ export class ProjectService {
   }
 
   private async ensureMember(circleId: string, userId: string) {
-    const membership = await this.app.prisma.circleMembership.findUnique({ where: { circleId_userId: { circleId, userId } } })
-    if (!membership) throw new ForbiddenError('NOT_A_MEMBER', 'You must be a member of this circle')
-    return membership
+    return assertActiveMembership(this.app.prisma, circleId, userId)
   }
 
   private async ensureAdmin(circleId: string, userId: string) {

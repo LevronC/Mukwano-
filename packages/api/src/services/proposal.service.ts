@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { Prisma } from '@prisma/client'
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/http-errors.js'
 import { isGlobalPlatformAdmin } from '../lib/platform-role.js'
+import { assertActiveMembership, countActiveMembers } from '../lib/membership.js'
 
 type MembershipRole = 'member' | 'contributor' | 'creator' | 'admin'
 const ROLE_RANK: Record<MembershipRole, number> = {
@@ -181,7 +182,7 @@ export class ProposalService {
       if (proposal.status !== 'open') throw new ConflictError('PROPOSAL_NOT_OPEN', 'Only open proposals can be closed')
 
       const votes = await tx.vote.findMany({ where: { proposalId: proposal.id } })
-      const eligible = await tx.circleMembership.count({ where: { circleId } })
+      const eligible = await countActiveMembers(tx as never, circleId)
       const cast = votes.length
       const yes = votes.filter((v: { vote: string }) => v.vote === 'yes').length
       const no = votes.filter((v: { vote: string }) => v.vote === 'no').length
@@ -244,28 +245,28 @@ export class ProposalService {
   async adminDeleteProposal(requestUserId: string, circleId: string, proposalId: string) {
     await this.ensureGlobalAdmin(requestUserId)
     await this.app.prisma.$transaction(async (tx) => {
-      const proposal = await tx.proposal.findFirst({ where: { id: proposalId, circleId }, select: { id: true } })
+      const proposal = await tx.proposal.findFirst({ where: { id: proposalId, circleId }, select: { id: true, status: true } })
       if (!proposal) throw new NotFoundError('Proposal not found')
+      // Soft-archive: preserve audit trail and ledger integrity. Hard-delete is forbidden.
+      await tx.proposal.update({
+        where: { id: proposal.id },
+        data: { status: 'archived', closedAt: new Date() }
+      })
       await tx.auditLog.create({
         data: {
           circleId,
           actorId: requestUserId,
           entityType: 'proposal',
-          action: 'PROPOSAL_DELETED',
-          metadata: { proposalId }
+          action: 'PROPOSAL_ARCHIVED',
+          metadata: { proposalId, previousStatus: proposal.status }
         }
       })
-      await tx.proposal.delete({ where: { id: proposal.id } })
     })
     return { ok: true }
   }
 
   private async ensureMember(circleId: string, userId: string) {
-    const membership = await this.app.prisma.circleMembership.findUnique({
-      where: { circleId_userId: { circleId, userId } }
-    })
-    if (!membership) throw new ForbiddenError('NOT_A_MEMBER', 'You must be a member of this circle')
-    return membership
+    return assertActiveMembership(this.app.prisma, circleId, userId)
   }
 
   private async ensureAdmin(circleId: string, userId: string) {

@@ -8,8 +8,10 @@ import { verifyEmailRoute } from './verify-email.js'
 import { forgotPasswordRoute } from './forgot-password.js'
 import { totpRoute } from './totp.js'
 import { stepUpRoute } from './step-up.js'
+import { devVerifyRoute } from './dev-verify.js'
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
+  await fastify.register(devVerifyRoute)
   await fastify.register(signupRoute)
   await fastify.register(loginRoute)
   await fastify.register(refreshRoute)

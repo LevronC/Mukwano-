@@ -328,7 +328,7 @@ export class ReportingService {
 
   async getDashboard(userId: string) {
     const memberships = await this.app.prisma.circleMembership.findMany({
-      where: { userId },
+      where: { userId, role: { notIn: ['pending', 'rejected'] } },
       include: {
         circle: {
           select: {
