@@ -2,6 +2,7 @@ import fp from 'fastify-plugin'
 import type { FastifyPluginAsync, FastifyInstance } from 'fastify'
 import { captureFinancialException } from '../lib/observability/sentry.js'
 import { countActiveMembers } from '../lib/membership.js'
+import { NotificationService } from '../services/notification.service.js'
 
 const TICK_MS = 60 * 1000
 
@@ -43,14 +44,16 @@ async function runDeadlineTick(app: FastifyInstance): Promise<void> {
 }
 
 async function autoCloseProposal(app: FastifyInstance, circleId: string, proposalId: string): Promise<void> {
-  await app.prisma.$transaction(async (tx) => {
+  const notifications = new NotificationService(app)
+
+  const result = await app.prisma.$transaction(async (tx) => {
     const proposal = await tx.proposal.findFirst({ where: { id: proposalId, circleId } })
-    if (!proposal || proposal.status !== 'open') return
+    if (!proposal || proposal.status !== 'open') return null
 
     const votes = await tx.vote.findMany({ where: { proposalId } })
     const eligible = await countActiveMembers(tx as never, circleId)
     const gov = await tx.governanceConfig.findUnique({ where: { circleId } })
-    if (!gov) return
+    if (!gov) return null
 
     const cast = votes.length
     const yes = votes.filter((v) => v.vote === 'yes').length
@@ -82,7 +85,17 @@ async function autoCloseProposal(app: FastifyInstance, circleId: string, proposa
         metadata: { proposalId, yes, no, abstain, quorumMet, triggeredBy: 'system' }
       }
     })
+    return { passed, title: proposal.title, yes, no, quorumMet }
   })
+
+  if (!result) return
+
+  const msg = result.passed
+    ? `✓ Passed — "${result.title}" (${result.yes} yes / ${result.no} no)`
+    : `✗ Voting closed — "${result.title}" (quorum ${result.quorumMet ? 'met' : 'not met'})`
+
+  notifications.createForCircle(circleId, result.passed ? 'PROPOSAL_PASSED' : 'PROPOSAL_FAILED', msg)
+    .catch((err) => app.log.error({ err, proposalId }, 'deadline-cron: notification failed silently'))
 }
 
 export { deadlineCronPlugin }

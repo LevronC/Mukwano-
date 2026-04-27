@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/http-errors.js'
 import { isGlobalPlatformAdmin } from '../lib/platform-role.js'
 import { assertActiveMembership, countActiveMembers } from '../lib/membership.js'
+import { NotificationService } from './notification.service.js'
 
 type MembershipRole = 'member' | 'contributor' | 'creator' | 'admin'
 const ROLE_RANK: Record<MembershipRole, number> = {
@@ -15,7 +16,10 @@ const ROLE_RANK: Record<MembershipRole, number> = {
 const VALID_VOTES = new Set(['yes', 'no', 'abstain'])
 
 export class ProposalService {
-  constructor(private readonly app: FastifyInstance) {}
+  private readonly notifications: NotificationService
+  constructor(private readonly app: FastifyInstance) {
+    this.notifications = new NotificationService(app)
+  }
 
   async createProposal(circleId: string, userId: string, input: { title: string; description: string; requestedAmount: number }) {
     const membership = await this.ensureMember(circleId, userId)
@@ -34,8 +38,8 @@ export class ProposalService {
     const now = Date.now()
     const deadline = new Date(now + governance.proposalDurationDays * 24 * 60 * 60 * 1000)
 
-    return this.app.prisma.$transaction(async (tx) => {
-      const proposal = await tx.proposal.create({
+    const proposal = await this.app.prisma.$transaction(async (tx) => {
+      const created = await tx.proposal.create({
         data: {
           circleId,
           createdBy: userId,
@@ -51,11 +55,20 @@ export class ProposalService {
           actorId: userId,
           entityType: 'proposal',
           action: 'PROPOSAL_CREATED',
-          metadata: { proposalId: proposal.id, title: proposal.title }
+          metadata: { proposalId: created.id, title: created.title }
         }
       })
-      return proposal
+      return created
     })
+
+    // Notify all circle members after commit — fire-and-forget, never blocks the response
+    this.notifications.createForCircle(
+      circleId,
+      'NEW_PROPOSAL',
+      `New proposal: "${proposal.title}" — voting closes ${deadline.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+    ).catch((err) => this.app.log.error({ err, proposalId: proposal.id }, 'notification.createForCircle failed silently'))
+
+    return proposal
   }
 
   async listProposals(circleId: string, userId: string) {
@@ -176,7 +189,7 @@ export class ProposalService {
   async closeProposal(circleId: string, proposalId: string, userId: string) {
     await this.ensureAdmin(circleId, userId)
 
-    return this.app.prisma.$transaction(async (tx) => {
+    const result = await this.app.prisma.$transaction(async (tx) => {
       const proposal = await tx.proposal.findFirst({ where: { id: proposalId, circleId } })
       if (!proposal) throw new NotFoundError('Proposal not found')
       if (proposal.status !== 'open') throw new ConflictError('PROPOSAL_NOT_OPEN', 'Only open proposals can be closed')
@@ -216,8 +229,17 @@ export class ProposalService {
           metadata: { proposalId: proposal.id, yes, no, abstain, quorumMet }
         }
       })
-      return updated
+      return { updated, passed, proposal }
     })
+
+    const resultLine = result.passed
+      ? `✓ Passed — ${result.proposal.title} (${result.updated.finalYes} yes / ${result.updated.finalNo} no)`
+      : `✗ Failed — ${result.proposal.title} (quorum ${result.updated.quorumMet ? 'met' : 'not met'})`
+
+    this.notifications.createForCircle(circleId, result.passed ? 'PROPOSAL_PASSED' : 'PROPOSAL_FAILED', resultLine)
+      .catch((err) => this.app.log.error({ err, proposalId: result.proposal.id }, 'notification.createForCircle failed silently'))
+
+    return result.updated
   }
 
   async adminDisableProposal(requestUserId: string, circleId: string, proposalId: string) {
