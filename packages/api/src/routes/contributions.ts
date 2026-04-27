@@ -20,7 +20,7 @@ export const contributionsRoute: FastifyPluginAsync = async (fastify) => {
         type: 'object',
         required: ['amount'],
         properties: {
-          amount: { type: 'number', exclusiveMinimum: 0 },
+          amount: { type: 'number', exclusiveMinimum: 0, maximum: 1_000_000 },
           note: { type: 'string', maxLength: 1000 }
         },
         additionalProperties: false

@@ -59,10 +59,12 @@ export function NewContributionPage() {
             className="mukwano-input"
             type="number"
             min={1}
+            max={1_000_000}
             value={amount}
             onChange={(e) => setAmount(Number(e.target.value))}
             required
           />
+          <p className="text-[0.7rem] ml-1" style={{ color: 'var(--mk-muted)' }}>Maximum single contribution: 1,000,000 USD</p>
         </div>
         <div className="space-y-1.5">
           <label className="text-[0.8125rem] font-medium ml-1 label-font" style={{ color: 'var(--mk-muted)' }}>Note (optional)</label>

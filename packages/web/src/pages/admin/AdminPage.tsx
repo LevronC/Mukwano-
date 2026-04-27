@@ -5,6 +5,7 @@ import { api } from '@/api/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { getErrorMessage } from '@/hooks/useApiError'
 import { AdminAnalyticsCharts } from '@/components/admin/AdminAnalyticsCharts'
+import { formatMoney } from '@/lib/utils'
 
 const mukwanoLogo = '/assets/mukwano-logo.png'
 
@@ -405,15 +406,15 @@ export function AdminPage() {
           </div>
           <div className="mukwano-card p-4">
             <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font" style={{ color: 'var(--mk-muted)' }}>Escrow Balance</p>
-            <p className="mt-2 text-2xl font-bold" style={{ color: 'var(--mk-gold)' }}>
-              {metrics.data?.escrowBalance ?? 0} {metrics.data?.currency ?? 'USD'}
+            <p className="mt-2 text-2xl font-bold truncate" style={{ color: 'var(--mk-gold)' }}>
+              {formatMoney(metrics.data?.escrowBalance ?? 0, metrics.data?.currency ?? 'USD')}
             </p>
             <p className="mt-1 text-[0.625rem] label-font" style={{ color: 'var(--mk-muted)' }}>Contributions minus disbursements</p>
           </div>
           <div className="mukwano-card p-4">
             <p className="text-[0.6875rem] font-bold uppercase tracking-widest label-font" style={{ color: 'var(--mk-muted)' }}>Total Contributed</p>
-            <p className="mt-2 text-2xl font-bold" style={{ color: 'var(--mk-white)' }}>
-              {metrics.data?.totalContributed ?? 0} {metrics.data?.currency ?? 'USD'}
+            <p className="mt-2 text-2xl font-bold truncate" style={{ color: 'var(--mk-white)' }}>
+              {formatMoney(metrics.data?.totalContributed ?? 0, metrics.data?.currency ?? 'USD')}
             </p>
             <p className="mt-1 text-[0.625rem] label-font" style={{ color: 'var(--mk-muted)' }}>Gross verified, all time</p>
           </div>

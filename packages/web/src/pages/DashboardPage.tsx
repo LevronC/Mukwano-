@@ -4,6 +4,7 @@ import { api } from '@/api/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { getErrorMessage } from '@/hooks/useApiError'
 import { getLocalTimeGreeting } from '@/lib/time-greeting'
+import { formatMoney } from '@/lib/utils'
 import { Progress } from '@/components/ui/progress'
 import { DashboardCurrencyConverter } from '@/components/dashboard/DashboardCurrencyConverter'
 
@@ -213,9 +214,7 @@ export function DashboardPage() {
               const goalAmount = Number(circle.goalAmount) || 0
               const progressValue = goalAmount > 0 ? (balance / goalAmount) * 100 : 0
               const currency = circle.currency ?? 'USD'
-              const fmt = (n: number) =>
-                n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-              const progressLabel = `${currency} ${fmt(balance)} / ${currency} ${fmt(goalAmount)} goal`
+              const progressLabel = `${formatMoney(balance, currency)} / ${formatMoney(goalAmount, currency)} goal`
 
               return (
                 <Link
