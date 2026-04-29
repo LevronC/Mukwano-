@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { api, authStorage } from '@/api/client'
 import type { AuthResponse, User } from '@/api/types'
 
@@ -40,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     const me = await api.get<User>('/auth/me')
-    setUser(me)
+    flushSync(() => setUser(me))
   }
 
   const refreshSession = async () => {
