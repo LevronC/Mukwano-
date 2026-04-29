@@ -95,6 +95,7 @@ export const router = createBrowserRouter([
               {
                 element: <OnboardingOnlyLayout />,
                 children: [
+                  { path: 'onboarding', element: <Navigate replace to="/onboarding/sector" /> },
                   { path: 'onboarding/sector', element: <OnboardingSectorPage /> },
                   { path: 'onboarding/country', element: <OnboardingCountryPage /> },
                   { path: 'onboarding/usa-state', element: <OnboardingUsaStatePage /> },

@@ -35,5 +35,29 @@ export default async function globalSetup(): Promise<void> {
     throw new Error(`E2E globalSetup dev-verify failed ${verifyRes.status}`)
   }
 
+  // Log in after verification to get a token with emailVerified=true, then
+  // complete onboarding so the seeded user can reach the dashboard directly.
+  const loginRes = await fetch(`${apiBase}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  })
+  if (!loginRes.ok) {
+    throw new Error(`E2E globalSetup login failed ${loginRes.status}`)
+  }
+  const { accessToken } = await loginRes.json() as { accessToken: string }
+
+  const onboardRes = await fetch(`${apiBase}/api/v1/auth/me`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`
+    },
+    body: JSON.stringify({ sector: 'Education', residenceCountry: 'United Kingdom' })
+  })
+  if (!onboardRes.ok) {
+    throw new Error(`E2E globalSetup onboarding patch failed ${onboardRes.status}`)
+  }
+
   writeFileSync(credPath, JSON.stringify({ email, password }, null, 0), 'utf8')
 }
